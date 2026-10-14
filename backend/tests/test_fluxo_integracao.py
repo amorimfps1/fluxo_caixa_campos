@@ -65,7 +65,7 @@ def _obter_token(
     return {"Authorization": f"Bearer {corpo['access_token']}"}
 
 
-def test_fluxo_financeiro_completo_e_isolamento_entre_usuarios(
+def test_cadastro_login_jwt_fluxo_financeiro_e_isolamento_entre_usuarios(
     client: TestClient,
 ) -> None:
     marcador = uuid4().hex
@@ -111,12 +111,19 @@ def test_fluxo_financeiro_completo_e_isolamento_entre_usuarios(
         assert usuario_logado_b.status_code == 200
         assert usuario_logado_a.json()["id"] == usuario_a["id"]
         assert usuario_logado_b.json()["id"] == usuario_b["id"]
+        assert "cpf" not in usuario_logado_a.json()
+        assert "cpf" not in usuario_logado_b.json()
 
         acesso_usuario_alheio = client.get(
             f"/usuarios/{usuario_a['id']}",
             headers=token_b,
         )
-        assert acesso_usuario_alheio.status_code == 403
+        assert acesso_usuario_alheio.status_code == 404
+        exclusao_usuario_alheio = client.delete(
+            f"/usuarios/{usuario_a['id']}",
+            headers=token_b,
+        )
+        assert exclusao_usuario_alheio.status_code == 404
 
         resposta_conta_a = client.post(
             "/contas-bancarias/",
@@ -220,7 +227,49 @@ def test_fluxo_financeiro_completo_e_isolamento_entre_usuarios(
             == 404
         )
         assert (
+            client.put(
+                f"/contas-bancarias/{conta_a['id']}",
+                headers=token_b,
+                json={
+                    "nome_banco": "Conta alterada indevidamente",
+                    "tipo_conta": "corrente",
+                    "ativa": False,
+                },
+            ).status_code
+            == 404
+        )
+        assert (
+            client.delete(
+                f"/contas-bancarias/{conta_a['id']}",
+                headers=token_b,
+            ).status_code
+            == 404
+        )
+        assert (
             client.get(
+                f"/fluxo-dinheiro/{movimento_a['id']}",
+                headers=token_b,
+            ).status_code
+            == 404
+        )
+        dados_movimentacao_alheia = {
+            "conta_bancaria_id": conta_b["id"],
+            "descricao": "Tentativa de edição cruzada",
+            "valor": "1.00",
+            "tipo": "entrada",
+            "categoria": "salario",
+            "data_movimentacao": hoje,
+        }
+        assert (
+            client.put(
+                f"/fluxo-dinheiro/{movimento_a['id']}",
+                headers=token_b,
+                json=dados_movimentacao_alheia,
+            ).status_code
+            == 404
+        )
+        assert (
+            client.delete(
                 f"/fluxo-dinheiro/{movimento_a['id']}",
                 headers=token_b,
             ).status_code
