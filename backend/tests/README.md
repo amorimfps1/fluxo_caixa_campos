@@ -7,7 +7,9 @@ arquivo `test_*.py` cobre uma área do sistema.
 ## Cobertura existente
 
 - agregações de entradas, saídas e investimentos e resumo do período;
-- transferência entre contas, criação das duas movimentações e reversão ao excluir;
+- transferência entre contas, reversão ao excluir, rejeição da mesma conta e
+  atomicidade quando o saldo é insuficiente;
+- precisão Decimal em entradas fracionárias, ajustes e saldos calculados;
 - bloqueio de saídas que deixariam saldo de poupança negativo;
 - validação dos dígitos verificadores do CPF;
 - correspondência entre o tipo de cálculo e o intervalo informado;

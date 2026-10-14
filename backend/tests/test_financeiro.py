@@ -162,6 +162,90 @@ def test_transferencia_e_exclusao_revertem_ambos_os_saldos(db: Session):
     assert destino.valor_conta_atual == Decimal("20.00")
 
 
+def test_transferencia_para_a_mesma_conta_e_rejeitada():
+    with pytest.raises(ValidationError):
+        FluxoDinheiroCreate(
+            conta_bancaria_id=1,
+            conta_destino_id=1,
+            descricao="Transferência inválida",
+            valor=Decimal("1.00"),
+            tipo="transferencia",
+            categoria="transferencia",
+            data_movimentacao=date.today(),
+        )
+
+
+def test_transferencia_sem_saldo_nao_altera_contas_nem_cria_movimentos(
+    db: Session,
+):
+    usuario = _criar_usuario(db)
+    origem = _criar_conta(db, usuario.id, "10.00", tipo="poupanca")
+    destino = _criar_conta(db, usuario.id, "20.00", tipo="poupanca")
+
+    with pytest.raises(HTTPException) as erro:
+        criar_movimentacao(
+            FluxoDinheiroCreate(
+                conta_bancaria_id=origem.id,
+                conta_destino_id=destino.id,
+                descricao="Transferência sem saldo",
+                valor=Decimal("15.00"),
+                tipo="transferencia",
+                categoria="transferencia",
+                data_movimentacao=date.today(),
+            ),
+            db,
+            usuario,
+        )
+
+    assert erro.value.status_code == 400
+    db.refresh(origem)
+    db.refresh(destino)
+    assert origem.valor_conta_atual == Decimal("10.00")
+    assert destino.valor_conta_atual == Decimal("20.00")
+    assert db.query(FluxoDinheiro).count() == 0
+
+
+def test_saldo_e_resumo_preservam_precisao_decimal_em_operacoes_fracionarias(
+    db: Session,
+):
+    usuario = _criar_usuario(db)
+    conta = _criar_conta(db, usuario.id, "0.00")
+    hoje = date.today()
+
+    for valor in (Decimal("0.10"), Decimal("0.20")):
+        criar_movimentacao(
+            FluxoDinheiroCreate(
+                conta_bancaria_id=conta.id,
+                descricao="Entrada fracionária",
+                valor=valor,
+                tipo="entrada",
+                categoria="salario",
+                data_movimentacao=hoje,
+            ),
+            db,
+            usuario,
+        )
+    criar_movimentacao(
+        FluxoDinheiroCreate(
+            conta_bancaria_id=conta.id,
+            descricao="Ajuste fracionário",
+            valor=Decimal("-0.01"),
+            tipo="ajuste",
+            categoria="ajuste",
+            data_movimentacao=hoje,
+        ),
+        db,
+        usuario,
+    )
+
+    db.refresh(conta)
+    resumo = calcular_resumo_periodo(db, conta.id, hoje, hoje)
+    assert conta.valor_conta_atual == Decimal("0.29")
+    assert resumo["total_entradas"] == Decimal("0.30")
+    assert resumo["total_ajustes"] == Decimal("-0.01")
+    assert resumo["saldo_final"] == Decimal("0.29")
+
+
 def test_poupanca_nao_pode_ficar_negativa(db: Session):
     usuario = _criar_usuario(db)
     conta = _criar_conta(db, usuario.id, "0.00", tipo="poupanca")
