@@ -20,7 +20,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://fluxocaixa"],
+    allow_origins=[
+        "http://app.fluxocaixa",
+        "http://app.fluxocaixa:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
@@ -42,4 +46,4 @@ def inicio():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("api:app", host="127.0.0.1", port=8000, reload=True)

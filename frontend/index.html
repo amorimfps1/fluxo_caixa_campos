@@ -1,0 +1,257 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="description"
+        content="Painel de controle financeiro pessoal do Fluxo de Caixa."
+    >
+
+    <title>Fluxo de Caixa | Dashboard</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/api.js" defer></script>
+    <script src="js/dashboard.js" defer></script>
+</head>
+
+<body>
+    <div class="app">
+
+        <!-- Menu lateral -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">FC</div>
+
+                <div>
+                    <h1>Fluxo de Caixa</h1>
+                    <span>Controle financeiro</span>
+                </div>
+            </div>
+
+            <nav class="navigation" aria-label="Menu principal">
+                <p class="menu-label">MENU PRINCIPAL</p>
+
+                <a href="#dashboard" class="nav-link active">
+                    <span aria-hidden="true">▦</span>
+                    Dashboard
+                </a>
+
+                <a href="#contas" class="nav-link">
+                    <span aria-hidden="true">▤</span>
+                    Contas bancárias
+                </a>
+
+                <a href="#movimentacoes" class="nav-link">
+                    <span aria-hidden="true">↕</span>
+                    Movimentações
+                </a>
+
+                <a href="#categorias" class="nav-link">
+                    <span aria-hidden="true">▧</span>
+                    Categorias
+                </a>
+
+                <a href="#investimentos" class="nav-link">
+                    <span aria-hidden="true">↗</span>
+                    Investimentos
+                </a>
+
+                <a href="#relatorios" class="nav-link">
+                    <span aria-hidden="true">▥</span>
+                    Relatórios
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <span class="status-dot"></span>
+                API do projeto
+                <span class="status-text">A conectar</span>
+            </div>
+        </aside>
+
+        <!-- Conteúdo principal -->
+        <main class="main-content" id="dashboard">
+
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">VISÃO GERAL</p>
+                    <h2>Dashboard financeiro</h2>
+                    <p class="subtitle">
+                        Acompanhe suas finanças em um só lugar.
+                    </p>
+                </div>
+
+                <div class="topbar-actions">
+                    <span class="date-label" id="current-date">
+                        Carregando data...
+                    </span>
+
+                    <button
+                        type="button"
+                        class="button-primary"
+                        id="new-movement"
+                    >
+                        + Nova movimentação
+                    </button>
+                </div>
+            </header>
+
+            <!-- Indicadores financeiros -->
+            <section class="summary-grid" aria-label="Resumo financeiro">
+
+                <article class="summary-card">
+                    <div class="card-heading">
+                        <span>Saldo total</span>
+                        <span class="card-icon">R$</span>
+                    </div>
+
+                    <p class="card-value" id="total-balance">
+                        —
+                    </p>
+
+                    <p class="card-description">
+                        Saldo das contas cadastradas
+                    </p>
+                </article>
+
+                <article class="summary-card">
+                    <div class="card-heading">
+                        <span>Receitas do mês</span>
+                        <span class="card-icon income-icon">↑</span>
+                    </div>
+
+                    <p class="card-value" id="total-income">
+                        —
+                    </p>
+
+                    <p class="card-description">
+                        Entradas financeiras do mês
+                    </p>
+                </article>
+
+                <article class="summary-card">
+                    <div class="card-heading">
+                        <span>Despesas do mês</span>
+                        <span class="card-icon expense-icon">↓</span>
+                    </div>
+
+                    <p class="card-value" id="total-expenses">
+                        —
+                    </p>
+
+                    <p class="card-description">
+                        Saídas financeiras do mês
+                    </p>
+                </article>
+
+                <article class="summary-card">
+                    <div class="card-heading">
+                        <span>Resultado do mês</span>
+                        <span class="card-icon">=</span>
+                    </div>
+
+                    <p class="card-value" id="monthly-result">
+                        —
+                    </p>
+
+                    <p class="card-description">
+                        Receitas menos despesas
+                    </p>
+                </article>
+
+            </section>
+
+            <!-- Área de gráficos -->
+            <section class="content-grid">
+
+                <article class="panel chart-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Visão financeira</h3>
+                            <p>Receitas e despesas mensais</p>
+                        </div>
+
+                        <span class="period-label">Este mês</span>
+                    </div>
+
+                    <div class="chart-placeholder">
+                        <div class="chart-symbol" aria-hidden="true">▥</div>
+
+                        <h4>Seu gráfico aparecerá aqui</h4>
+
+                        <p>
+                            Conectaremos este painel aos dados reais
+                            da API na próxima etapa.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Contas bancárias</h3>
+                            <p>Resumo das suas contas</p>
+                        </div>
+                    </div>
+
+                    <div class="empty-state" id="accounts-list">
+                        <div class="empty-icon" aria-hidden="true">▤</div>
+
+                        <p>Nenhuma conta carregada.</p>
+
+                        <span>
+                            Os dados aparecerão após a integração com a API.
+                        </span>
+                    </div>
+                </article>
+
+            </section>
+
+            <!-- Tabela de movimentações -->
+            <section class="panel transactions-panel" id="movimentacoes">
+                <div class="panel-header">
+                    <div>
+                        <h3>Movimentações recentes</h3>
+                        <p>Últimas entradas e saídas financeiras</p>
+                    </div>
+
+                    <a href="#movimentacoes" class="text-link">
+                        Ver todas
+                    </a>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th class="align-right">Valor</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="transactions-list">
+                            <tr>
+                                <td colspan="5" class="table-empty">
+                                            Carregando movimentações da API...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <footer class="footer">
+                <p>Fluxo de Caixa · Controle financeiro pessoal</p>
+                <p>Frontend em desenvolvimento</p>
+            </footer>
+
+        </main>
+    </div>
+</body>
+</html>

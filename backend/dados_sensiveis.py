@@ -64,3 +64,22 @@ def indice_cpf(cpf: str) -> str:
         cpf.encode("ascii"),
         hashlib.sha256,
     ).hexdigest()
+
+
+def criptografar_telefone(telefone: str) -> str:
+    if not telefone:
+        raise ValueError("Telefone não pode ficar vazio.")
+    return _fernet(_chave_cpf()).encrypt(
+        telefone.encode("utf-8")
+    ).decode("ascii")
+
+
+def descriptografar_telefone(telefone_cifrado: str) -> str:
+    try:
+        return _fernet(_chave_cpf()).decrypt(
+            telefone_cifrado.encode("ascii")
+        ).decode("utf-8")
+    except (InvalidToken, UnicodeEncodeError, UnicodeDecodeError) as erro:
+        raise ValueError(
+            "Não foi possível descriptografar o telefone."
+        ) from erro

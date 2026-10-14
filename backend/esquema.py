@@ -7,6 +7,7 @@ from pydantic import (
     field_validator
 )
 from pydantic import model_validator
+from dados_sensiveis import descriptografar_telefone
 
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import date, datetime
@@ -61,6 +62,7 @@ class UsuarioCreate(InputModel):
 
     cpf: str
     email: EmailStr
+    telefone: str | None = Field(default=None, max_length=32)
 
     senha: str = Field(
         min_length=8,
@@ -71,6 +73,30 @@ class UsuarioCreate(InputModel):
     @classmethod
     def normalizar_email(cls, valor: EmailStr) -> str:
         return str(valor).strip().lower()
+
+    @field_validator("telefone")
+    @classmethod
+    def validar_telefone(cls, valor: str | None) -> str | None:
+        if valor is None or not valor.strip():
+            return None
+
+        telefone = valor.strip()
+        caracteres_permitidos = set("+0123456789 ().-")
+        if any(caractere not in caracteres_permitidos for caractere in telefone):
+            raise ValueError("O telefone contém caracteres inválidos.")
+        if telefone.count("+") > 1 or (
+            "+" in telefone and not telefone.startswith("+")
+        ):
+            raise ValueError("O código do país deve aparecer no início.")
+
+        digitos = "".join(
+            caractere for caractere in telefone if caractere.isdigit()
+        )
+        if not 10 <= len(digitos) <= 15:
+            raise ValueError(
+                "O telefone deve conter entre 10 e 15 dígitos."
+            )
+        return telefone
 
     # -----------------------------------------------------
     # VALIDAR NOME
@@ -180,7 +206,18 @@ class UsuarioResponse(BaseModel):
     id: int
     nome_completo: str
     email: EmailStr
+    telefone: str | None
     criado_em: datetime
+
+    @field_validator("telefone", mode="before")
+    @classmethod
+    def descriptografar_telefone_no_retorno(
+        cls,
+        valor: str | None,
+    ) -> str | None:
+        if valor is None:
+            return None
+        return descriptografar_telefone(valor)
 
     model_config = ConfigDict(
         from_attributes=True

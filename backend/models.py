@@ -58,6 +58,11 @@ class Usuario(Base):
         nullable=False
     )
 
+    telefone = Column(
+        String(255),
+        nullable=True,
+    )
+
     senha_hash = Column(
         String(255),
         nullable=False

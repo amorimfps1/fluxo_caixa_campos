@@ -1,0 +1,930 @@
+
+/* ========================================
+   FLUXO DE CAIXA
+   Estilos principais do dashboard
+======================================== */
+
+/* 1. Variáveis de cores e configurações */
+:root {
+    --color-primary: #16a34a;
+    --color-primary-dark: #15803d;
+    --color-primary-light: #dcfce7;
+
+    --color-background: #f5f7fb;
+    --color-surface: #ffffff;
+
+    --color-text: #172033;
+    --color-text-secondary: #64748b;
+    --color-border: #e8edf4;
+
+    --color-income: #16a34a;
+    --color-expense: #dc2626;
+
+    --sidebar-width: 260px;
+    --radius-card: 16px;
+
+    --shadow-card: 0 4px 18px rgba(15, 23, 42, 0.04);
+}
+
+/* 2. Reset e configurações globais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+    background: var(--color-background);
+    color: var(--color-text);
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible {
+    outline: 3px solid rgba(22, 163, 74, 0.35);
+    outline-offset: 3px;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button {
+    cursor: pointer;
+}
+
+/* 3. Estrutura geral */
+.app {
+    min-height: 100vh;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 10;
+
+    display: flex;
+    flex-direction: column;
+
+    width: var(--sidebar-width);
+    padding: 28px 18px;
+
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+}
+
+/* 4. Identidade visual */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 0 8px 32px;
+}
+
+.brand-icon {
+    display: grid;
+    place-items: center;
+
+    width: 44px;
+    height: 44px;
+
+    border-radius: 13px;
+    background: var(--color-primary);
+    color: #ffffff;
+
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.brand h1 {
+    font-size: 16px;
+    font-weight: 750;
+    letter-spacing: -0.5px;
+}
+
+.brand span {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+/* 5. Navegação lateral */
+.navigation {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.menu-label {
+    margin: 0 10px 12px;
+
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+
+    min-height: 46px;
+    padding: 0 13px;
+
+    border-radius: 10px;
+    color: #64748b;
+
+    font-weight: 550;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.nav-link > span {
+    display: grid;
+    place-items: center;
+
+    width: 22px;
+    font-size: 19px;
+}
+
+.nav-link:hover {
+    background: #f1f5f9;
+    color: var(--color-text);
+}
+
+.nav-link.active {
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    font-weight: 700;
+}
+
+.nav-link.active > span {
+    color: var(--color-primary);
+}
+
+/* 6. Status da API */
+.sidebar-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    margin-top: auto;
+    padding: 17px 10px 0;
+
+    border-top: 1px solid var(--color-border);
+
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+}
+
+.status-text {
+    width: 100%;
+    padding-left: 16px;
+    color: #b45309;
+    font-size: 11px;
+}
+
+/* 7. Conteúdo principal */
+.main-content {
+    min-height: 100vh;
+    margin-left: var(--sidebar-width);
+    padding: 34px 38px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+
+    margin-bottom: 30px;
+}
+
+.eyebrow {
+    margin-bottom: 7px;
+
+    color: var(--color-primary-dark);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+}
+
+.topbar h2 {
+    font-size: clamp(23px, 2.4vw, 30px);
+    font-weight: 750;
+    letter-spacing: -1px;
+    line-height: 1.25;
+}
+
+.subtitle {
+    margin-top: 8px;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.date-label {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+/* 8. Botão principal */
+.button-primary {
+    min-height: 44px;
+    padding: 0 17px;
+
+    border: 0;
+    border-radius: 10px;
+
+    background: var(--color-primary);
+    color: #ffffff;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.15);
+
+    transition:
+        background 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.button-primary:hover {
+    background: var(--color-primary-dark);
+    box-shadow: 0 6px 14px rgba(22, 163, 74, 0.2);
+    transform: translateY(-1px);
+}
+
+.button-primary:active {
+    transform: translateY(0);
+}
+
+/* 9. Cartões de resumo */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+
+    margin-bottom: 24px;
+}
+
+.summary-card {
+    min-width: 0;
+    padding: 22px 20px;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.07);
+}
+
+.card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.card-icon {
+    display: grid;
+    place-items: center;
+
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+
+    border-radius: 10px;
+    background: #f1f5f9;
+
+    color: #475569;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.income-icon {
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 19px;
+}
+
+.expense-icon {
+    background: #fee2e2;
+    color: #b91c1c;
+    font-size: 19px;
+}
+
+.card-value {
+    overflow-wrap: anywhere;
+    margin: 18px 0 8px;
+
+    font-size: clamp(19px, 1.8vw, 26px);
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    line-height: 1.2;
+}
+
+.card-description {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+}
+
+/* 10. Painéis e gráficos */
+.content-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+    gap: 22px;
+
+    margin-bottom: 24px;
+}
+
+.panel {
+    min-width: 0;
+    padding: 24px;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+
+    margin-bottom: 24px;
+}
+
+.panel-header h3 {
+    font-size: 15px;
+    font-weight: 750;
+    letter-spacing: -0.3px;
+}
+
+.panel-header p {
+    margin-top: 5px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+.period-label {
+    padding: 7px 10px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+
+    color: var(--color-text-secondary);
+    font-size: 11px;
+}
+
+/* 11. Espaço reservado ao gráfico */
+.chart-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 230px;
+    padding: 25px;
+
+    border: 1px dashed #dbe4ee;
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #f8fafc 100%
+        );
+
+    text-align: center;
+}
+
+.chart-symbol {
+    display: grid;
+    place-items: center;
+
+    width: 48px;
+    height: 48px;
+    margin-bottom: 15px;
+
+    border-radius: 14px;
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+
+    font-size: 26px;
+}
+
+.chart-placeholder h4 {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.chart-placeholder p {
+    max-width: 290px;
+    margin-top: 8px;
+
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+/* 12. Estado vazio das contas */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 230px;
+    text-align: center;
+}
+
+.empty-icon {
+    display: grid;
+    place-items: center;
+
+    width: 50px;
+    height: 50px;
+    margin-bottom: 15px;
+
+    border-radius: 15px;
+    background: #f1f5f9;
+
+    color: #64748b;
+    font-size: 24px;
+}
+
+.empty-state p {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.empty-state > span {
+    max-width: 220px;
+    margin-top: 7px;
+
+    color: var(--color-text-secondary);
+    font-size: 11px;
+}
+
+.accounts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.account-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.account-summary:last-child {
+    border-bottom: 0;
+}
+
+.account-summary span {
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+/* 13. Tabela de movimentações */
+.transactions-panel {
+    margin-bottom: 24px;
+}
+
+.text-link {
+    color: var(--color-primary-dark);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.text-link:hover {
+    text-decoration: underline;
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    white-space: nowrap;
+}
+
+thead {
+    background: #f8fafc;
+}
+
+th {
+    padding: 14px 15px;
+
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+td {
+    padding: 17px 15px;
+
+    border-bottom: 1px solid #edf1f6;
+
+    color: #334155;
+    font-size: 12px;
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+tbody tr:hover {
+    background: #fafcff;
+}
+
+.align-right {
+    text-align: right;
+}
+
+.table-empty {
+    padding: 35px 15px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    white-space: normal;
+}
+
+/* Tela de autenticação */
+.login-page {
+    background:
+        radial-gradient(circle at top left, #dcfce7, transparent 38%),
+        var(--color-background);
+}
+
+.login-shell {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 24px;
+}
+
+.login-card {
+    width: min(100%, 420px);
+    padding: 32px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+}
+
+.register-card {
+    width: min(100%, 480px);
+}
+
+.login-brand {
+    padding: 0 0 28px;
+}
+
+.login-card h2 {
+    font-size: 22px;
+    letter-spacing: -0.5px;
+}
+
+.login-description {
+    margin-top: 7px;
+    color: var(--color-text-secondary);
+}
+
+.login-form {
+    display: grid;
+    gap: 18px;
+    margin-top: 26px;
+}
+
+.form-field {
+    display: grid;
+    gap: 7px;
+}
+
+.form-field label {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.field-optional,
+.field-help {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.field-help {
+    margin-top: -3px;
+}
+
+.form-field input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    background: #ffffff;
+    color: var(--color-text);
+}
+
+.form-field input:focus-visible {
+    outline: 3px solid rgba(22, 163, 74, 0.2);
+    border-color: var(--color-primary);
+}
+
+.form-message {
+    min-height: 20px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+}
+
+.form-message.error {
+    color: var(--color-expense);
+}
+
+.form-message.info {
+    color: var(--color-primary-dark);
+}
+
+.login-submit {
+    width: 100%;
+}
+
+.login-submit:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.login-footer {
+    margin-top: 20px;
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    text-align: center;
+}
+
+.login-footer a {
+    color: var(--color-primary-dark);
+    font-weight: 700;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Classes disponíveis para movimentações futuras */
+.transaction-income {
+    color: var(--color-income);
+    font-weight: 700;
+}
+
+.transaction-expense {
+    color: var(--color-expense);
+    font-weight: 700;
+}
+
+/* 14. Rodapé */
+.footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    padding: 10px 2px 0;
+
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+/* 15. Tablets e telas menores */
+@media (max-width: 1200px) {
+    :root {
+        --sidebar-width: 225px;
+    }
+
+    .main-content {
+        padding: 28px 24px;
+    }
+
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .content-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* 16. Celulares */
+@media (max-width: 700px) {
+    :root {
+        --sidebar-width: 0px;
+    }
+
+    .sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+
+        padding: 17px 16px;
+
+        border-right: 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .brand {
+        padding: 0 2px 17px;
+    }
+
+    .navigation {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .menu-label {
+        grid-column: 1 / -1;
+        margin: 0 5px 5px;
+    }
+
+    .nav-link {
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 9px;
+        font-size: 11px;
+    }
+
+    .nav-link > span {
+        width: 19px;
+        font-size: 16px;
+    }
+
+    .sidebar-footer {
+        display: none;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 24px 16px;
+    }
+
+    .topbar {
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .topbar h2 {
+        font-size: 24px;
+    }
+
+    .topbar-actions {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .button-primary {
+        width: 100%;
+    }
+
+    .summary-grid {
+        gap: 12px;
+    }
+
+    .summary-card {
+        padding: 16px 13px;
+        border-radius: 13px;
+    }
+
+    .card-heading {
+        align-items: flex-start;
+        font-size: 11px;
+    }
+
+    .card-icon {
+        width: 29px;
+        height: 29px;
+        font-size: 11px;
+    }
+
+    .card-value {
+        margin-top: 14px;
+        font-size: clamp(17px, 4.5vw, 23px);
+    }
+
+    .card-description {
+        font-size: 10px;
+    }
+
+    .panel {
+        padding: 18px 14px;
+    }
+
+    .panel-header {
+        margin-bottom: 18px;
+    }
+
+    .chart-placeholder,
+    .empty-state {
+        min-height: 190px;
+    }
+
+    .footer {
+        flex-direction: column;
+        padding-bottom: 10px;
+    }
+}
+
+/* 17. Celulares muito estreitos */
+@media (max-width: 360px) {
+    .navigation {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .summary-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* 18. Respeitar preferência por movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

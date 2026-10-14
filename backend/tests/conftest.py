@@ -7,10 +7,14 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
-os.environ.setdefault(
-    "CPF_ENCRYPTION_KEY",
-    "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=",
+os.environ.update(
+    {
+        "DATABASE_URL": "sqlite:///:memory:",
+        "JWT_SECRET_KEY": "test-only-jwt-signing-key-do-not-use",
+        "CPF_ENCRYPTION_KEY": (
+            "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+        ),
+    }
 )
 
 from database import Base, get_db  # noqa: E402

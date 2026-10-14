@@ -12,7 +12,11 @@ from models import TentativaLogin, Usuario
 from esquema import UsuarioCreate, UsuarioResponse
 from seguranca.seguranca import gerar_hash_senha, verificar_senha
 from autenticacao import criar_token, obter_usuario_logado
-from dados_sensiveis import criptografar_cpf, indice_cpf
+from dados_sensiveis import (
+    criptografar_cpf,
+    criptografar_telefone,
+    indice_cpf,
+)
 
 
 router = APIRouter(
@@ -20,21 +24,36 @@ router = APIRouter(
 )
 
 _HASH_SENHA_INEXISTENTE = gerar_hash_senha(token_urlsafe(32))
-LIMITE_FALHAS_LOGIN = 5
-JANELA_FALHAS_LOGIN = timedelta(minutes=15)
-RETENCAO_TENTATIVA_LOGIN = timedelta(days=1)
+LIMITE_TENTATIVAS = 5
+JANELA_TENTATIVAS = timedelta(minutes=15)
+RETENCAO_TENTATIVAS = timedelta(days=1)
 
 
 def _agora_utc_sem_fuso() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+def _chave_controle(prefixo: str, valor: str) -> str:
+    return hashlib.sha256(
+        f"{prefixo}:{valor}".encode("utf-8")
+    ).hexdigest()
+
+
 def _chave_cliente_login(request: Request) -> str:
     endereco = request.client.host if request.client else "desconhecido"
-    return hashlib.sha256(endereco.encode("utf-8")).hexdigest()
+    return _chave_controle("login-ip", endereco)
 
 
-def _obter_tentativa_login(
+def _chave_conta_login(email: str) -> str:
+    return _chave_controle("login-email", email.strip().lower())
+
+
+def _chave_cliente_cadastro(request: Request) -> str:
+    endereco = request.client.host if request.client else "desconhecido"
+    return _chave_controle("cadastro-ip", endereco)
+
+
+def _obter_tentativa(
     db: Session,
     chave_cliente: str,
 ) -> TentativaLogin | None:
@@ -46,73 +65,86 @@ def _obter_tentativa_login(
     )
 
 
-def _verificar_limite_login(db: Session, chave_cliente: str) -> None:
+def _verificar_limites(
+    db: Session,
+    chaves_cliente: tuple[str, ...],
+) -> None:
     agora = _agora_utc_sem_fuso()
     db.query(TentativaLogin).filter(
-        TentativaLogin.inicio_janela < agora - RETENCAO_TENTATIVA_LOGIN
+        TentativaLogin.inicio_janela < agora - RETENCAO_TENTATIVAS
     ).delete(synchronize_session=False)
     db.commit()
 
-    tentativa = _obter_tentativa_login(db, chave_cliente)
-    if tentativa is None:
-        return
+    for chave_cliente in chaves_cliente:
+        tentativa = _obter_tentativa(db, chave_cliente)
+        if tentativa is None:
+            continue
 
-    if tentativa.bloqueado_ate and tentativa.bloqueado_ate > agora:
-        segundos = max(
-            1,
-            int((tentativa.bloqueado_ate - agora).total_seconds()),
-        )
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Muitas tentativas de login. Tente novamente mais tarde.",
-            headers={"Retry-After": str(segundos)},
-        )
+        if tentativa.bloqueado_ate and tentativa.bloqueado_ate > agora:
+            segundos = max(
+                1,
+                int((tentativa.bloqueado_ate - agora).total_seconds()),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Muitas tentativas. Tente novamente mais tarde.",
+                headers={"Retry-After": str(segundos)},
+            )
 
-    if agora - tentativa.inicio_janela >= JANELA_FALHAS_LOGIN:
-        tentativa.tentativas = 0
-        tentativa.inicio_janela = agora
-        tentativa.bloqueado_ate = None
-        db.commit()
-
-
-def _registrar_falha_login(db: Session, chave_cliente: str) -> bool:
-    agora = _agora_utc_sem_fuso()
-    tentativa = _obter_tentativa_login(db, chave_cliente)
-    if tentativa is None:
-        try:
-            with db.begin_nested():
-                tentativa = TentativaLogin(
-                    chave_cliente=chave_cliente,
-                    tentativas=1,
-                    inicio_janela=agora,
-                )
-                db.add(tentativa)
-                db.flush()
-            db.commit()
-            return False
-        except IntegrityError:
-            tentativa = _obter_tentativa_login(db, chave_cliente)
-            if tentativa is None:
-                raise
-
-    if agora - tentativa.inicio_janela >= JANELA_FALHAS_LOGIN:
-        tentativa.tentativas = 0
-        tentativa.inicio_janela = agora
-        tentativa.bloqueado_ate = None
-
-    tentativa.tentativas += 1
-    if tentativa.tentativas >= LIMITE_FALHAS_LOGIN:
-        tentativa.bloqueado_ate = agora + JANELA_FALHAS_LOGIN
-    bloqueado = tentativa.bloqueado_ate is not None
+        if agora - tentativa.inicio_janela >= JANELA_TENTATIVAS:
+            tentativa.tentativas = 0
+            tentativa.inicio_janela = agora
+            tentativa.bloqueado_ate = None
     db.commit()
+
+
+def _registrar_tentativa(
+    db: Session,
+    chaves_cliente: tuple[str, ...],
+) -> bool:
+    agora = _agora_utc_sem_fuso()
+    bloqueado = False
+    for chave_cliente in chaves_cliente:
+        tentativa = _obter_tentativa(db, chave_cliente)
+        if tentativa is None:
+            try:
+                with db.begin_nested():
+                    tentativa = TentativaLogin(
+                        chave_cliente=chave_cliente,
+                        tentativas=1,
+                        inicio_janela=agora,
+                    )
+                    db.add(tentativa)
+                    db.flush()
+                db.commit()
+                continue
+            except IntegrityError:
+                tentativa = _obter_tentativa(db, chave_cliente)
+                if tentativa is None:
+                    raise
+
+        if agora - tentativa.inicio_janela >= JANELA_TENTATIVAS:
+            tentativa.tentativas = 0
+            tentativa.inicio_janela = agora
+            tentativa.bloqueado_ate = None
+
+        tentativa.tentativas += 1
+        if tentativa.tentativas >= LIMITE_TENTATIVAS:
+            tentativa.bloqueado_ate = agora + JANELA_TENTATIVAS
+        bloqueado = bloqueado or tentativa.bloqueado_ate is not None
+        db.commit()
     return bloqueado
 
 
-def _limpar_falhas_login(db: Session, chave_cliente: str) -> None:
-    tentativa = _obter_tentativa_login(db, chave_cliente)
-    if tentativa is not None:
-        db.delete(tentativa)
-        db.commit()
+def _limpar_tentativas(
+    db: Session,
+    chaves_cliente: tuple[str, ...],
+) -> None:
+    for chave_cliente in chaves_cliente:
+        tentativa = _obter_tentativa(db, chave_cliente)
+        if tentativa is not None:
+            db.delete(tentativa)
+    db.commit()
 
 
 # =========================================================
@@ -126,8 +158,12 @@ def _limpar_falhas_login(db: Session, chave_cliente: str) -> None:
 )
 def criar_usuario(
     usuario: UsuarioCreate,
+    request: Request,
     db: Session = Depends(get_db)
 ):
+    chave_cliente = _chave_cliente_cadastro(request)
+    _verificar_limites(db, (chave_cliente,))
+    _registrar_tentativa(db, (chave_cliente,))
 
     usuario_existente = (
         db.query(Usuario)
@@ -149,6 +185,11 @@ def criar_usuario(
         cpf=criptografar_cpf(usuario.cpf),
         cpf_indice=indice_cpf(usuario.cpf),
         email=usuario.email,
+        telefone=(
+            criptografar_telefone(usuario.telefone)
+            if usuario.telefone
+            else None
+        ),
         senha_hash=gerar_hash_senha(usuario.senha)
     )
 
@@ -176,8 +217,11 @@ def login(
     dados: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    chave_cliente = _chave_cliente_login(request)
-    _verificar_limite_login(db, chave_cliente)
+    chaves_cliente = (
+        _chave_cliente_login(request),
+        _chave_conta_login(dados.username),
+    )
+    _verificar_limites(db, chaves_cliente)
 
     usuario = (
         db.query(Usuario)
@@ -192,12 +236,12 @@ def login(
             dados.password,
             _HASH_SENHA_INEXISTENTE,
         )
-        bloqueado = _registrar_falha_login(db, chave_cliente)
+        bloqueado = _registrar_tentativa(db, chaves_cliente)
         if bloqueado:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Muitas tentativas de login. Tente novamente mais tarde.",
-                headers={"Retry-After": str(int(JANELA_FALHAS_LOGIN.total_seconds()))},
+                headers={"Retry-After": str(int(JANELA_TENTATIVAS.total_seconds()))},
             )
         raise HTTPException(
             status_code=401,
@@ -210,19 +254,19 @@ def login(
     )
 
     if not senha_correta:
-        bloqueado = _registrar_falha_login(db, chave_cliente)
+        bloqueado = _registrar_tentativa(db, chaves_cliente)
         if bloqueado:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Muitas tentativas de login. Tente novamente mais tarde.",
-                headers={"Retry-After": str(int(JANELA_FALHAS_LOGIN.total_seconds()))},
+                headers={"Retry-After": str(int(JANELA_TENTATIVAS.total_seconds()))},
             )
         raise HTTPException(
             status_code=401,
             detail="E-mail ou senha inválidos."
         )
 
-    _limpar_falhas_login(db, chave_cliente)
+    _limpar_tentativas(db, chaves_cliente)
     token = criar_token(usuario.id)
 
     return {
@@ -286,8 +330,8 @@ def buscar_usuario(
 
     if usuario_id != usuario.id:
         raise HTTPException(
-            status_code=403,
-            detail="Você não pode acessar outro usuário."
+            status_code=404,
+            detail="Usuário não encontrado."
         )
 
     usuario_encontrado = (
@@ -320,8 +364,8 @@ def excluir_usuario(
 
     if usuario_id != usuario.id:
         raise HTTPException(
-            status_code=403,
-            detail="Você não pode excluir outro usuário."
+            status_code=404,
+            detail="Usuário não encontrado."
         )
 
     usuario_encontrado = (
