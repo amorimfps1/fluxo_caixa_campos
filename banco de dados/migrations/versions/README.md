@@ -6,11 +6,14 @@ Os arquivos Python desta pasta descrevem, em ordem, as alterações versionadas 
 
 | Revisão | Descrição |
 |---|---|
-| `20261008_0001` | Cria o esquema inicial: usuários, contas bancárias, movimentações, cálculos financeiros e metas. |
-| `20261008_0002` | Adiciona os campos que relacionam as duas pontas de uma transferência e a conta contraparte. |
-| `20261008_0003` | Cria `categorias_movimentacao`, normaliza categorias existentes e adiciona a referência entre movimentações e categorias. |
+| `esquema_inicial` | Cria usuários, contas bancárias, movimentações, cálculos financeiros e metas. |
+| `transferencias` | Relaciona as duas pontas de uma transferência e a conta contraparte. |
+| `categorias_movimentacao` | Cria categorias fixas e normaliza movimentações existentes. |
 | `ajustes_e_resumos` | Adiciona ajustes assinados, totais separados de transferências e normaliza categorias legadas para a lista fixa. |
 | `limite_login` | Cria o armazenamento de tentativas de login para limitar falhas por endereço cliente. |
+| `normalizar_schema` | Normaliza o esquema MySQL existente. |
+| `proteger_cpf` | Cifra CPFs armazenados e cria índices HMAC para duplicatas. |
+| `adicionar_telefone_usuario` | Adiciona telefone opcional cifrado ao cadastro. |
 
 As dependências entre revisões são declaradas por `down_revision`. Os IDs das revisões antigas foram mantidos para preservar compatibilidade com bancos que já as aplicaram. Não renomeie ou remova revisões já aplicadas; crie uma nova revisão para mudanças futuras e revise o resultado antes de aplicá-la a dados existentes.
 

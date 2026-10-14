@@ -12,8 +12,7 @@ A principal função da pasta `seguranca` é garantir que as senhas não sejam a
 seguranca/
 ├── __init__.py
 ├── seguranca.py
-├── readme.md
-└── __pycache__/
+└── readme.md
 ```
 
 ---
@@ -135,7 +134,10 @@ Esse campo guarda apenas o hash, nunca a senha em texto puro.
 - o módulo é importado corretamente pela aplicação;
 - a segurança fica separada da regra de negócio da API;
 - o segredo JWT vem da variável de ambiente `JWT_SECRET_KEY`, deve ter pelo menos 32 caracteres e não deve ser versionado;
-- as respostas da API omitem CPF; o CPF, porém, ainda é armazenado sem criptografia no banco e exige proteção antes do uso de dados reais em produção.
+- as respostas da API omitem CPF; o CPF é cifrado com Fernet antes do
+  armazenamento e um índice HMAC separado é usado para detectar duplicatas;
+- mantenha `CPF_ENCRYPTION_KEY` em segredo e com backup seguro: sem a chave
+  correta, os CPFs e telefones cifrados não podem ser recuperados.
 
 Exemplo de importação:
 

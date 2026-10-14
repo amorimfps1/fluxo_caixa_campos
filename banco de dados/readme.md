@@ -28,8 +28,10 @@ Armazena os dados pessoais e de autenticação dos usuários.
 |---|---|---|
 | `id` | INT | Identificador único do usuário |
 | `nome_completo` | VARCHAR(150) | Nome completo |
-| `cpf` | VARCHAR(11) | CPF do usuário |
+| `cpf` | VARCHAR(255) | CPF cifrado com Fernet |
+| `cpf_indice` | VARCHAR(64) | Índice HMAC para detectar duplicatas |
 | `email` | VARCHAR(100) | E-mail principal |
+| `telefone` | VARCHAR(255), NULL | Telefone opcional cifrado com Fernet |
 | `senha_hash` | VARCHAR(255) | Senha em formato seguro |
 | `criado_em` | TIMESTAMP | Data de criação |
 
@@ -37,9 +39,10 @@ Armazena os dados pessoais e de autenticação dos usuários.
 
 Essa tabela identifica quem usa o sistema e guarda os dados essenciais para cadastro e autenticação.
 
-O CPF é dado pessoal: embora seja omitido nas respostas da API, atualmente é
-armazenado sem criptografia. Antes de usar dados reais em produção, implemente
-proteção apropriada e controles de acesso e retenção.
+O CPF é dado pessoal: é cifrado com Fernet usando `CPF_ENCRYPTION_KEY`, e a
+API não o inclui nas respostas. O índice HMAC também depende dessa chave.
+Proteja a chave e mantenha backup seguro; perder ou trocar a chave sem
+recifragem impede recuperar e consultar corretamente os CPFs armazenados.
 
 ---
 

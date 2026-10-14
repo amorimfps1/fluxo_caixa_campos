@@ -5,9 +5,17 @@ Esta pasta contém a configuração e o histórico oficial das migrações Alemb
 ## Arquivos
 
 - `env.py` carrega a URL de conexão configurada em `DATABASE_URL`, importa os modelos do projeto para obter os metadados SQLAlchemy e executa as revisões em modo online ou offline.
-- `versions/` contém as revisões ordenadas por dependência: esquema inicial; transferências; categorias fixas/normalizadas; ajustes e totais separados nos resumos; e limite persistente de tentativas de login.
+- `versions/` contém as revisões ordenadas por dependência: esquema inicial;
+  transferências; categorias fixas/normalizadas; ajustes e resumos; limite de
+  tentativas de login; normalização MySQL; cifragem de CPF; e telefone
+  opcional cifrado.
 
-Os três primeiros arquivos usam nomes em inglês com numeração (`20261008_0001_initial_schema.py`, `20261008_0002_transfer_movements.py` e `20261008_0003_movement_categories.py`). Os IDs internos dessas revisões foram preservados para compatibilidade com bancos que possam já as ter aplicado. Novas revisões usam o slug em `file_template = %%(slug)s`; para solicitar também um ID descritivo, informe `--rev-id` ao comando Alembic.
+Os arquivos de revisão têm nomes descritivos em português; os IDs usados pelo
+Alembic estão declarados nos próprios arquivos e ligados por `down_revision`.
+Esses IDs são parte do histórico dos bancos: não renomeie nem remova revisões
+já aplicadas. Consulte o histórico em
+[versions/README.md](versions/README.md). Novas revisões usam o slug definido
+em `file_template = %%(slug)s`.
 
 ## Comandos
 
@@ -23,4 +31,8 @@ Para consultar a revisão atualmente aplicada:
 python -m alembic -c "banco de dados/alembic.ini" current
 ```
 
-`DATABASE_URL` deve estar configurada antes da execução. Em um banco existente, faça backup e compare o esquema com a revisão inicial antes de usar `stamp` ou aplicar atualizações. Não execute as migrações contra um banco com dados sem verificar previamente o destino e o esquema.
+`DATABASE_URL` deve estar configurada antes da execução. Antes de aplicar
+qualquer revisão, confirme que ela aponta para a base correta. Em banco
+existente, faça backup e compare o esquema com as revisões antes de usar
+`stamp` ou aplicar atualizações. Nunca execute comandos Alembic contra
+produção sem revisão, backup e aprovação explícita.

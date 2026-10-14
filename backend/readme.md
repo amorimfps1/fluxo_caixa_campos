@@ -81,7 +81,8 @@ Emite e valida JWT assinados com a variável de ambiente `JWT_SECRET_KEY`.
 Calcula totais por meio de agregações SQL e reconstrói os saldos, incluindo as duas pontas das transferências.
 
 ### `models.py`
-Define os modelos ORM das entidades do sistema: usuários, contas, categorias, fluxo, cálculos e metas.
+Define os modelos ORM das entidades do sistema: usuários, contas, categorias,
+fluxo, cálculos e metas. O telefone opcional do usuário é armazenado cifrado.
 
 ### `esquema.py`
 Contém os schemas de entrada e saída usados pela API com validação do Pydantic.
@@ -97,6 +98,12 @@ Agrupa os endpoints organizados por recurso:
 
 ### `seguranca/`
 Módulo dedicado ao hash e verificação de senha.
+
+O cadastro público `POST /usuarios/` recebe nome, CPF, e-mail, senha e
+telefone opcional. O telefone é cifrado no banco com a mesma chave Fernet
+`CPF_ENCRYPTION_KEY` usada para os CPFs. A revisão Alembic
+`adicionar_telefone_usuario` deve estar aplicada antes de iniciar a API com
+este campo.
 
 ---
 
@@ -122,11 +129,20 @@ Requisição HTTP
 
 ## ▶️ Como executar
 
-```bash
-python -m uvicorn api:app --app-dir backend --reload --host 0.0.0.0 --port 8000
+Execute a partir da raiz do repositório:
+
+```powershell
+python main.py
 ```
 
-Configure `DATABASE_URL` e `JWT_SECRET_KEY` no `.env` da raiz. A chave JWT precisa ter pelo menos 32 caracteres. O login está disponível em `POST /login`; nas demais rotas, envie o token no cabeçalho `Authorization: Bearer <access_token>`. `ACCESS_TOKEN_EXPIRE_MINUTES` configura a validade do token (padrão: 60 minutos).
+Configure `DATABASE_URL`, `JWT_SECRET_KEY` e `CPF_ENCRYPTION_KEY` em `.env`
+local ou em `%LOCALAPPDATA%\fluxo_caixa\secrets.env`. Consulte o README da
+raiz para gerar chaves. Use uma base exclusiva de desenvolvimento e dados
+fictícios. O servidor padrão escuta somente em `127.0.0.1:8000`.
+
+O login está disponível em `POST /login`; nas demais rotas, envie o JWT no
+cabeçalho `Authorization: Bearer <access_token>`. A validade é configurada por
+`ACCESS_TOKEN_EXPIRE_MINUTES` (padrão: 60 minutos).
 
 Para criar ou atualizar o esquema:
 
@@ -134,17 +150,14 @@ Para criar ou atualizar o esquema:
 python -m alembic -c "banco de dados/alembic.ini" upgrade head
 ```
 
-A API ficará disponível em:
-
-```text
-http://127.0.0.1:8000
-```
-
-Documentação Swagger/OpenAPI:
+Documentação da API:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
+
+Os testes automatizados usam SQLite em memória e podem ser executados na raiz
+com `python -m pytest -q`; não usam a base configurada para a API.
 
 ---
 
@@ -196,7 +209,18 @@ http://127.0.0.1:8000/docs
 
 O módulo `seguranca` protege as senhas antes do armazenamento. O login emite JWT; as respostas de usuário omitem o CPF; e as rotas filtram as consultas pelo usuário autenticado. O CPF é cifrado com Fernet usando `CPF_ENCRYPTION_KEY`, separada da chave JWT. Um HMAC com chave derivada permite detectar CPFs duplicados sem armazená-los em texto puro. Mantenha a chave CPF em um gestor de segredos e em backup protegido: sem ela, os CPFs existentes não podem ser recuperados. Não troque essa chave sem um procedimento de recifragem. No Windows, `configuracao.py` carrega primeiro `%LOCALAPPDATA%\fluxo_caixa\secrets.env`; evite guardar credenciais no `.env` da pasta do projeto se ela for sincronizada.
 
-O CORS aceita somente a origem `http://fluxocaixa`, com métodos de API e cabeçalhos `Authorization` e `Content-Type`. Para usar essa URL sem número de porta, configure `fluxocaixa` para `127.0.0.1` no arquivo `hosts` do Windows e sirva o frontend pela porta 80. A API pode permanecer em `http://fluxocaixa:8000`.
+Recursos pertencentes a outro usuário respondem 404 em operações de leitura,
+edição e exclusão. Login e cadastro limitam tentativas por endereço IP; o login
+também limita tentativas por e-mail. Após cinco tentativas em 15 minutos, a
+chave de controle recebe bloqueio temporário e a API responde HTTP 429 com
+`Retry-After`. O banco guarda hashes das chaves, não o IP nem o e-mail usados
+para agrupá-las. Falhas de login retornam a mesma mensagem para conta
+inexistente ou senha incorreta.
+
+O CORS aceita somente `http://app.fluxocaixa`, `http://app.fluxocaixa:5173`
+e `http://127.0.0.1:5173`, com métodos e cabeçalhos da API explicitamente
+permitidos. Para a origem `app.fluxocaixa`, configure esse nome para
+`127.0.0.1` no arquivo `hosts` do Windows.
 
 ## 💳 Regras de saldo e transferências
 
@@ -212,9 +236,19 @@ O CORS aceita somente a origem `http://fluxocaixa`, com métodos de API e cabeç
 
 ## 🧪 Testes e migrações
 
-Execute os testes com `python -m pytest -q`. `pytest.ini` configura os imports do backend e os testes usam SQLite temporário. `backend/tests/conftest.py` compartilha as fixtures de banco e cliente HTTP. `test_fluxo_integracao.py` percorre cadastro, login/JWT, contas, entradas, saídas, saldo, isolamento entre dois usuários e limpeza sem conectar ao MySQL configurado. `test_metas_relatorios.py` valida CRUD e progresso de metas, os quatro períodos de relatório, consistência de saldo/relatório, valores decimais, limites de saldo, datas futuras, períodos vazios e isolamento de todos os recursos. `test_dados_sensiveis.py` valida cifragem, respostas sem CPF e rejeição de CPFs duplicados.
+Execute os testes com `python -m pytest -q`. `pytest.ini` configura os imports
+do backend e os testes usam SQLite temporário. `backend/tests/conftest.py`
+define explicitamente o banco e as chaves de teste; a suíte não se conecta ao
+MySQL configurado para executar a aplicação. Os testes cobrem cadastro,
+telefone opcional cifrado, login/JWT, contas, movimentações, saldo, isolamento,
+metas, relatórios e proteção de dados.
 
-O Alembic mantém o esquema versionado em `../banco de dados/migrations/`. A revisão aplicada `proteger_cpf` amplia `usuarios.cpf`, cifra os registros legados e cria o índice HMAC único `cpf_indice`. O downgrade é intencionalmente bloqueado porque voltaria a armazenar CPFs em texto puro. Os dumps SQL em `banco de dados/` são legados e contêm `DROP TABLE`; não os execute em bancos com dados.
+O Alembic mantém o esquema versionado em `../banco de dados/migrations/`.
+Depois da revisão `proteger_cpf`, a revisão
+`adicionar_telefone_usuario` adiciona a coluna opcional usada pelo cadastro.
+Confirme o destino antes de aplicar revisões; os dumps SQL em `banco de
+dados/` são legados e podem conter `DROP TABLE`. Não os execute em bancos com
+dados.
 
 ---
 

@@ -12,14 +12,20 @@ Rotas financeiras consultam e alteram somente recursos pertencentes ao usuário 
 
 Prefixo: `/usuarios`
 
-- `POST /usuarios/` — cadastra usuário (201).
+- `POST /usuarios/` — cadastra usuário com nome, CPF, e-mail e senha; aceita
+  telefone opcional (201).
 - `POST /login` — autentica e retorna token JWT.
 - `GET /usuarios/me` — retorna os dados do usuário autenticado.
 - `GET /usuarios/` — lista somente o usuário autenticado (com paginação).
 - `GET /usuarios/{usuario_id}` — consulta o próprio cadastro.
 - `DELETE /usuarios/{usuario_id}` — exclui o próprio cadastro.
 
-O CPF é validado no cadastro, cifrado com Fernet usando `CPF_ENCRYPTION_KEY` e não é incluído nas respostas. Duplicatas são detectadas por uma impressão HMAC com chave derivada, sem consulta pelo CPF em texto puro. A chave CPF é independente da chave JWT; mantenha-a em segredo e com backup protegido.
+O CPF é validado no cadastro, cifrado com Fernet usando `CPF_ENCRYPTION_KEY`
+e não é incluído nas respostas. O telefone opcional também é cifrado com essa
+chave e devolvido descriptografado somente nas respostas do próprio usuário.
+Duplicatas de CPF são detectadas por uma impressão HMAC com chave derivada,
+sem consulta pelo CPF em texto puro. Mantenha a chave em segredo e com backup
+protegido.
 
 ## 🏦 Contas bancárias — `conta_bancaria.py`
 
