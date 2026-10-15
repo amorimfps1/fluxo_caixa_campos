@@ -4,6 +4,7 @@ from decimal import Decimal
 import jwt
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from autenticacao import criar_token  # noqa: E402
@@ -268,6 +269,90 @@ def test_poupanca_nao_pode_ficar_negativa(db: Session):
     db.refresh(conta)
     assert conta.valor_conta_atual == Decimal("0.00")
 
+
+def test_ajuste_negativo_respeita_limite_de_saldo_da_poupanca(
+    client: TestClient,
+    db: Session,
+):
+    usuario = _criar_usuario(db)
+    sem_saldo = _criar_conta(db, usuario.id, "0.00", tipo="poupanca")
+    saldo_exato = _criar_conta(db, usuario.id, "50.00", tipo="poupanca")
+    saldo_insuficiente = _criar_conta(
+        db,
+        usuario.id,
+        "50.00",
+        tipo="poupanca",
+    )
+    headers = {"Authorization": f"Bearer {criar_token(usuario.id)}"}
+    hoje = date.today().isoformat()
+
+    sem_saldo_resposta = client.post(
+        "/fluxo-dinheiro/",
+        headers=headers,
+        json={
+            "conta_bancaria_id": sem_saldo.id,
+            "descricao": "Ajuste negativo sem saldo",
+            "valor": "-0.01",
+            "tipo": "ajuste",
+            "categoria": "ajuste",
+            "data_movimentacao": hoje,
+        },
+    )
+    assert sem_saldo_resposta.status_code == 400
+    db.refresh(sem_saldo)
+    assert sem_saldo.valor_conta_atual == Decimal("0.00")
+    assert (
+        db.query(FluxoDinheiro)
+        .filter(FluxoDinheiro.conta_bancaria_id == sem_saldo.id)
+        .count()
+        == 0
+    )
+
+    saldo_exato_resposta = client.post(
+        "/fluxo-dinheiro/",
+        headers=headers,
+        json={
+            "conta_bancaria_id": saldo_exato.id,
+            "descricao": "Ajuste que zera a poupança",
+            "valor": "-50.00",
+            "tipo": "ajuste",
+            "categoria": "ajuste",
+            "data_movimentacao": hoje,
+        },
+    )
+    assert saldo_exato_resposta.status_code == 201, saldo_exato_resposta.text
+    db.refresh(saldo_exato)
+    assert saldo_exato.valor_conta_atual == Decimal("0.00")
+    assert (
+        db.query(FluxoDinheiro)
+        .filter(FluxoDinheiro.conta_bancaria_id == saldo_exato.id)
+        .count()
+        == 1
+    )
+
+    saldo_insuficiente_resposta = client.post(
+        "/fluxo-dinheiro/",
+        headers=headers,
+        json={
+            "conta_bancaria_id": saldo_insuficiente.id,
+            "descricao": "Ajuste além do saldo",
+            "valor": "-50.01",
+            "tipo": "ajuste",
+            "categoria": "ajuste",
+            "data_movimentacao": hoje,
+        },
+    )
+    assert saldo_insuficiente_resposta.status_code == 400
+    db.refresh(saldo_insuficiente)
+    assert saldo_insuficiente.valor_conta_atual == Decimal("50.00")
+    assert (
+        db.query(FluxoDinheiro)
+        .filter(
+            FluxoDinheiro.conta_bancaria_id == saldo_insuficiente.id
+        )
+        .count()
+        == 0
+    )
 
 def test_digitos_verificadores_do_cpf_sao_validos():
     payload = {

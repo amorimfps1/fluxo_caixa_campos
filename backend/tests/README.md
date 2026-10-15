@@ -10,7 +10,9 @@ arquivo `test_*.py` cobre uma área do sistema.
 - transferência entre contas, reversão ao excluir, rejeição da mesma conta e
   atomicidade quando o saldo é insuficiente;
 - precisão Decimal em entradas fracionárias, ajustes e saldos calculados;
-- bloqueio de saídas que deixariam saldo de poupança negativo;
+- bloqueio de saídas ou ajustes negativos que deixariam saldo de poupança
+  negativo, aceitando ajuste que zera o saldo e rejeitando excesso de um
+  centavo sem persistência parcial;
 - validação dos dígitos verificadores do CPF;
 - correspondência entre o tipo de cálculo e o intervalo informado;
 - precisão decimal e validação de categorias fixas/reservadas;
