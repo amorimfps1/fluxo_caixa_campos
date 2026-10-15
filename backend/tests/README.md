@@ -14,6 +14,8 @@ arquivo `test_*.py` cobre uma área do sistema.
   negativo, aceitando ajuste que zera o saldo e rejeitando excesso de um
   centavo sem persistência parcial;
 - validação dos dígitos verificadores do CPF;
+- rejeição de CPF com algarismos Unicode antes de qualquer operação de
+  cifragem ou indexação;
 - correspondência entre o tipo de cálculo e o intervalo informado;
 - precisão decimal e validação de categorias fixas/reservadas;
 - normalização de e-mail e categorias;
@@ -47,3 +49,24 @@ SQLite não substitui teste de bloqueios concorrentes no MySQL: SQLite não
 implementa o mesmo comportamento de `SELECT ... FOR UPDATE`. Testes manuais ou
 de integração com MySQL devem usar uma base exclusiva de desenvolvimento e
 dados fictícios; não execute migrações ou testes contra produção.
+
+## Concorrência MySQL (opt-in)
+
+`test_mysql_concorrencia.py` verifica saques simultâneos, transferências
+cruzadas, conservação do saldo total, rollback após falha e um controle
+negativo sem `FOR UPDATE`. Esses testes não fazem parte da suíte padrão.
+
+Crie um schema MySQL vazio e dedicado, com sufixo `_test` ou `_tests`, e um
+usuário próprio com permissões restritas ao schema e permissões DDL para
+Alembic. Não use a base de desenvolvimento `fluxo_caixa`, uma base com dados a
+preservar ou produção. Na raiz do repositório, configure a URL no PowerShell e
+execute:
+
+```powershell
+$env:TEST_MYSQL_URL = "mysql+pymysql://USUARIO:SENHA@127.0.0.1:3306/fluxo_caixa_test"
+python -m pytest -m mysql -q
+```
+
+O fixture aplica `alembic upgrade head` ao schema dedicado. Se a variável não
+estiver definida, os testes são ignorados sem executar migrações. Não coloque a
+URL nem suas credenciais em arquivos versionados.

@@ -21,7 +21,7 @@ estática e testes automatizados.
 ├── backend/                    # API, regras, segurança e testes
 │   ├── rotasdeapi/              # Endpoints por recurso
 │   ├── seguranca/               # Hash e verificação de senha
-│   └── tests/                   # Testes isolados em SQLite
+│   └── tests/                   # SQLite; concorrência MySQL opt-in
 ├── banco de dados/
 │   ├── migrations/              # Histórico oficial Alembic
 │   └── *.sql                    # Dumps legados; não executar
@@ -105,9 +105,12 @@ Ela escuta apenas em `127.0.0.1:8000`. Documentação:
 
 Em outro terminal, inicie o frontend seguindo
 [frontend/README.md](frontend/README.md). Para login manual, use apenas uma
-conta fictícia de desenvolvimento. A origem alternativa
-`http://app.fluxocaixa:5173` requer uma entrada local no arquivo `hosts`; o
-endereço `http://127.0.0.1:5173` não requer essa configuração.
+conta fictícia de desenvolvimento. Para abrir sem informar uma porta, sirva o
+frontend na porta 80 e use `http://app.fluxocaixa/login.html`; esse nome
+precisa apontar para `127.0.0.1` no arquivo `hosts` do Windows. Como
+alternativa, use a porta 5173 e abra
+`http://127.0.0.1:5173/login.html` ou
+`http://app.fluxocaixa:5173/login.html`.
 
 ## Testes automatizados
 
@@ -125,11 +128,35 @@ usuários, proteção de dados, CORS e rotas.
 Os testes unitários/funcionais em SQLite não validam a concorrência específica
 do MySQL nem substituem um teste manual ponta a ponta. Faça testes de
 integração somente com uma base local separada e dados fictícios.
+Os testes de cadastro também confirmam que CPFs com algarismos Unicode são
+rejeitados antes da cifragem; o formato aceito usa 11 dígitos ASCII.
+
+### Concorrência no MySQL
+
+Os testes MySQL são opt-in e usam migrações Alembic. Crie primeiro um schema
+vazio e exclusivo para testes (nome terminado em `_test` ou `_tests`) e um
+usuário MySQL dedicado, com permissões somente nesse schema e permissões DDL
+necessárias às migrações. Não use a base `fluxo_caixa` de desenvolvimento,
+qualquer base com dados que queira preservar ou produção.
+
+No PowerShell, configure a URL apenas no terminal atual; não a grave em
+arquivos versionados:
+
+```powershell
+$env:TEST_MYSQL_URL = "mysql+pymysql://USUARIO:SENHA@127.0.0.1:3306/fluxo_caixa_test"
+python -m pytest -m mysql -q
+```
+
+O comando aplica `alembic upgrade head` ao schema apontado antes dos testes.
+Use credenciais locais, não compartilhe a URL e confirme cuidadosamente o nome
+do schema antes de executar. Sem `TEST_MYSQL_URL`, os testes MySQL são
+ignorados. A suíte padrão `python -m pytest -q` sempre os exclui.
 
 ## Segurança e limites
 
 - A allowlist CORS local contém somente `http://app.fluxocaixa`,
-  `http://app.fluxocaixa:5173` e `http://127.0.0.1:5173`.
+  `http://app.fluxocaixa:5173` e `http://127.0.0.1:5173`. O frontend usa a API
+  em `http://127.0.0.1:8000`.
 - Antes de iniciar a API com o campo telefone, aplique a revisão
   `adicionar_telefone_usuario` somente à base local de desenvolvimento.
 - A API local fica vinculada a loopback; não altere para `0.0.0.0` em uma rede

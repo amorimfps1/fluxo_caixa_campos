@@ -36,7 +36,7 @@ def _fernet(chave: bytes) -> Fernet:
 
 
 def criptografar_cpf(cpf: str) -> str:
-    if len(cpf) != 11 or not cpf.isdigit():
+    if len(cpf) != 11 or not cpf.isascii() or not cpf.isdigit():
         raise ValueError("CPF deve conter exatamente 11 dígitos.")
     return _fernet(_chave_cpf()).encrypt(cpf.encode("ascii")).decode("ascii")
 
@@ -51,7 +51,7 @@ def descriptografar_cpf(cpf_cifrado: str) -> str:
 
 
 def indice_cpf(cpf: str) -> str:
-    if len(cpf) != 11 or not cpf.isdigit():
+    if len(cpf) != 11 or not cpf.isascii() or not cpf.isdigit():
         raise ValueError("CPF deve conter exatamente 11 dígitos.")
     chave_mestra = base64.urlsafe_b64decode(_chave_cpf())
     chave_indice = hmac.digest(

@@ -100,7 +100,8 @@ Agrupa os endpoints organizados por recurso:
 Módulo dedicado ao hash e verificação de senha.
 
 O cadastro público `POST /usuarios/` recebe nome, CPF, e-mail, senha e
-telefone opcional. O telefone é cifrado no banco com a mesma chave Fernet
+telefone opcional. O CPF precisa conter 11 dígitos ASCII e é validado antes
+das funções de cifragem e indexação. O telefone é cifrado no banco com a mesma chave Fernet
 `CPF_ENCRYPTION_KEY` usada para os CPFs. A revisão Alembic
 `adicionar_telefone_usuario` deve estar aplicada antes de iniciar a API com
 este campo.
@@ -157,7 +158,10 @@ http://127.0.0.1:8000/docs
 ```
 
 Os testes automatizados usam SQLite em memória e podem ser executados na raiz
-com `python -m pytest -q`; não usam a base configurada para a API.
+com `python -m pytest -q`; não usam a base configurada para a API. A suíte
+padrão exclui testes de concorrência MySQL; veja
+`backend/tests/README.md` para executá-los, de forma opt-in, em um schema
+descartável dedicado.
 
 ---
 
@@ -241,7 +245,8 @@ do backend e os testes usam SQLite temporário. `backend/tests/conftest.py`
 define explicitamente o banco e as chaves de teste; a suíte não se conecta ao
 MySQL configurado para executar a aplicação. Os testes cobrem cadastro,
 telefone opcional cifrado, login/JWT, contas, movimentações, saldo, isolamento,
-metas, relatórios e proteção de dados.
+metas, relatórios e proteção de dados, inclusive rejeição de CPFs com
+algarismos Unicode.
 
 O Alembic mantém o esquema versionado em `../banco de dados/migrations/`.
 Depois da revisão `proteger_cpf`, a revisão
@@ -252,15 +257,6 @@ dados.
 
 ---
 
-## ✅ Status atual
-
-Os testes das regras financeiras e da cadeia Alembic foram validados com SQLite temporário. Os testes de integração HTTP também cobrem casos extremos do fluxo financeiro, metas e relatórios, além do isolamento entre usuários, sem alterar dados MySQL.
-
----
-
-## 🚀 Próximas etapas
-
-- [ ] ampliar cenários de borda para metas e relatórios
-- [ ] quando necessário, criar testes de integração MySQL separados e explicitamente configurados
-- [ ] configurar CORS ao conectar um frontend
-- [ ] preparação para produção
+Os testes MySQL opt-in cobrem concorrência e bloqueios usando um schema
+descartável. A aplicação continua voltada ao desenvolvimento local; HTTP sem
+TLS e JWT em `sessionStorage` não são uma configuração de produção.

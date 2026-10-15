@@ -17,4 +17,10 @@ Os arquivos Python desta pasta descrevem, em ordem, as alterações versionadas 
 
 As dependências entre revisões são declaradas por `down_revision`. Os IDs das revisões antigas foram mantidos para preservar compatibilidade com bancos que já as aplicaram. Não renomeie ou remova revisões já aplicadas; crie uma nova revisão para mudanças futuras e revise o resultado antes de aplicá-la a dados existentes.
 
+A revisão `proteger_cpf` transforma CPFs legados em valores cifrados e cria
+impressões HMAC para busca de duplicatas. Ela requer `CPF_ENCRYPTION_KEY`,
+deve ser precedida por backup e não pode ser revertida para texto puro. A
+revisão seguinte adiciona o campo opcional de telefone cifrado com a mesma
+chave.
+
 Os novos arquivos de revisão usam nomes descritivos em português. `alembic.ini` define `file_template = %%(slug)s`; para criar uma revisão com ID textual explícito, use por exemplo `alembic revision -m "limitar tentativas de login" --rev-id limite_login`. As operações de downgrade podem remover colunas ou tabelas, e a reversão do ajuste converte ajustes existentes em entradas/saídas. Faça backup e avalie os dados antes de reverter uma revisão.

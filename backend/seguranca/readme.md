@@ -151,6 +151,12 @@ from seguranca.seguranca import gerar_hash_senha, verificar_senha
 
 A pasta `seguranca` é essencial para manter o sistema em conformidade com boas práticas de proteção de dados e minimização de riscos relacionados a vazamento de credenciais.
 
+Os dados sensíveis de CPF e telefone são tratados separadamente deste módulo:
+o backend valida o CPF com 11 dígitos ASCII, cifra CPF e telefone com Fernet e
+usa um índice HMAC derivado para detectar CPFs duplicados. A chave
+`CPF_ENCRYPTION_KEY` é diferente de `JWT_SECRET_KEY`; mantenha ambas fora do
+repositório e preserve backup seguro da chave de cifragem.
+
 A lógica principal é:
 
 ```text

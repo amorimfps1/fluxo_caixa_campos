@@ -2,7 +2,10 @@
 
 Este módulo descreve a estrutura do banco de dados do sistema e a responsabilidade de cada tabela.
 
-O banco principal do projeto é `fluxo_caixa` e ele foi organizado para suportar usuários, contas, categorias fixas, movimentações, cálculos financeiros, metas e controle de tentativas de login.
+O nome do banco é definido por `DATABASE_URL` (o modelo local usa um schema de
+desenvolvimento separado). O esquema foi organizado para suportar usuários,
+contas, categorias fixas, movimentações, cálculos financeiros, metas e
+controle de tentativas de login.
 
 ---
 
@@ -42,7 +45,9 @@ Essa tabela identifica quem usa o sistema e guarda os dados essenciais para cada
 O CPF é dado pessoal: é cifrado com Fernet usando `CPF_ENCRYPTION_KEY`, e a
 API não o inclui nas respostas. O índice HMAC também depende dessa chave.
 Proteja a chave e mantenha backup seguro; perder ou trocar a chave sem
-recifragem impede recuperar e consultar corretamente os CPFs armazenados.
+recifragem impede recuperar e consultar corretamente os CPFs armazenados. A
+API aceita somente 11 dígitos ASCII para o CPF, valida os dígitos verificadores
+e rejeita algarismos Unicode antes de gravar dados.
 
 ---
 
@@ -230,3 +235,7 @@ tentativas_login (controle operacional do login)
 O esquema oficial é mantido pelas migrações Alembic em `migrations/`, configuradas por `alembic.ini`. Os arquivos `.sql` desta pasta são dumps legados e podem conter `DROP TABLE`; não os execute em um banco com dados.
 
 Execute os comandos a partir da raiz do repositório. Para um banco novo, aplique as migrações com `python -m alembic -c "banco de dados/alembic.ini" upgrade head`. Para adotar Alembic em um banco existente, faça backup, confira se o esquema corresponde ao baseline e siga o procedimento descrito no README principal antes de marcar a revisão inicial.
+
+A revisão que cifra CPFs legados também precisa de `CPF_ENCRYPTION_KEY`
+configurada. Faça backup verificável antes de migrar dados existentes; a
+revisão de proteção do CPF não oferece downgrade para texto puro.

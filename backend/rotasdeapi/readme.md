@@ -4,6 +4,10 @@ Os endpoints são organizados por recurso nos módulos desta pasta. Os schemas e
 
 ## 🔐 Autenticação e propriedade dos dados
 
+O cadastro também limita requisições por endereço cliente e responde com
+HTTP 429 ao atingir o limite. O CPF deve ter 11 dígitos ASCII; a API valida
+seus dígitos verificadores antes de cifrar e indexar o valor.
+
 O cadastro e o login são públicos. O login está disponível em `POST /login`; envie o e-mail em `username` e a senha em `password`. Use o `access_token` retornado no cabeçalho `Authorization: Bearer <access_token>` das demais rotas. Após cinco falhas de login por endereço IP dentro de 15 minutos, a API bloqueia novas tentativas temporariamente e responde com HTTP 429.
 
 Rotas financeiras consultam e alteram somente recursos pertencentes ao usuário autenticado. O servidor determina o proprietário pelo token; o cliente não deve enviar `usuario_id` para escolher o dono de uma conta ou meta. Listagens paginadas usam `limit` (padrão 50, máximo 100) e `offset` (padrão 0).

@@ -1,9 +1,11 @@
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+import pytest
 from sqlalchemy.orm import Session
 
 from dados_sensiveis import (
+    criptografar_cpf,
     descriptografar_cpf,
     indice_cpf,
 )
@@ -70,3 +72,30 @@ def test_cadastro_detecta_cpf_duplicado_sem_persistir_cpf_em_claro(
         .count()
         == 1
     )
+
+
+def test_cadastro_rejeita_cpf_com_digitos_unicode(
+    client: TestClient,
+    db: Session,
+) -> None:
+    resposta = client.post(
+        "/usuarios/",
+        json={
+            "nome_completo": "Pessoa com CPF Unicode",
+            "cpf": "١٢٣٤٥٦٧٨٩09",
+            "email": f"cpf-unicode-{uuid4().hex}@example.com",
+            "senha": "SenhaSegura2026!",
+        },
+    )
+
+    assert resposta.status_code == 422
+    assert db.query(Usuario).count() == 0
+
+
+def test_funcoes_de_cpf_rejeitam_digitos_unicode() -> None:
+    cpf = "١٢٣٤٥٦٧٨٩09"
+
+    with pytest.raises(ValueError):
+        criptografar_cpf(cpf)
+    with pytest.raises(ValueError):
+        indice_cpf(cpf)

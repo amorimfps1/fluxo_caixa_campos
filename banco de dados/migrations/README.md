@@ -31,8 +31,11 @@ Para consultar a revisão atualmente aplicada:
 python -m alembic -c "banco de dados/alembic.ini" current
 ```
 
-`DATABASE_URL` deve estar configurada antes da execução. Antes de aplicar
-qualquer revisão, confirme que ela aponta para a base correta. Em banco
-existente, faça backup e compare o esquema com as revisões antes de usar
-`stamp` ou aplicar atualizações. Nunca execute comandos Alembic contra
-produção sem revisão, backup e aprovação explícita.
+`DATABASE_URL` deve estar configurada antes da execução. A migração
+`proteger_cpf` também exige `CPF_ENCRYPTION_KEY` e cifra os CPFs existentes;
+confirme que essa chave é a correta e mantenha um backup seguro dela. Antes de
+aplicar qualquer revisão, confirme que `DATABASE_URL` aponta para a base
+correta. Em banco existente, faça backup e compare o esquema com as revisões
+antes de usar `stamp` ou aplicar atualizações. A revisão de proteção do CPF
+bloqueia downgrade para evitar regravar dados em texto puro. Nunca execute
+comandos Alembic contra produção sem revisão, backup e aprovação explícita.

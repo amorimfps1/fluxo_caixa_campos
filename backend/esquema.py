@@ -135,7 +135,7 @@ class UsuarioCreate(InputModel):
                 "O CPF deve possuir 11 números."
             )
 
-        if not valor.isdigit():
+        if not valor.isascii() or not valor.isdigit():
             raise ValueError(
                 "O CPF deve conter apenas números."
             )
