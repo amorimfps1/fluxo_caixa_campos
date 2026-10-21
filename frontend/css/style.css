@@ -1026,3 +1026,44 @@ tbody tr:hover {
         animation-iteration-count: 1 !important;
     }
 }
+
+
+/* 19. Visualização dinâmica de seções (SPA) */
+.app-view[hidden] {
+    display: none !important;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.category-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-primary);
+}
+
+.category-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--color-primary-light);
+    font-size: 18px;
+    flex-shrink: 0;
+}

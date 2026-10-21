@@ -5,6 +5,108 @@
 
 let contasCarregadas = [];
 
+const titulosViews = {
+    dashboard: {
+        eyebrow: "VISÃO GERAL",
+        title: "Dashboard financeiro",
+        subtitle: "Acompanhe suas finanças em um só lugar."
+    },
+    contas: {
+        eyebrow: "GESTÃO",
+        title: "Contas bancárias",
+        subtitle: "Gerencie suas contas correntes, poupanças e investimentos."
+    },
+    movimentacoes: {
+        eyebrow: "EXTRATO",
+        title: "Movimentações financeiras",
+        subtitle: "Histórico completo de entradas, saídas e transferências."
+    },
+    categorias: {
+        eyebrow: "CLASSIFICAÇÃO",
+        title: "Categorias financeiras",
+        subtitle: "Distribuição e controle de gastos e receitas por categoria."
+    },
+    investimentos: {
+        eyebrow: "PATRIMÔNIO",
+        title: "Investimentos",
+        subtitle: "Acompanhe seus aportes, poupanças e patrimônio investido."
+    },
+    relatorios: {
+        eyebrow: "CONSOLIDAÇÃO",
+        title: "Relatórios financeiros",
+        subtitle: "Balanços comparativos e evolução periódica das finanças."
+    }
+};
+
+function configurarNavegacao() {
+    const navLinks = document.querySelectorAll(".navigation .nav-link");
+
+    function ativarSecao(hash) {
+        let viewName = (hash || window.location.hash || "#dashboard")
+            .replace("#", "")
+            .trim()
+            .toLowerCase();
+
+        if (!titulosViews[viewName]) {
+            viewName = "dashboard";
+        }
+
+        document.querySelectorAll(".app-view").forEach((view) => {
+            view.hidden = view.id !== `view-${viewName}`;
+        });
+
+        navLinks.forEach((link) => {
+            const linkTarget = (link.getAttribute("href") || "").replace("#", "").toLowerCase();
+            const ativo = linkTarget === viewName;
+            link.classList.toggle("active", ativo);
+            if (ativo) {
+                link.setAttribute("aria-current", "page");
+            } else {
+                link.removeAttribute("aria-current");
+            }
+        });
+
+        const info = titulosViews[viewName] || titulosViews.dashboard;
+        const eyebrow = document.querySelector("#view-eyebrow");
+        const title = document.querySelector("#view-title");
+        const subtitle = document.querySelector("#view-subtitle");
+
+        if (eyebrow) eyebrow.textContent = info.eyebrow;
+        if (title) title.textContent = info.title;
+        if (subtitle) subtitle.textContent = info.subtitle;
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    navLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+            const href = link.getAttribute("href");
+            if (href && href.startsWith("#")) {
+                event.preventDefault();
+                history.pushState(null, "", href);
+                ativarSecao(href);
+            }
+        });
+    });
+
+    window.addEventListener("hashchange", () => {
+        ativarSecao(window.location.hash);
+    });
+
+    document.querySelectorAll("a[href^='#']:not(.nav-link)").forEach((link) => {
+        link.addEventListener("click", (event) => {
+            const href = link.getAttribute("href");
+            if (href && titulosViews[href.replace("#", "")]) {
+                event.preventDefault();
+                history.pushState(null, "", href);
+                ativarSecao(href);
+            }
+        });
+    });
+
+    ativarSecao(window.location.hash);
+}
+
 function verificarSessao() {
     if (!api.getToken()) {
         window.location.replace("login.html");
@@ -16,6 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!api.getToken()) return;
 
     atualizarData();
+    configurarNavegacao();
     configurarDialogos();
     configurarBotaoSair();
     carregarDashboard();
@@ -43,16 +146,15 @@ function atualizarData() {
 }
 
 function configurarDialogos() {
-    const botaoNovaConta = document.querySelector("#new-account");
-    const botaoNovaMovimentacao = document.querySelector("#new-movement");
     const formularioConta = document.querySelector("#account-form");
     const formularioMovimentacao = document.querySelector("#movement-form");
 
-    botaoNovaConta?.addEventListener("click", abrirDialogoConta);
-    botaoNovaMovimentacao?.addEventListener(
-        "click",
-        abrirDialogoMovimentacao
-    );
+    document.querySelectorAll(".btn-abrir-nova-conta, #new-account").forEach((botao) => {
+        botao.addEventListener("click", abrirDialogoConta);
+    });
+    document.querySelectorAll(".btn-abrir-nova-movimentacao, #new-movement").forEach((botao) => {
+        botao.addEventListener("click", abrirDialogoMovimentacao);
+    });
 
     document.querySelectorAll("[data-close-dialog]").forEach((botao) => {
         botao.addEventListener("click", () => {
@@ -98,25 +200,33 @@ function abrirDialogoMovimentacao() {
     const seletor = document.querySelector("#movement-account");
     const ajuda = document.querySelector("#movement-account-help");
     if (seletor) {
-        seletor.replaceChildren(
-            ...contasCarregadas.map((conta) => {
-                const opcao = document.createElement("option");
-                opcao.value = String(conta.id);
-                opcao.textContent = `${conta.nome_banco} · ${conta.tipo_conta}`;
-                return opcao;
-            })
-        );
-    }
-    if (ajuda) ajuda.textContent = "";
+        seletor.replaceChildren();
+        contasCarregadas.forEach((conta) => {
+            const opcao = document.createElement("option");
+            opcao.value = String(conta.id);
+            opcao.textContent = `${conta.nome_banco} (${conta.tipo_conta}) — ${formatarMoeda(conta.valor_conta_atual)}`;
+            seletor.append(opcao);
+        });
 
-    const campoData = document.querySelector("#movement-date");
-    if (campoData && !campoData.value) {
-        const hoje = new Date();
-        campoData.value = [
-            hoje.getFullYear(),
-            String(hoje.getMonth() + 1).padStart(2, "0"),
-            String(hoje.getDate()).padStart(2, "0")
-        ].join("-");
+        const atualizarAjudaConta = () => {
+            const idSelecionado = Number(seletor.value);
+            const conta = contasCarregadas.find((c) => c.id === idSelecionado);
+            if (ajuda && conta) {
+                ajuda.textContent = `Saldo atual: ${formatarMoeda(conta.valor_conta_atual)} (${conta.tipo_conta})`;
+            }
+        };
+
+        seletor.onchange = atualizarAjudaConta;
+        atualizarAjudaConta();
+    }
+
+    const inputData = document.querySelector("#movement-date");
+    if (inputData && !inputData.value) {
+        const agora = new Date();
+        const ano = agora.getFullYear();
+        const mes = String(agora.getMonth() + 1).padStart(2, "0");
+        const dia = String(agora.getDate()).padStart(2, "0");
+        inputData.value = `${ano}-${mes}-${dia}`;
     }
 
     const dialogo = document.querySelector("#movement-dialog");
@@ -258,14 +368,15 @@ async function carregarDashboard() {
             return `${ano}-${mes}-${dia}`;
         };
 
-        const [contas, movimentacoesMes, movimentacoesRecentes] =
+        const [contas, movimentacoesMes, movimentacoesRecentes, movimentacoesTodas] =
             await Promise.all([
                 buscarTodasAsPaginas("/contas-bancarias/"),
                 buscarTodasAsPaginas("/fluxo-dinheiro/", {
                     data_inicio: formatarIso(inicioMes),
                     data_fim: formatarIso(hoje)
                 }),
-                api.get("/fluxo-dinheiro/?limit=10&offset=0")
+                api.get("/fluxo-dinheiro/?limit=10&offset=0"),
+                buscarTodasAsPaginas("/fluxo-dinheiro/")
             ]);
 
         if (!Array.isArray(movimentacoesRecentes)) {
@@ -275,7 +386,7 @@ async function carregarDashboard() {
         contasCarregadas = contas.filter((conta) => conta.ativa);
         atualizarResumo(contas, movimentacoesMes);
         atualizarContas(contas);
-        atualizarMovimentacoes(movimentacoesRecentes);
+        atualizarMovimentacoes(movimentacoesRecentes, movimentacoesTodas);
         atualizarStatus("Conectado", true);
     } catch (error) {
         if (!api.getToken()) {
@@ -293,6 +404,7 @@ async function carregarDashboard() {
             error.message
         );
         atualizarTabelaVazia(
+            "#transactions-list",
             "Não foi possível carregar as movimentações."
         );
         atualizarStatus(error.message, false);
@@ -349,36 +461,79 @@ function atualizarEstadoVazio(seletor, titulo, descricao) {
 
 function atualizarContas(contas) {
     const elemento = document.querySelector("#accounts-list");
-    if (!elemento) return;
+    const elementoView = document.querySelector("#view-accounts-list");
 
     if (contas.length === 0) {
-        atualizarEstadoVazio(
-            "#accounts-list",
-            "Nenhuma conta cadastrada.",
-            "As contas registradas na API aparecerão aqui."
-        );
+        if (elemento) {
+            atualizarEstadoVazio(
+                "#accounts-list",
+                "Nenhuma conta cadastrada.",
+                "As contas registradas na API aparecerão aqui."
+            );
+        }
+        if (elementoView) {
+            atualizarEstadoVazio(
+                "#view-accounts-list",
+                "Nenhuma conta cadastrada.",
+                "Clique em '+ Nova conta' para cadastrar sua primeira conta."
+            );
+        }
+        definirTexto("#investments-total", "R$ 0,00");
+        definirTexto("#savings-total", "R$ 0,00");
         return;
     }
 
-    elemento.replaceChildren();
-    elemento.className = "accounts-list";
+    // Atualiza resumo no dashboard
+    if (elemento) {
+        elemento.replaceChildren();
+        elemento.className = "accounts-list";
 
-    contas.forEach((conta) => {
-        const linha = document.createElement("div");
-        linha.className = "account-summary";
-        linha.append(
-            criarElemento("strong", conta.nome_banco),
-            criarElemento(
-                "span",
-                `${conta.tipo_conta} · ${formatarMoeda(conta.valor_conta_atual)}`
-            )
-        );
-        elemento.append(linha);
-    });
+        contas.forEach((conta) => {
+            const linha = document.createElement("div");
+            linha.className = "account-summary";
+            linha.append(
+                criarElemento("strong", conta.nome_banco),
+                criarElemento(
+                    "span",
+                    `${conta.tipo_conta} · ${formatarMoeda(conta.valor_conta_atual)}`
+                )
+            );
+            elemento.append(linha);
+        });
+    }
+
+    // Atualiza lista na view de contas
+    if (elementoView) {
+        elementoView.replaceChildren();
+        elementoView.className = "accounts-list";
+
+        contas.forEach((conta) => {
+            const linha = document.createElement("div");
+            linha.className = "account-summary";
+            linha.style.padding = "16px";
+            linha.style.marginBottom = "8px";
+            linha.append(
+                criarElemento("strong", `${conta.nome_banco} (${conta.tipo_conta})`),
+                criarElemento("span", formatarMoeda(conta.valor_conta_atual))
+            );
+            elementoView.append(linha);
+        });
+    }
+
+    // Atualiza totais na view de investimentos
+    const totalInvestimentos = contas
+        .filter((c) => c.tipo_conta === "investimento")
+        .reduce((acc, c) => acc + Number(c.valor_conta_atual), 0);
+    const totalPoupanca = contas
+        .filter((c) => c.tipo_conta === "poupanca")
+        .reduce((acc, c) => acc + Number(c.valor_conta_atual), 0);
+
+    definirTexto("#investments-total", formatarMoeda(totalInvestimentos));
+    definirTexto("#savings-total", formatarMoeda(totalPoupanca));
 }
 
-function atualizarTabelaVazia(mensagem) {
-    const tabela = document.querySelector("#transactions-list");
+function atualizarTabelaVazia(seletorTabela, mensagem) {
+    const tabela = document.querySelector(seletorTabela);
     if (!tabela) return;
 
     const celula = criarElemento("td", mensagem, "table-empty");
@@ -388,18 +543,18 @@ function atualizarTabelaVazia(mensagem) {
     tabela.replaceChildren(linha);
 }
 
-function atualizarMovimentacoes(movimentacoes) {
-    const tabela = document.querySelector("#transactions-list");
+function renderizarTabela(seletorTabela, lista) {
+    const tabela = document.querySelector(seletorTabela);
     if (!tabela) return;
 
-    if (movimentacoes.length === 0) {
-        atualizarTabelaVazia("Nenhuma movimentação cadastrada.");
+    if (!lista || lista.length === 0) {
+        atualizarTabelaVazia(seletorTabela, "Nenhuma movimentação cadastrada.");
         return;
     }
 
     const fragmento = document.createDocumentFragment();
 
-    movimentacoes.forEach((movimento) => {
+    lista.forEach((movimento) => {
         const linha = document.createElement("tr");
         const valores = [
             movimento.descricao,
@@ -419,4 +574,12 @@ function atualizarMovimentacoes(movimentacoes) {
     });
 
     tabela.replaceChildren(fragmento);
+}
+
+function atualizarMovimentacoes(movimentacoesRecentes, todasMovimentacoes = null) {
+    renderizarTabela("#transactions-list", movimentacoesRecentes);
+    renderizarTabela(
+        "#view-transactions-list",
+        todasMovimentacoes || movimentacoesRecentes
+    );
 }

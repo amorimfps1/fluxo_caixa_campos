@@ -77,9 +77,9 @@
 
             <header class="topbar">
                 <div>
-                    <p class="eyebrow">VISÃO GERAL</p>
-                    <h2>Dashboard financeiro</h2>
-                    <p class="subtitle">
+                    <p class="eyebrow" id="view-eyebrow">VISÃO GERAL</p>
+                    <h2 id="view-title">Dashboard financeiro</h2>
+                    <p class="subtitle" id="view-subtitle">
                         Acompanhe suas finanças em um só lugar.
                     </p>
                 </div>
@@ -106,6 +106,9 @@
                     </button>
                 </div>
             </header>
+
+            <!-- View: Dashboard Principal -->
+            <div id="view-dashboard" class="app-view">
 
             <!-- Indicadores financeiros -->
             <section class="summary-grid" aria-label="Resumo financeiro">
@@ -260,6 +263,182 @@
                     </table>
                 </div>
             </section>
+
+            </div> <!-- fim view-dashboard -->
+
+            <!-- View: Contas Bancárias -->
+            <div id="view-contas" class="app-view" hidden>
+                <article class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Todas as contas bancárias</h3>
+                            <p>Resumo, saldos e gerenciamento de contas cadastradas</p>
+                        </div>
+                        <button
+                            type="button"
+                            class="button-secondary btn-abrir-nova-conta"
+                        >
+                            + Nova conta
+                        </button>
+                    </div>
+
+                    <div class="empty-state" id="view-accounts-list">
+                        <div class="empty-icon" aria-hidden="true">▤</div>
+                        <p>Carregando contas bancárias...</p>
+                        <span>Aguarde um momento enquanto conectamos à API.</span>
+                    </div>
+                </article>
+            </div>
+
+            <!-- View: Movimentações -->
+            <div id="view-movimentacoes" class="app-view" hidden>
+                <article class="panel transactions-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Extrato completo de movimentações</h3>
+                            <p>Histórico detalhado de todas as receitas, despesas e transferências</p>
+                        </div>
+                        <button
+                            type="button"
+                            class="button-primary btn-abrir-nova-movimentacao"
+                        >
+                            + Nova movimentação
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Categoria</th>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th class="align-right">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="view-transactions-list">
+                                <tr>
+                                    <td colspan="5" class="table-empty">
+                                        Carregando movimentações da API...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+
+            <!-- View: Categorias -->
+            <div id="view-categorias" class="app-view" hidden>
+                <div class="panel-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h3>Categorias financeiras</h3>
+                        <p>Classificação de despesas e receitas utilizadas pelo sistema</p>
+                    </div>
+                </div>
+
+                <div class="category-grid">
+                    <div class="category-card"><div class="category-icon">🍽️</div><div><strong>Alimentação</strong><br><small style="color:var(--color-text-secondary);">Supermercado e refeições</small></div></div>
+                    <div class="category-card"><div class="category-icon">🏠</div><div><strong>Moradia</strong><br><small style="color:var(--color-text-secondary);">Aluguel e condomínio</small></div></div>
+                    <div class="category-card"><div class="category-icon">💼</div><div><strong>Salário</strong><br><small style="color:var(--color-text-secondary);">Remuneração mensal</small></div></div>
+                    <div class="category-card"><div class="category-icon">🚗</div><div><strong>Transporte</strong><br><small style="color:var(--color-text-secondary);">Combustível e transporte</small></div></div>
+                    <div class="category-card"><div class="category-icon">🏥</div><div><strong>Saúde</strong><br><small style="color:var(--color-text-secondary);">Farmácia e consultas</small></div></div>
+                    <div class="category-card"><div class="category-icon">🎓</div><div><strong>Educação</strong><br><small style="color:var(--color-text-secondary);">Cursos e mensalidades</small></div></div>
+                    <div class="category-card"><div class="category-icon">🎉</div><div><strong>Lazer</strong><br><small style="color:var(--color-text-secondary);">Passeios e cultura</small></div></div>
+                    <div class="category-card"><div class="category-icon">📈</div><div><strong>Investimento</strong><br><small style="color:var(--color-text-secondary);">Aportes e patrimônio</small></div></div>
+                    <div class="category-card"><div class="category-icon">🧾</div><div><strong>Contas</strong><br><small style="color:var(--color-text-secondary);">Água, energia e internet</small></div></div>
+                    <div class="category-card"><div class="category-icon">🛒</div><div><strong>Compras</strong><br><small style="color:var(--color-text-secondary);">Vestuário e eletrônicos</small></div></div>
+                    <div class="category-card"><div class="category-icon">⚖️</div><div><strong>Impostos</strong><br><small style="color:var(--color-text-secondary);">Tributos e taxas</small></div></div>
+                    <div class="category-card"><div class="category-icon">💻</div><div><strong>Freelance</strong><br><small style="color:var(--color-text-secondary);">Trabalhos extras</small></div></div>
+                    <div class="category-card"><div class="category-icon">🏷️</div><div><strong>Vendas</strong><br><small style="color:var(--color-text-secondary);">Comércio e desapegos</small></div></div>
+                    <div class="category-card"><div class="category-icon">🔄</div><div><strong>Transferência</strong><br><small style="color:var(--color-text-secondary);">Entre contas</small></div></div>
+                    <div class="category-card"><div class="category-icon">⚙️</div><div><strong>Ajuste</strong><br><small style="color:var(--color-text-secondary);">Correção contábil</small></div></div>
+                    <div class="category-card"><div class="category-icon">📦</div><div><strong>Outros</strong><br><small style="color:var(--color-text-secondary);">Diversos</small></div></div>
+                </div>
+
+                <article class="panel chart-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Distribuição por categoria</h3>
+                            <p>Receitas e despesas mensais por grupo</p>
+                        </div>
+                        <span class="period-label">Categorias</span>
+                    </div>
+
+                    <div class="chart-placeholder">
+                        <div class="chart-symbol" aria-hidden="true">▧</div>
+                        <h4>Seu gráfico aparecerá aqui</h4>
+                        <p>
+                            Conectaremos este painel aos dados reais
+                            da API na próxima etapa.
+                        </p>
+                    </div>
+                </article>
+            </div>
+
+            <!-- View: Investimentos -->
+            <div id="view-investimentos" class="app-view" hidden>
+                <section class="summary-grid" style="margin-bottom: 24px;">
+                    <article class="summary-card">
+                        <div class="card-heading">
+                            <span>Total em investimentos</span>
+                            <span class="card-icon">📈</span>
+                        </div>
+                        <p class="card-value" id="investments-total">—</p>
+                        <p class="card-description">Saldo acumulado em contas de investimento</p>
+                    </article>
+                    <article class="summary-card">
+                        <div class="card-heading">
+                            <span>Reserva na poupança</span>
+                            <span class="card-icon">🐷</span>
+                        </div>
+                        <p class="card-value" id="savings-total">—</p>
+                        <p class="card-description">Saldo total em contas poupança</p>
+                    </article>
+                </section>
+
+                <article class="panel chart-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Evolução dos investimentos</h3>
+                            <p>Crescimento patrimonial e rentabilidade acumulada</p>
+                        </div>
+                        <span class="period-label">Investimentos</span>
+                    </div>
+
+                    <div class="chart-placeholder">
+                        <div class="chart-symbol" aria-hidden="true">↗</div>
+                        <h4>Seu gráfico aparecerá aqui</h4>
+                        <p>
+                            Conectaremos este painel aos dados reais
+                            da API na próxima etapa.
+                        </p>
+                    </div>
+                </article>
+            </div>
+
+            <!-- View: Relatórios -->
+            <div id="view-relatorios" class="app-view" hidden>
+                <article class="panel chart-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Visão financeira consolidada</h3>
+                            <p>Receitas e despesas mensais</p>
+                        </div>
+                        <span class="period-label">Este mês</span>
+                    </div>
+
+                    <div class="chart-placeholder">
+                        <div class="chart-symbol" aria-hidden="true">▥</div>
+                        <h4>Seu gráfico aparecerá aqui</h4>
+                        <p>
+                            Conectaremos este painel aos dados reais
+                            da API na próxima etapa.
+                        </p>
+                    </div>
+                </article>
+            </div>
 
             <footer class="footer">
                 <p>Fluxo de Caixa · Controle financeiro pessoal</p>
