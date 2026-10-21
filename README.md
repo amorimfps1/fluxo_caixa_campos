@@ -5,14 +5,28 @@ estática e testes automatizados.
 
 ## Funcionalidades
 
+
+### Funcionalidades da API
+
 - Cadastro com nome, CPF, e-mail, senha e telefone opcional; Gmail pode ser
   usado como e-mail comum (sem autenticação Google OAuth).
 - Contas bancárias e movimentações isoladas por usuário.
 - Entradas, saídas, investimentos, transferências e ajustes.
-- Cálculos financeiros, relatórios e metas.
+- Cálculos financeiros: rotas da API existem, mas ainda não têm tela na
+  interface.
+- Metas: rotas da API existem, mas ainda não têm tela na interface.
+- Relatórios: ainda não existem rotas dedicadas na API nem tela na interface.
 - Senhas com hash; CPF e telefone cifrados; limites de tentativas no login e
   no cadastro.
+
+### Funcionalidades da interface
+
 - Dashboard web com contas e movimentações reais da API.
+- Gráficos: apenas espaços reservados (placeholders), sem dados conectados à
+  API.
+- Itens de menu "Categorias", "Investimentos" e "Relatórios": apenas espaços
+  reservados, sem tela implementada.
+
 
 ## Estrutura
 
@@ -65,16 +79,28 @@ são ignorados pelo Git.
 
 No Windows, `%LOCALAPPDATA%\fluxo_caixa\secrets.env` tem precedência sobre o
 arquivo `.env` da raiz. Verifique qual configuração local será usada antes de
-iniciar a API. Gere as chaves no computador:
+iniciar a API.
+
+### Gerar chaves para produção
+
+Gere cada chave diretamente no ambiente de destino e nunca compartilhe valores
+entre ambientes:
 
 ```powershell
+# Chave JWT (assinatura do token; mínimo 32 caracteres)
 python -c "import secrets; print(secrets.token_urlsafe(48))"
+
+# Chave Fernet (cifragem de CPF e telefone)
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Use o primeiro valor para `JWT_SECRET_KEY` e o segundo para
-`CPF_ENCRYPTION_KEY`. Faça backup seguro da chave Fernet: perdê-la impede
-recuperar CPFs cifrados. Não a troque sem um procedimento de recifragem.
+Use o primeiro valor para `JWT_SECRET_KEY` e o segundo para `CPF_ENCRYPTION_KEY`.
+Defina `APP_ENV=development` ou `APP_ENV=production` (variável obrigatória).
+Em produção, preencha `CORS_ORIGINS` somente com as origens confiáveis do frontend.
+
+Faça backup seguro da chave Fernet: perdê-la impede recuperar CPFs e telefones
+cifrados. Não troque essa chave sem um procedimento de recifragem dos dados
+já armazenados. Nunca versão `.env`, tokens, chaves ou segredos.
 
 ## Banco de dados
 
@@ -156,15 +182,26 @@ ignorados. A suíte padrão `python -m pytest -q` sempre os exclui.
 
 - A allowlist CORS local contém somente `http://app.fluxocaixa`,
   `http://app.fluxocaixa:5173` e `http://127.0.0.1:5173`. O frontend usa a API
-  em `http://127.0.0.1:8000`.
+  em `http://127.0.0.1:8000`. `APP_ENV` é obrigatória (`development` ou
+  `production`). Em produção, preencha `CORS_ORIGINS` somente com as origens
+  confiáveis.
 - Antes de iniciar a API com o campo telefone, aplique a revisão
   `adicionar_telefone_usuario` somente à base local de desenvolvimento.
 - A API local fica vinculada a loopback; não altere para `0.0.0.0` em uma rede
   não confiável.
 - Frontend e API usam HTTP sem TLS e JWT em `sessionStorage`; são apenas para
   desenvolvimento local, não para produção.
-- Nunca versione `.env`, tokens, chaves, dados pessoais, dados bancários ou
+- Nunca versão `.env`, tokens, chaves, dados pessoais, dados bancários ou
   dumps de bancos reais.
+
+### Pendências para produção (não implementadas)
+
+- **Armazenamento do token:** o JWT é mantido em `sessionStorage` pelo frontend.
+  Ainda não foi decidido se o token deve continuar em `sessionStorage` ou migrar
+  para um cookie `HttpOnly`. Essa mudança não será feita sem consulta prévia.
+- **HTTPS:** a aplicação roda em HTTP sem TLS. Para produção é necessário
+  configurar HTTPS (certificado TLS e redirecionamento de HTTP para HTTPS).
+  Ainda não há implementação nessa direção.
 
 ## Documentação adicional
 

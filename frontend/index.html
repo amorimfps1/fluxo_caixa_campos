@@ -12,9 +12,9 @@
 
     <title>Fluxo de Caixa | Dashboard</title>
 
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=3">
     <script src="js/api.js" defer></script>
-    <script src="js/dashboard.js" defer></script>
+    <script src="js/dashboard.js?v=3" defer></script>
 </head>
 
 <body>
@@ -88,6 +88,14 @@
                     <span class="date-label" id="current-date">
                         Carregando data...
                     </span>
+
+                    <button
+                        type="button"
+                        class="button-secondary"
+                        id="logout"
+                    >
+                        Sair
+                    </button>
 
                     <button
                         type="button"
@@ -195,6 +203,13 @@
                             <h3>Contas bancárias</h3>
                             <p>Resumo das suas contas</p>
                         </div>
+                        <button
+                            type="button"
+                            class="button-secondary"
+                            id="new-account"
+                        >
+                            + Nova conta
+                        </button>
                     </div>
 
                     <div class="empty-state" id="accounts-list">
@@ -252,6 +267,186 @@
             </footer>
 
         </main>
+
+        <dialog class="form-dialog" id="account-dialog" aria-labelledby="account-dialog-title">
+            <form id="account-form" class="dialog-form">
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="account-dialog-title">Cadastrar conta bancária</h2>
+                        <p>Adicione uma conta para organizar seu saldo e movimentações.</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="dialog-close"
+                        data-close-dialog="account-dialog"
+                        aria-label="Fechar"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div class="form-field">
+                    <label for="account-name">Banco ou nome da conta</label>
+                    <input
+                        id="account-name"
+                        name="nome_banco"
+                        type="text"
+                        minlength="2"
+                        maxlength="100"
+                        autocomplete="organization"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="account-type">Tipo de conta</label>
+                    <select id="account-type" name="tipo_conta" required>
+                        <option value="corrente">Conta corrente</option>
+                        <option value="poupanca">Poupança</option>
+                        <option value="investimento">Investimento</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="account-balance">Saldo inicial</label>
+                    <input
+                        id="account-balance"
+                        name="valor_conta_atual"
+                        type="number"
+                        min="0"
+                        max="9999999999.99"
+                        step="0.01"
+                        value="0.00"
+                        inputmode="decimal"
+                        required
+                    >
+                </div>
+
+                <p class="form-message" id="account-message" role="status" aria-live="polite"></p>
+
+                <div class="dialog-actions">
+                    <button
+                        type="button"
+                        class="button-secondary"
+                        data-close-dialog="account-dialog"
+                    >
+                        Cancelar
+                    </button>
+                    <button type="submit" class="button-primary">
+                        Salvar conta
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog class="form-dialog" id="movement-dialog" aria-labelledby="movement-dialog-title">
+            <form id="movement-form" class="dialog-form">
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="movement-dialog-title">Nova movimentação</h2>
+                        <p>Registre uma receita ou despesa em uma conta bancária.</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="dialog-close"
+                        data-close-dialog="movement-dialog"
+                        aria-label="Fechar"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div class="form-field">
+                    <label for="movement-type">Tipo</label>
+                    <select id="movement-type" name="tipo" required>
+                        <option value="entrada">Receita</option>
+                        <option value="saida">Despesa</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="movement-account">Conta bancária</label>
+                    <select id="movement-account" name="conta_bancaria_id" required></select>
+                    <span class="field-help" id="movement-account-help"></span>
+                </div>
+
+                <div class="form-field">
+                    <label for="movement-description">Descrição</label>
+                    <input
+                        id="movement-description"
+                        name="descricao"
+                        type="text"
+                        minlength="1"
+                        maxlength="200"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="movement-amount">Valor</label>
+                    <input
+                        id="movement-amount"
+                        name="valor"
+                        type="number"
+                        min="0.01"
+                        max="9999999999.99"
+                        step="0.01"
+                        inputmode="decimal"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="movement-category">Categoria</label>
+                    <select id="movement-category" name="categoria" required>
+                        <option value="alimentacao">Alimentação</option>
+                        <option value="compras">Compras</option>
+                        <option value="contas">Contas</option>
+                        <option value="educacao">Educação</option>
+                        <option value="freelance">Freelance</option>
+                        <option value="impostos">Impostos</option>
+                        <option value="investimento">Investimento</option>
+                        <option value="lazer">Lazer</option>
+                        <option value="moradia">Moradia</option>
+                        <option value="outros">Outros</option>
+                        <option value="salario">Salário</option>
+                        <option value="saude">Saúde</option>
+                        <option value="transporte">Transporte</option>
+                        <option value="vendas">Vendas</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="movement-date">Data</label>
+                    <input id="movement-date" name="data_movimentacao" type="date" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="movement-note">Observação <span class="field-optional">(opcional)</span></label>
+                    <textarea
+                        id="movement-note"
+                        name="observacao"
+                        maxlength="255"
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <p class="form-message" id="movement-message" role="status" aria-live="polite"></p>
+
+                <div class="dialog-actions">
+                    <button
+                        type="button"
+                        class="button-secondary"
+                        data-close-dialog="movement-dialog"
+                    >
+                        Cancelar
+                    </button>
+                    <button type="submit" class="button-primary">
+                        Salvar movimentação
+                    </button>
+                </div>
+            </form>
+        </dialog>
     </div>
 </body>
 </html>

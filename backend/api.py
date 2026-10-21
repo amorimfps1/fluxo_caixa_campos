@@ -1,6 +1,10 @@
+import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from configuracao import carregar_configuracao
 from dados_sensiveis import validar_chave_cpf
 from rotasdeapi import (
     usuario,
@@ -10,6 +14,7 @@ from rotasdeapi import (
     meta_financeira
 )
 
+carregar_configuracao()
 validar_chave_cpf()
 
 app = FastAPI(
@@ -17,14 +22,54 @@ app = FastAPI(
     description="API para controle de finanças domésticas",
     version="1.0.0"
 )
+def _validar_app_env() -> str:
+    """Valida e retorna o valor de APP_ENV.
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+    APP_ENV é obrigatório e deve ser "development" ou "production".
+    """
+    app_env = os.getenv("APP_ENV", "").strip().lower()
+    if app_env not in ("development", "production"):
+        raise RuntimeError(
+            "APP_ENV não está definida ou é inválida. "
+            'Defina APP_ENV="development" ou APP_ENV="production".'
+        )
+    return app_env
+
+def _origens_cors() -> list[str]:
+    """Retorna as origens permitidas pelo CORS.
+
+    Em desenvolvimento (APP_ENV diferente de "production") aceita as origens
+    locais padrão. Em produção, restringe a lista definida em CORS_ORIGINS.
+    """
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    origens_env = os.getenv("CORS_ORIGINS", "").strip()
+
+    if app_env == "production":
+        if not origens_env:
+            raise RuntimeError(
+                "CORS_ORIGINS deve ser definida em produção (APP_ENV=production).")      
+        origens = [origem.strip() for origem in origens_env.split(",") if origem.strip()]
+        if "*" in origens:
+            raise RuntimeError(
+                "CORS_ORIGINS não permite curinga '*' em produção. "
+                "Liste explicitamente as origens confiáveis."
+            )
+        return origens
+
+    # Desenvolvimento: permissivo com as origens locais padrão.
+    padrao = [
         "http://app.fluxocaixa",
         "http://app.fluxocaixa:5173",
         "http://127.0.0.1:5173",
-    ],
+    ]
+    if origens_env:
+        return [origem.strip() for origem in origens_env.split(",") if origem.strip()]
+    return padrao
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origens_cors(),
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )

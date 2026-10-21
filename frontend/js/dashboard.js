@@ -3,16 +3,33 @@
  * Inicialização e dados reais do dashboard.
  */
 
-document.addEventListener("DOMContentLoaded", () => {
+let contasCarregadas = [];
+
+function verificarSessao() {
     if (!api.getToken()) {
         window.location.replace("login.html");
-        return;
     }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    window.addEventListener("pageshow", verificarSessao);
+    if (!api.getToken()) return;
 
     atualizarData();
-    configurarBotaoNovaMovimentacao();
+    configurarDialogos();
+    configurarBotaoSair();
     carregarDashboard();
 });
+
+function configurarBotaoSair() {
+    const botao = document.querySelector("#logout");
+    if (!botao) return;
+
+    botao.addEventListener("click", () => {
+        api.clearToken();
+        window.location.replace("login.html");
+    });
+}
 
 function atualizarData() {
     const dateElement = document.querySelector("#current-date");
@@ -25,13 +42,155 @@ function atualizarData() {
     });
 }
 
-function configurarBotaoNovaMovimentacao() {
-    const button = document.querySelector("#new-movement");
-    if (!button) return;
+function configurarDialogos() {
+    const botaoNovaConta = document.querySelector("#new-account");
+    const botaoNovaMovimentacao = document.querySelector("#new-movement");
+    const formularioConta = document.querySelector("#account-form");
+    const formularioMovimentacao = document.querySelector("#movement-form");
 
-    button.addEventListener("click", () => {
-        alert("O formulário de nova movimentação será implementado em breve.");
+    botaoNovaConta?.addEventListener("click", abrirDialogoConta);
+    botaoNovaMovimentacao?.addEventListener(
+        "click",
+        abrirDialogoMovimentacao
+    );
+
+    document.querySelectorAll("[data-close-dialog]").forEach((botao) => {
+        botao.addEventListener("click", () => {
+            const dialogo = document.querySelector(
+                `#${botao.dataset.closeDialog}`
+            );
+            if (dialogo instanceof HTMLDialogElement) dialogo.close();
+        });
     });
+
+    formularioConta?.addEventListener("submit", salvarConta);
+    formularioMovimentacao?.addEventListener(
+        "submit",
+        salvarMovimentacao
+    );
+
+    document.querySelector("#account-dialog")?.addEventListener(
+        "close",
+        () => limparMensagem("#account-message")
+    );
+    document.querySelector("#movement-dialog")?.addEventListener(
+        "close",
+        () => limparMensagem("#movement-message")
+    );
+}
+
+function abrirDialogoConta() {
+    const dialogo = document.querySelector("#account-dialog");
+    if (dialogo instanceof HTMLDialogElement) dialogo.showModal();
+}
+
+function abrirDialogoMovimentacao() {
+    if (contasCarregadas.length === 0) {
+        abrirDialogoConta();
+        definirMensagem(
+            "#account-message",
+            "Cadastre uma conta antes de registrar movimentações.",
+            "info"
+        );
+        return;
+    }
+
+    const seletor = document.querySelector("#movement-account");
+    const ajuda = document.querySelector("#movement-account-help");
+    if (seletor) {
+        seletor.replaceChildren(
+            ...contasCarregadas.map((conta) => {
+                const opcao = document.createElement("option");
+                opcao.value = String(conta.id);
+                opcao.textContent = `${conta.nome_banco} · ${conta.tipo_conta}`;
+                return opcao;
+            })
+        );
+    }
+    if (ajuda) ajuda.textContent = "";
+
+    const campoData = document.querySelector("#movement-date");
+    if (campoData && !campoData.value) {
+        const hoje = new Date();
+        campoData.value = [
+            hoje.getFullYear(),
+            String(hoje.getMonth() + 1).padStart(2, "0"),
+            String(hoje.getDate()).padStart(2, "0")
+        ].join("-");
+    }
+
+    const dialogo = document.querySelector("#movement-dialog");
+    if (dialogo instanceof HTMLDialogElement) dialogo.showModal();
+}
+
+async function salvarConta(event) {
+    event.preventDefault();
+    const formulario = event.currentTarget;
+    const botao = formulario.querySelector('[type="submit"]');
+    const dados = new FormData(formulario);
+
+    definirMensagem("#account-message", "Salvando conta...", "info");
+    botao.disabled = true;
+
+    try {
+        await api.post("/contas-bancarias/", {
+            nome_banco: dados.get("nome_banco").trim(),
+            tipo_conta: dados.get("tipo_conta"),
+            valor_conta_atual: dados.get("valor_conta_atual"),
+            ativa: true
+        });
+        formulario.reset();
+        document.querySelector("#account-balance").value = "0.00";
+        document.querySelector("#account-dialog").close();
+        await carregarDashboard();
+    } catch (error) {
+        definirMensagem("#account-message", error.message, "error");
+    } finally {
+        botao.disabled = false;
+    }
+}
+
+async function salvarMovimentacao(event) {
+    event.preventDefault();
+    const formulario = event.currentTarget;
+    const botao = formulario.querySelector('[type="submit"]');
+    const dados = new FormData(formulario);
+
+    definirMensagem("#movement-message", "Salvando movimentação...", "info");
+    botao.disabled = true;
+
+    try {
+        await api.post("/fluxo-dinheiro/", {
+            conta_bancaria_id: Number(dados.get("conta_bancaria_id")),
+            descricao: dados.get("descricao").trim(),
+            valor: dados.get("valor"),
+            tipo: dados.get("tipo"),
+            categoria: dados.get("categoria"),
+            data_movimentacao: dados.get("data_movimentacao"),
+            observacao: dados.get("observacao").trim() || null
+        });
+        formulario.reset();
+        document.querySelector("#movement-dialog").close();
+        await carregarDashboard();
+    } catch (error) {
+        definirMensagem("#movement-message", error.message, "error");
+    } finally {
+        botao.disabled = false;
+    }
+}
+
+function definirMensagem(seletor, texto, tipo) {
+    const mensagem = document.querySelector(seletor);
+    if (!mensagem) return;
+    mensagem.textContent = texto;
+    mensagem.className = `form-message ${tipo}`;
+}
+
+function limparMensagem(seletor) {
+    const mensagem = document.querySelector(seletor);
+    if (!mensagem) return;
+    mensagem.textContent = "";
+    mensagem.className = "form-message";
 }
 
 function formatarMoeda(valor) {
@@ -113,6 +272,7 @@ async function carregarDashboard() {
             throw new Error("A API retornou movimentações em formato inesperado.");
         }
 
+        contasCarregadas = contas.filter((conta) => conta.ativa);
         atualizarResumo(contas, movimentacoesMes);
         atualizarContas(contas);
         atualizarMovimentacoes(movimentacoesRecentes);

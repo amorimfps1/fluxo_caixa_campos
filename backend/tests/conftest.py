@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 os.environ.update(
     {
         "DATABASE_URL": "sqlite:///:memory:",
+        "APP_ENV": "development",
         "JWT_SECRET_KEY": "test-only-jwt-signing-key-do-not-use",
         "CPF_ENCRYPTION_KEY": (
             "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="

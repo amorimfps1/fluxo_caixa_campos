@@ -11,6 +11,15 @@ Frontend estático em HTML, CSS e JavaScript nativo:
 - `js/login.js` e `js/dashboard.js`: fluxos de tela.
 - `js/cadastro.js`: validação de confirmação de senha e envio do cadastro.
 
+## Contas e movimentações
+
+No dashboard, use **Nova conta** para cadastrar uma conta bancária com tipo e
+saldo inicial. Depois, **Nova movimentação** permite registrar receitas e
+despesas em uma conta ativa. As operações são enviadas à API com o token da
+sessão; após salvar, o dashboard consulta novamente as contas e movimentações
+para atualizar os saldos. Transferências e ajustes continuam disponíveis
+somente pela API.
+
 ## Execução local
 
 Inicie a API em um terminal, na raiz do projeto:
