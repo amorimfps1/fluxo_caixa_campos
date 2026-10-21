@@ -62,6 +62,8 @@ def _origens_cors() -> list[str]:
         "http://app.fluxocaixa:5173",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5500",
+        "https://fluxo-caixa-coral-dois.vercel.app",
+        "https://fluxo-caixa-4nnewcrbc-camposxresenhudos.vercel.app",
     ]
     if origens_env:
         return [origem.strip() for origem in origens_env.split(",") if origem.strip()]

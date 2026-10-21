@@ -3,7 +3,18 @@
  * Comunicação com a API FastAPI.
  */
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+function obterUrlBaseApi() {
+    if (window.__API_URL__) {
+        return window.__API_URL__.replace(/\/+$/, "");
+    }
+    const urlPersistida = localStorage.getItem("fluxo_caixa_api_url");
+    if (urlPersistida) {
+        return urlPersistida.trim().replace(/\/+$/, "");
+    }
+    return "http://127.0.0.1:8000";
+}
+
+const API_BASE_URL = obterUrlBaseApi();
 
 const api = {
     getToken() {
@@ -45,6 +56,11 @@ const api = {
             });
         } catch (erro) {
             console.error("Erro na comunicação com a API:", erro);
+            if (window.location.protocol === "https:" && API_BASE_URL.startsWith("http://")) {
+                throw new Error(
+                    "Bloqueio de conteúdo misto (HTTPS para HTTP). Para conectar à API a partir da Vercel, configure a URL segura da API: localStorage.setItem('fluxo_caixa_api_url', 'https://sua-api.com')"
+                );
+            }
             throw new Error(
                 "Não foi possível conectar à API. Verifique se o servidor está ativo."
             );
@@ -96,6 +112,11 @@ const api = {
             return await response.json();
         } catch (erro) {
             console.error("Erro na comunicação com a API:", erro);
+            if (window.location.protocol === "https:" && API_BASE_URL.startsWith("http://")) {
+                throw new Error(
+                    "Bloqueio de conteúdo misto (HTTPS para HTTP). Para conectar à API a partir da Vercel, configure a URL segura da API: localStorage.setItem('fluxo_caixa_api_url', 'https://sua-api.com')"
+                );
+            }
             throw new Error("A API retornou uma resposta inválida.");
         }
     },

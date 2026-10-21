@@ -12,6 +12,7 @@ import api as api_mod
         "http://app.fluxocaixa:5173",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5500",
+        "https://fluxo-caixa-coral-dois.vercel.app",
     ],
 )
 def test_cors_permite_preflight_das_origens_locais(client, origem):
