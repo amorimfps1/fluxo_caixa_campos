@@ -46,7 +46,7 @@ Set-Location frontend
 ```
 
 Nesse caso, abra `http://127.0.0.1:5173/login.html` ou
-`http://app.fluxocaixa:5173/login.html`. A API permite as três origens locais
+`http://app.fluxocaixa:5173/login.html` ou pelo Live Server (`http://127.0.0.1:5500/login.html`). A API permite as origens locais documentadas.
 documentadas. O cliente chama a API em `http://127.0.0.1:8000`, portanto não
 é necessário criar outro alias DNS para ela.
 

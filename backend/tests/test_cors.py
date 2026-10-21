@@ -11,6 +11,7 @@ import api as api_mod
         "http://app.fluxocaixa",
         "http://app.fluxocaixa:5173",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5500",
     ],
 )
 def test_cors_permite_preflight_das_origens_locais(client, origem):
@@ -83,6 +84,7 @@ def test_cors_desenvolvimento_usa_origens_padrao(monkeypatch):
     assert "http://app.fluxocaixa" in origens
     assert "http://app.fluxocaixa:5173" in origens
     assert "http://127.0.0.1:5173" in origens
+    assert "http://127.0.0.1:5500" in origens
 
 
 def test_cors_app_env_ausente_falha(monkeypatch):

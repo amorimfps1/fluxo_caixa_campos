@@ -43,7 +43,8 @@ const api = {
                 ...options,
                 headers
             });
-        } catch {
+        } catch (erro) {
+            console.error("Erro na comunicação com a API:", erro);
             throw new Error(
                 "Não foi possível conectar à API. Verifique se o servidor está ativo."
             );
@@ -93,7 +94,8 @@ const api = {
 
         try {
             return await response.json();
-        } catch {
+        } catch (erro) {
+            console.error("Erro na comunicação com a API:", erro);
             throw new Error("A API retornou uma resposta inválida.");
         }
     },

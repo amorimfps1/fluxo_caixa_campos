@@ -41,7 +41,7 @@ def _origens_cors() -> list[str]:
     Em desenvolvimento (APP_ENV diferente de "production") aceita as origens
     locais padrão. Em produção, restringe a lista definida em CORS_ORIGINS.
     """
-    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    app_env = _validar_app_env()
     origens_env = os.getenv("CORS_ORIGINS", "").strip()
 
     if app_env == "production":
@@ -61,6 +61,7 @@ def _origens_cors() -> list[str]:
         "http://app.fluxocaixa",
         "http://app.fluxocaixa:5173",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5500",
     ]
     if origens_env:
         return [origem.strip() for origem in origens_env.split(",") if origem.strip()]

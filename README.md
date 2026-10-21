@@ -181,7 +181,7 @@ ignorados. A suíte padrão `python -m pytest -q` sempre os exclui.
 ## Segurança e limites
 
 - A allowlist CORS local contém somente `http://app.fluxocaixa`,
-  `http://app.fluxocaixa:5173` e `http://127.0.0.1:5173`. O frontend usa a API
+  `http://app.fluxocaixa:5173`, `http://127.0.0.1:5173` e `http://127.0.0.1:5500` (Live Server). O frontend usa a API
   em `http://127.0.0.1:8000`. `APP_ENV` é obrigatória (`development` ou
   `production`). Em produção, preencha `CORS_ORIGINS` somente com as origens
   confiáveis.
