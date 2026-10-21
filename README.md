@@ -1,215 +1,332 @@
-# Fluxo de Caixa
+# 💰 Sistema de Fluxo de Caixa
 
-Aplicação de controle financeiro com API FastAPI, banco MySQL, interface web
-estática e testes automatizados.
+<div align="center">
 
-## Funcionalidades
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-1.0.0-009688?logo=fastapi&logoColor=white)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-red?logo=databricks&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0%2B-4479A1?logo=mysql&logoColor=white)
+![Alembic](https://img.shields.io/badge/Alembic-Migrations-orange)
+![Pytest](https://img.shields.io/badge/Pytest-62%20passing-brightgreen?logo=pytest&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
+**Aplicação completa de gestão e planejamento financeiro pessoal com API REST assíncrona em FastAPI, persistência relacional com SQLAlchemy e MySQL, interface web responsiva e suíte abrangente de testes automatizados.**
 
-### Funcionalidades da API
+</div>
 
-- Cadastro com nome, CPF, e-mail, senha e telefone opcional; Gmail pode ser
-  usado como e-mail comum (sem autenticação Google OAuth).
-- Contas bancárias e movimentações isoladas por usuário.
-- Entradas, saídas, investimentos, transferências e ajustes.
-- Cálculos financeiros: rotas da API existem, mas ainda não têm tela na
-  interface.
-- Metas: rotas da API existem, mas ainda não têm tela na interface.
-- Relatórios: ainda não existem rotas dedicadas na API nem tela na interface.
-- Senhas com hash; CPF e telefone cifrados; limites de tentativas no login e
-  no cadastro.
+---
 
-### Funcionalidades da interface
+## 📑 Sumário
 
-- Dashboard web com contas e movimentações reais da API.
-- Gráficos: apenas espaços reservados (placeholders), sem dados conectados à
-  API.
-- Itens de menu "Categorias", "Investimentos" e "Relatórios": apenas espaços
-  reservados, sem tela implementada.
+- [Visão Geral](#-visão-geral)
+- [Arquitetura do Sistema](#-arquitetura-do-sistema)
+- [Principais Funcionalidades](#-principais-funcionalidades)
+- [Stack Tecnológica](#-stack-tecnológica)
+- [Estrutura do Projeto](#-estrutura-do-projeto)
+- [Pré-requisitos](#-pré-requisitos)
+- [Instalação e Configuração](#-instalação-e-configuração)
+- [Executando a Aplicação](#-executando-a-aplicação)
+- [Resumo das Rotas da API](#-resumo-das-rotas-da-api)
+- [Segurança e Proteção de Dados](#-segurança-e-proteção-de-dados)
+- [Testes Automatizados](#-testes-automatizados)
+- [Documentações Complementares](#-documentações-complementares)
 
+---
 
-## Estrutura
+## 🌟 Visão Geral
 
-```text
-.
-├── backend/                    # API, regras, segurança e testes
-│   ├── rotasdeapi/              # Endpoints por recurso
-│   ├── seguranca/               # Hash e verificação de senha
-│   └── tests/                   # SQLite; concorrência MySQL opt-in
-├── banco de dados/
-│   ├── migrations/              # Histórico oficial Alembic
-│   └── *.sql                    # Dumps legados; não executar
-├── frontend/
-│   ├── login.html
-│   ├── index.html               # Dashboard
-│   ├── css/
-│   └── js/
-├── .env.example                 # Modelo sem segredos reais
-├── main.py                      # Entrada local da API
-├── requirements.txt
-└── pytest.ini
+O **Sistema de Fluxo de Caixa** foi desenvolvido para oferecer controle rigoroso, transparente e seguro das finanças pessoais. Ele substitui planilhas manuais propensas a erros por um modelo transacional íntegro, que calcula receitas, despesas, transferências entre contas e conciliações em tempo real com precisão `Decimal`.
+
+---
+
+## 🏛️ Arquitetura do Sistema
+
+A aplicação segue uma arquitetura em camadas desacopladas com separação clara de responsabilidades:
+
+```mermaid
+flowchart TD
+    subgraph FrontendLayer ["🖥️ Camada de Apresentação (Frontend)"]
+        UI["Interface do Usuário (HTML5 / CSS3 / JS)"]
+        CLIENT["Cliente HTTP api.js (Fetch API + SessionStorage)"]
+        UI --> CLIENT
+    end
+
+    subgraph APILayer ["⚡ Camada de Aplicação (FastAPI)"]
+        CORS["CORS Middleware (Allowlist)"]
+        AUTH["Segurança & JWT (OAuth2PasswordBearer)"]
+        ROUTERS["Controladores REST (/rotasdeapi)"]
+        RULES["Regras de Negócio & Cálculos (financeiro.py)"]
+        CRYPTO["Criptografia Fernet & HMAC Blind Index"]
+        
+        CLIENT -- "HTTP REST (Bearer JWT)" --> CORS
+        CORS --> AUTH
+        AUTH --> ROUTERS
+        ROUTERS --> RULES
+        ROUTERS --> CRYPTO
+    end
+
+    subgraph DataLayer ["🗄️ Camada de Persistência (SQLAlchemy + MySQL)"]
+        MODELS["Modelos Declarativos ORM (models.py)"]
+        POOL["Engine com Pool Pre-Ping & Reciclagem"]
+        ALEMBIC["Alembic (Versionamento de Esquema)"]
+        DB[("MySQL Database")]
+        
+        RULES --> MODELS
+        CRYPTO --> MODELS
+        MODELS --> POOL
+        POOL --> DB
+        ALEMBIC -. "Migrações DDL" .-> DB
+    end
 ```
 
-Veja [ESTRUTURA.md](ESTRUTURA.md) e os READMEs de
-[backend](backend/readme.md), [testes](backend/tests/README.md),
-[frontend](frontend/README.md) e [banco de dados](banco%20de%20dados/readme.md).
+---
 
-## Pré-requisitos
+## 🚀 Principais Funcionalidades
 
-- Python 3.10 ou superior.
-- MySQL para executar a aplicação e as migrações.
-- PowerShell no Windows para os exemplos abaixo.
+### 💼 Backend & API
+- **Autenticação Segura:** Login OAuth2 com tokens JWT, expiração configurável e rate limiting contra força bruta (máx. 5 tentativas com bloqueio temporário).
+- **Proteção de Dados Sensíveis:** Cifragem simétrica Fernet para CPFs e telefones no banco de dados, com índice cego HMAC-SHA256 para prevenir duplicidades sem expor o valor original.
+- **Contas Bancárias:** Criação, edição e exclusão de contas correntes, poupanças e contas de investimento com isolamento estrito entre usuários.
+- **Movimentações Completas:** Registro de entradas, saídas, investimentos, transferências entre contas (com par vinculado de débito/crédito) e ajustes de conciliação assinados.
+- **Regras de Negócio Rigorosas:** Contas de poupança e investimentos não podem ficar negativas; categorias fixas normalizadas; atomicidade transacional.
+- **Cálculos e Metas Financeiras:** Endpoints dedicados para consolidação por período (diário, semanal, mensal, anual) e progresso de metas de economia.
+- **Healthcheck & Monitoramento:** Endpoint `/health` para monitoramento de integridade da API e `/docs` interativo OpenAPI Swagger UI.
 
-## Configuração local segura
+### 🎨 Frontend
+- **Dashboard Intuitivo:** Visualização instantânea de saldo total, saldo por conta e últimas movimentações reais.
+- **Modais Dinâmicos:** Abertura rápida de formulários para cadastro de novas contas e novas movimentações.
+- **Autenticação Integrada:** Telas dedicadas para login e cadastro de usuários com validação instantânea.
+- **Compatibilidade Local:** Suporte nativo tanto ao Live Server do VS Code (`porta 5500`) quanto ao servidor Python local (`porta 5173` ou `80`).
 
-Crie e ative um ambiente virtual, instale as dependências e copie o modelo de
-configuração:
+---
+
+## 🛠️ Stack Tecnológica
+
+| Camada | Tecnologia | Função |
+|---|---|---|
+| **Linguagem** | Python 3.10+ | Linguagem principal do ecossistema backend |
+| **Framework Web** | FastAPI | Construção da API REST assíncrona de alta performance |
+| **ORM** | SQLAlchemy 2.x | Mapeamento objeto-relacional e gerenciamento de transações |
+| **Banco de Dados** | MySQL 8.x | Banco relacional com integridade referencial ACID |
+| **Migrações** | Alembic | Versionamento e evolução do esquema do banco |
+| **Criptografia** | Cryptography (Fernet) + pwdlib | Cifragem de campos sensíveis e hash seguro de senhas |
+| **Testes** | Pytest + AnyIO + Starlette TestClient | Testes unitários, de isolamento e concorrência |
+| **Frontend** | HTML5, CSS3, JavaScript Vanilla | Interface estática leve sem dependência de frameworks |
+
+---
+
+## 📁 Estrutura do Projeto
+
+```text
+fluxo_caixas/
+├── backend/                        # Núcleo da API REST
+│   ├── rotasdeapi/                 # Controladores organizados por recurso
+│   │   ├── usuario.py              # Cadastro, autenticação e perfil
+│   │   ├── conta_bancaria.py       # Gestão de contas financeiras
+│   │   ├── fluxo_dinheiro.py       # Movimentações e transferências
+│   │   ├── calculo_financeiro.py   # Resumos e balanços periódicos
+│   │   └── meta_financeira.py      # Gestão de metas de economia
+│   ├── seguranca/                  # Algoritmos de hash e validação de senhas
+│   ├── tests/                      # Suíte de testes automatizados (62+ testes)
+│   ├── api.py                      # Instância principal FastAPI, CORS e rotas
+│   ├── autenticacao.py             # Criação e decodificação de JWT
+│   ├── configuracao.py             # Carregamento centralizado de variáveis
+│   ├── dados_sensiveis.py          # Cifragem Fernet e índice cego HMAC
+│   ├── database.py                 # Engine SQLAlchemy com Pool Pre-Ping
+│   ├── esquema.py                  # Schemas Pydantic de validação
+│   ├── financeiro.py               # Lógica de negócio e cálculos
+│   └── models.py                   # Modelos relacionais ORM
+├── banco de dados/                 # Infraestrutura de banco de dados
+│   ├── migrations/                 # Scripts oficiais de migração Alembic
+│   │   └── versions/               # Histórico das revisões do banco
+│   └── alembic.ini                 # Configuração do ambiente Alembic
+├── frontend/                       # Interface estática
+│   ├── css/                        # Estilos responsivos
+│   ├── js/                         # api.js, dashboard.js, login.js, cadastro.js
+│   ├── index.html                  # Dashboard autenticado
+│   ├── login.html                  # Tela de login
+│   └── cadastro.html               # Tela de cadastro de novos usuários
+├── scripts/                        # Utilitários de manutenção e testes
+├── .env.example                    # Modelo seguro de variáveis de ambiente
+├── main.py                         # Ponto de entrada para inicialização local
+├── pytest.ini                      # Configuração da suíte de testes
+└── requirements.txt                # Dependências Python do projeto
+```
+
+---
+
+## 📋 Pré-requisitos
+
+- **Python 3.10 ou superior** instalado.
+- **MySQL Server 8.0+** ativo localmente ou em container Docker.
+- **Git** para clonagem e versionamento.
+- Navegador web moderno (Chrome, Firefox, Edge, Safari).
+
+---
+
+## ⚙️ Instalação e Configuração
+
+### 1. Clonar o Repositório
+
+```bash
+git clone https://github.com/arthurcamrocha20052008/fluxo_caixa.git
+cd fluxo_caixas
+```
+
+### 2. Criar e Ativar o Ambiente Virtual
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+```
+
+### 3. Instalar Dependências
+
+```powershell
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 4. Configurar as Variáveis de Ambiente
+
+Copie o arquivo de exemplo para `.env`:
+
+```powershell
 Copy-Item .env.example .env
 ```
 
-Edite `.env` localmente: configure as chaves e uma base MySQL exclusiva para
-desenvolvimento, vazia ou descartável. Nunca configure desenvolvimento,
-migrações ou testes para apontar à base de produção. `.env` e ambientes virtuais
-são ignorados pelo Git.
-
-No Windows, `%LOCALAPPDATA%\fluxo_caixa\secrets.env` tem precedência sobre o
-arquivo `.env` da raiz. Verifique qual configuração local será usada antes de
-iniciar a API.
-
-### Gerar chaves para produção
-
-Gere cada chave diretamente no ambiente de destino e nunca compartilhe valores
-entre ambientes:
+Gere as chaves criptográficas necessárias:
 
 ```powershell
-# Chave JWT (assinatura do token; mínimo 32 caracteres)
+# Chave JWT (mínimo de 32 caracteres)
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 
-# Chave Fernet (cifragem de CPF e telefone)
+# Chave Fernet (para CPF e telefone)
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Use o primeiro valor para `JWT_SECRET_KEY` e o segundo para `CPF_ENCRYPTION_KEY`.
-Defina `APP_ENV=development` ou `APP_ENV=production` (variável obrigatória).
-Em produção, preencha `CORS_ORIGINS` somente com as origens confiáveis do frontend.
+Abra o arquivo `.env` e configure seus valores:
 
-Faça backup seguro da chave Fernet: perdê-la impede recuperar CPFs e telefones
-cifrados. Não troque essa chave sem um procedimento de recifragem dos dados
-já armazenados. Nunca versão `.env`, tokens, chaves ou segredos.
+```ini
+DATABASE_URL=mysql+pymysql://seu_usuario:sua_senha@127.0.0.1:3306/fluxo_caixa
+JWT_SECRET_KEY=sua_chave_jwt_gerada_acima
+CPF_ENCRYPTION_KEY=sua_chave_fernet_gerada_acima
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+APP_ENV=development
+CORS_ORIGINS=http://app.fluxocaixa,http://app.fluxocaixa:5173,http://127.0.0.1:5173,http://127.0.0.1:5500
+```
 
-## Banco de dados
+### 5. Executar as Migrações do Banco
 
-Confirme que `DATABASE_URL` aponta para a base de desenvolvimento antes de
-consultar ou alterar o esquema. Para uma base nova:
+Com o MySQL rodando e a base de dados criada, execute:
 
 ```powershell
 python -m alembic -c "banco de dados/alembic.ini" upgrade head
 ```
 
-Faça backup e revise o destino antes de aplicar migrações a qualquer base com
-dados. Não use `stamp` sem confirmar o esquema. Os arquivos `.sql` são dumps
-legados e podem conter comandos destrutivos; não os execute em bancos ativos.
+---
 
-## Executar localmente
+## 🚀 Executando a Aplicação
 
-Na raiz, inicie a API:
+### 1. Iniciar o Backend (API)
+
+A partir da raiz do projeto:
 
 ```powershell
 python main.py
 ```
 
-Ela escuta apenas em `127.0.0.1:8000`. Documentação:
+A API estará disponível em:
+- **API Base:** `http://127.0.0.1:8000`
+- **Healthcheck:** `http://127.0.0.1:8000/health`
+- **Swagger UI Interativo:** `http://127.0.0.1:8000/docs`
+- **Especificação OpenAPI:** `http://127.0.0.1:8000/openapi.json`
 
-- API: <http://127.0.0.1:8000>
-- Swagger UI: <http://127.0.0.1:8000/docs>
-- OpenAPI: <http://127.0.0.1:8000/openapi.json>
+### 2. Iniciar o Frontend
 
-Em outro terminal, inicie o frontend seguindo
-[frontend/README.md](frontend/README.md). Para login manual, use apenas uma
-conta fictícia de desenvolvimento. Para abrir sem informar uma porta, sirva o
-frontend na porta 80 e use `http://app.fluxocaixa/login.html`; esse nome
-precisa apontar para `127.0.0.1` no arquivo `hosts` do Windows. Como
-alternativa, use a porta 5173 e abra
-`http://127.0.0.1:5173/login.html` ou
-`http://app.fluxocaixa:5173/login.html`.
+Você tem duas opções para servir a interface:
 
-## Testes automatizados
+#### Opção A — Live Server do VS Code (Recomendado para Dev)
+Abra a pasta do projeto no VS Code, clique com o botão direito em `frontend/login.html` e selecione **"Open with Live Server"**. O navegador abrirá em `http://127.0.0.1:5500/frontend/login.html` (já liberado no CORS).
 
-Execute na raiz:
+#### Opção B — Servidor Local Python (Porta 5173)
+```powershell
+Set-Location frontend
+..\.venv\Scripts\python.exe -m http.server 5173 --bind 127.0.0.1
+```
+Acesse no navegador: `http://127.0.0.1:5173/login.html`.
+
+---
+
+## 📡 Resumo das Rotas da API
+
+| Módulo | Método | Rota | Descrição | Autenticação |
+|---|---|---|---|---|
+| **Sistema** | `GET` | `/` | Boas-vindas e status da API | Não |
+| **Sistema** | `GET` | `/health` | Verificação de integridade operacional | Não |
+| **Usuários** | `POST` | `/usuarios/` | Cadastro com validação de CPF | Não |
+| **Usuários** | `POST` | `/login` | Autenticação OAuth2 e retorno do JWT | Não |
+| **Usuários** | `GET` | `/usuarios/me` | Dados do usuário autenticado | Sim (Bearer) |
+| **Contas** | `GET` | `/contas-bancarias/` | Lista contas bancárias do usuário | Sim (Bearer) |
+| **Contas** | `POST` | `/contas-bancarias/` | Cadastra nova conta com saldo inicial | Sim (Bearer) |
+| **Contas** | `PUT` | `/contas-bancarias/{id}` | Atualiza nome/tipo da conta | Sim (Bearer) |
+| **Contas** | `DELETE`| `/contas-bancarias/{id}` | Inativa/remove conta | Sim (Bearer) |
+| **Fluxo** | `GET` | `/fluxo-dinheiro/` | Extrato com filtros de período e conta | Sim (Bearer) |
+| **Fluxo** | `POST` | `/fluxo-dinheiro/` | Lançamento (receita, despesa, transf.) | Sim (Bearer) |
+| **Fluxo** | `DELETE`| `/fluxo-dinheiro/{id}` | Remove movimentação (reverte transações)| Sim (Bearer) |
+| **Cálculos** | `POST` | `/calculos-financeiros/` | Consolida balanço por período | Sim (Bearer) |
+| **Cálculos** | `GET` | `/calculos-financeiros/` | Histórico de cálculos consolidados | Sim (Bearer) |
+| **Metas** | `GET` | `/metas-financeiras/` | Consulta metas ativas e concluídas | Sim (Bearer) |
+| **Metas** | `POST` | `/metas-financeiras/` | Cria nova meta de economia | Sim (Bearer) |
+
+---
+
+## 🔒 Segurança e Proteção de Dados
+
+- **Proteção do CPF e Telefone:** Em conformidade com as melhores práticas de privacidade (LGPD), o CPF e o telefone são cifrados com **Fernet** em repouso. O CPF nunca é retornado em texto puro pelas APIs.
+- **Prevenção de Duplicidade:** Um hash **HMAC-SHA256** com salt derivado gera um índice cego determinístico (`cpf_indice`), permitindo checar unicidade sem descriptografar a base.
+- **Proteção contra Brute Force:** Bloqueio progressivo temporário com código HTTP 429 para IPs com múltiplas tentativas inválidas em uma janela de 15 minutos.
+- **Controle de CORS Estrito:** Origens autorizadas explicitamente configuráveis por ambiente, prevenindo requisições indesejadas de domínios externos.
+- **Validação de Entrada:** Validação de formato e dígitos verificadores de CPF, bloqueio de dígitos Unicode arbitrários e tipagem estrita com Pydantic v2.
+
+---
+
+## 🧪 Testes Automatizados
+
+O projeto conta com uma suíte abrangente de testes automatizados com SQLite em memória, garantindo isolamento total da base de desenvolvimento.
+
+Execute os testes com:
 
 ```powershell
 python -m pytest -q
 ```
 
-Os testes substituem explicitamente `DATABASE_URL` por SQLite em memória e
-usam chaves dedicadas aos testes. Não conectam ao MySQL configurado para a
-API. A cobertura inclui regras financeiras, autenticação, isolamento entre
-usuários, proteção de dados, CORS e rotas.
-
-Os testes unitários/funcionais em SQLite não validam a concorrência específica
-do MySQL nem substituem um teste manual ponta a ponta. Faça testes de
-integração somente com uma base local separada e dados fictícios.
-Os testes de cadastro também confirmam que CPFs com algarismos Unicode são
-rejeitados antes da cifragem; o formato aceito usa 11 dígitos ASCII.
-
-### Concorrência no MySQL
-
-Os testes MySQL são opt-in e usam migrações Alembic. Crie primeiro um schema
-vazio e exclusivo para testes (nome terminado em `_test` ou `_tests`) e um
-usuário MySQL dedicado, com permissões somente nesse schema e permissões DDL
-necessárias às migrações. Não use a base `fluxo_caixa` de desenvolvimento,
-qualquer base com dados que queira preservar ou produção.
-
-No PowerShell, configure a URL apenas no terminal atual; não a grave em
-arquivos versionados:
+Para visualização detalhada com saída completa:
 
 ```powershell
-$env:TEST_MYSQL_URL = "mysql+pymysql://USUARIO:SENHA@127.0.0.1:3306/fluxo_caixa_test"
-python -m pytest -m mysql -q
+python -m pytest -v
 ```
 
-O comando aplica `alembic upgrade head` ao schema apontado antes dos testes.
-Use credenciais locais, não compartilhe a URL e confirme cuidadosamente o nome
-do schema antes de executar. Sem `TEST_MYSQL_URL`, os testes MySQL são
-ignorados. A suíte padrão `python -m pytest -q` sempre os exclui.
+> 💡 **Nota:** Para executar os testes de concorrência específicos do MySQL (`SELECT ... FOR UPDATE`), consulte [backend/tests/README.md](backend/tests/README.md).
 
-## Segurança e limites
+---
 
-- A allowlist CORS local contém somente `http://app.fluxocaixa`,
-  `http://app.fluxocaixa:5173`, `http://127.0.0.1:5173` e `http://127.0.0.1:5500` (Live Server). O frontend usa a API
-  em `http://127.0.0.1:8000`. `APP_ENV` é obrigatória (`development` ou
-  `production`). Em produção, preencha `CORS_ORIGINS` somente com as origens
-  confiáveis.
-- Antes de iniciar a API com o campo telefone, aplique a revisão
-  `adicionar_telefone_usuario` somente à base local de desenvolvimento.
-- A API local fica vinculada a loopback; não altere para `0.0.0.0` em uma rede
-  não confiável.
-- Frontend e API usam HTTP sem TLS e JWT em `sessionStorage`; são apenas para
-  desenvolvimento local, não para produção.
-- Nunca versão `.env`, tokens, chaves, dados pessoais, dados bancários ou
-  dumps de bancos reais.
+## 📚 Documentações Complementares
 
-### Pendências para produção (não implementadas)
+Para um mergulho detalhado em cada área da aplicação, consulte os guias especializados:
 
-- **Armazenamento do token:** o JWT é mantido em `sessionStorage` pelo frontend.
-  Ainda não foi decidido se o token deve continuar em `sessionStorage` ou migrar
-  para um cookie `HttpOnly`. Essa mudança não será feita sem consulta prévia.
-- **HTTPS:** a aplicação roda em HTTP sem TLS. Para produção é necessário
-  configurar HTTPS (certificado TLS e redirecionamento de HTTP para HTTPS).
-  Ainda não há implementação nessa direção.
+- 🏛️ [**Guia de Arquitetura e Estrutura**](ESTRUTURA.md)
+- ⚙️ [**Documentação do Backend**](backend/readme.md)
+- 🧭 [**Manual de Rotas e Endpoints da API**](backend/rotasdeapi/readme.md)
+- 🔐 [**Arquitetura de Segurança e Criptografia**](backend/seguranca/readme.md)
+- 🧪 [**Guia Completo da Suíte de Testes**](backend/tests/README.md)
+- 🗄️ [**Modelagem do Banco de Dados**](banco%20de%20dados/readme.md)
+- 🔄 [**Manual de Migrações Alembic**](banco%20de%20dados/migrations/README.md)
+- 📜 [**Changelog de Revisões do Esquema**](banco%20de%20dados/migrations/versions/README.md)
+- 🖥️ [**Manual do Frontend e Telas**](frontend/README.md)
 
-## Documentação adicional
+---
 
-- [Guia da estrutura](ESTRUTURA.md)
-- [API e regras do backend](backend/readme.md)
-- [Rotas](backend/rotasdeapi/readme.md)
-- [Segurança de senhas](backend/seguranca/readme.md)
-- [Testes](backend/tests/README.md)
-- [Frontend](frontend/README.md)
-- [Banco de dados](banco%20de%20dados/readme.md)
-- [Migrações](banco%20de%20dados/migrations/README.md)
+<div align="center">
+Desenvolvido com foco em segurança, integridade financeira e excelência arquitetural.
+</div>

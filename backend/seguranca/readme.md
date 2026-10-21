@@ -1,164 +1,88 @@
-# 🔐 Segurança — Fluxo de Caixa
+# 🔐 Segurança e Criptografia — Fluxo de Caixa
 
-Este módulo é responsável por proteger as credenciais dos usuários do sistema.
-
-A principal função da pasta `seguranca` é garantir que as senhas não sejam armazenadas em texto puro no banco de dados, usando técnicas de hashing seguras.
+Este módulo é o pilar de proteção de dados, credenciais e integridade do **Sistema de Fluxo de Caixa**.
 
 ---
 
-## 📁 Estrutura do módulo
+## 🎯 Pilares de Segurança
 
-```text
-seguranca/
-├── __init__.py
-├── seguranca.py
-└── readme.md
-```
+A arquitetura de segurança do projeto atua em quatro frentes principais:
 
----
+```mermaid
+flowchart TD
+    subgraph S1 ["1. Credenciais"]
+        P["Senha em Texto"] --> HASH["Hash com pwdlib (Argon2 / Bcrypt)"]
+        HASH --> DB1[("senha_hash no Banco")]
+    end
 
-## 🎯 Objetivo
+    subgraph S2 ["2. Dados Pessoais (LGPD)"]
+        CPF["CPF / Telefone"] --> FERNET["Cifragem Simétrica Fernet (AES-128)"]
+        FERNET --> DB2[("Campos Cifrados no Banco")]
+    end
 
-O módulo atua em duas etapas principais:
+    subgraph S3 ["3. Busca sem Exposição"]
+        CPF2["CPF"] --> HMAC["HMAC-SHA256 Blind Index"]
+        HMAC --> DB3[("cpf_indice Único")]
+    end
 
-- gerar um hash seguro a partir da senha informada pelo usuário;
-- verificar se a senha inserida corresponde ao hash já armazenado no banco.
-
-A autenticação de requisições e a emissão de tokens são implementadas separadamente em `backend/autenticacao.py`.
-
----
-
-## 🧩 Arquivo principal
-
-### `seguranca.py`
-
-Este arquivo contém as funções:
-
-- `gerar_hash_senha(senha: str) -> str`
-- `verificar_senha(senha: str, senha_hash: str) -> bool`
-
-A biblioteca utilizada é `pwdlib`, com o uso de `PasswordHash.recommended()` para manter um padrão seguro e atualizado de armazenamento de credenciais.
-
-```python
-from pwdlib import PasswordHash
-
-password_hash = PasswordHash.recommended()
+    subgraph S4 ["4. Acesso & Tráfego"]
+        IP["Tentativas de Login"] --> RATE["Rate Limiter (Max 5 / 15 min)"]
+        RATE --> STATUS["Bloqueio HTTP 429"]
+    end
 ```
 
 ---
 
-## 🔑 Funções disponíveis
+## 🔑 1. Armazenamento Seguro de Senhas
 
-### `gerar_hash_senha(senha: str) -> str`
+### Tecnologia: `pwdlib`
+As senhas nunca são salvas em texto puro nem com algoritmos vulneráveis como MD5 ou SHA-1.
 
-Cria um hash seguro a partir da senha original do usuário.
-
-```python
-from seguranca.seguranca import gerar_hash_senha
-
-senha_hash = gerar_hash_senha("Senha@123")
-```
-
-Esse valor é salvo no campo `senha_hash` da tabela `usuarios`.
-
-### `verificar_senha(senha: str, senha_hash: str) -> bool`
-
-Compara a senha informada com o hash armazenado.
-
-```python
-from seguranca.seguranca import verificar_senha
-
-resultado = verificar_senha("Senha@123", senha_hash)
-```
-
-O retorno é:
-
-- `True` → senha correta;
-- `False` → senha incorreta.
+- **Biblioteca:** `pwdlib` com perfil `PasswordHash.recommended()` (usa internamente Argon2id e Bcrypt com salts aleatórios por padrão).
+- **Funções:**
+  - `gerar_hash_senha(senha: str) -> str`: Produz o hash criptográfico seguro armazenado na coluna `usuarios.senha_hash`.
+  - `verificar_senha(senha: str, senha_hash: str) -> bool`: Compara a senha enviada na requisição de login com o hash persistido no banco usando comparação em tempo constante para evitar ataques de temporização (timing attacks).
 
 ---
 
-## 🔄 Fluxo de uso
+## 🛡️ 2. Cifragem de Dados Pessoais em Repouso
 
-### Cadastro e login
+Em conformidade com as diretrizes da **LGPD (Lei Geral de Proteção de Dados)**:
 
-```text
-Usuário informa a senha
-       │
-       ▼
-  gerar_hash_senha()
-       │
-       ▼
-  Hash seguro
-       │
-       ▼
-   Armazenado no banco
-```
-
-O endpoint `POST /login` recebe credenciais no formato OAuth2 Password: `username` deve conter o e-mail e `password`, a senha. Quando válidas, a API retorna `access_token` e `token_type: bearer`. Após cinco falhas de login do mesmo endereço IP em 15 minutos, novas tentativas são temporariamente bloqueadas.
-
-```text
-Usuário informa a senha
-       │
-       ▼
-  verificar_senha()
-       │
-       ▼
-  Compara com hash salvo
-       │
-       ▼
-   Token JWT de acesso
-```
-
-As rotas de usuários, contas, movimentações, cálculos e metas exigem o token no cabeçalho `Authorization: Bearer <access_token>`. Cadastro e login são públicos. A identidade do proprietário é obtida do token, não de um `usuario_id` enviado pelo cliente.
+### Cifragem com Fernet
+- **Campos protegidos:** `usuarios.cpf` e `usuarios.telefone`.
+- **Algoritmo:** Fernet (baseado em **AES-128-CBC** com autenticação de mensagem via **HMAC-SHA256** e padding PKCS7).
+- **Chave de Cifragem:** Fornecida via variável de ambiente `CPF_ENCRYPTION_KEY`.
+- **Comportamento da API:** O CPF **nunca** é devolvido em nenhuma resposta JSON da API. O telefone (opcional) é devolvido descriptografado exclusivamente na rota `/usuarios/me` para o próprio proprietário autenticado.
 
 ---
 
-## 🗃️ Relação com o banco
+## 🔍 3. Prevenção de Duplicatas com Índice Cego (Blind Index)
 
-A tabela `usuarios` contém o campo:
+Para garantir que nenhum usuário cadastre o mesmo CPF duas vezes sem manter o CPF em texto puro no banco, utilizamos a técnica de **Blind Index**:
 
-```text
-senha_hash
-```
-
-Esse campo guarda apenas o hash, nunca a senha em texto puro.
-
----
-
-## ✅ Boas práticas aplicadas
-
-- a senha original não é persistida;
-- o hashing é usado antes do cadastro;
-- a validação do login usa o hash salvo no banco;
-- o módulo é importado corretamente pela aplicação;
-- a segurança fica separada da regra de negócio da API;
-- o segredo JWT vem da variável de ambiente `JWT_SECRET_KEY`, deve ter pelo menos 32 caracteres e não deve ser versionado;
-- as respostas da API omitem CPF; o CPF é cifrado com Fernet antes do
-  armazenamento e um índice HMAC separado é usado para detectar duplicatas;
-- mantenha `CPF_ENCRYPTION_KEY` em segredo e com backup seguro: sem a chave
-  correta, os CPFs e telefones cifrados não podem ser recuperados.
-
-Exemplo de importação:
-
-```python
-from seguranca.seguranca import gerar_hash_senha, verificar_senha
-```
+1. Uma chave derivada é gerada a partir da `CPF_ENCRYPTION_KEY`.
+2. O CPF (normalizado em 11 dígitos numéricos ASCII) é submetido a um hash **HMAC-SHA256**.
+3. O valor hexadecimal resultante é armazenado na coluna `usuarios.cpf_indice`, que possui restrição `UNIQUE` no banco de dados.
+4. **Vantagem:** O banco de dados valida unicidade instantaneamente sem que ninguém com acesso aos dumps do banco consiga descobrir qual é o CPF original.
 
 ---
 
-## 🛡️ Importância da camada
+## 🛑 4. Prevenção de Ataques de Força Bruta (Rate Limiting)
 
-A pasta `seguranca` é essencial para manter o sistema em conformidade com boas práticas de proteção de dados e minimização de riscos relacionados a vazamento de credenciais.
+Para proteger o endpoint `POST /login` contra ataques de dicionário automatizados:
 
-Os dados sensíveis de CPF e telefone são tratados separadamente deste módulo:
-o backend valida o CPF com 11 dígitos ASCII, cifra CPF e telefone com Fernet e
-usa um índice HMAC derivado para detectar CPFs duplicados. A chave
-`CPF_ENCRYPTION_KEY` é diferente de `JWT_SECRET_KEY`; mantenha ambas fora do
-repositório e preserve backup seguro da chave de cifragem.
+- **Armazenamento:** Tabela dedicada `tentativas_login` no banco de dados.
+- **Identificadores:** As tentativas são rastreadas tanto por **hash do IP do cliente** (`_chave_cliente_login`) quanto por **hash do e-mail informado** (`_chave_conta_login`).
+- **Regra:** Mais de **5 tentativas falhas dentro de 15 minutos** resultam na recusa imediata de novas requisições com código **HTTP 429 (Too Many Requests)**.
+- **Proteção contra Enumeração de Usuários:** Quando um usuário não existe, o sistema calcula internamente o hash de uma senha descartável para simular o tempo de resposta exato de um usuário existente, mitigando ataques de análise de tempo.
 
-A lógica principal é:
+---
 
-```text
-senha original → hash → armazenamento seguro
-```
+## ⚠️ Boas Práticas e Gestão de Segredos
+
+> [!CAUTION]
+> **Backup da chave Fernet:** A perda da variável `CPF_ENCRYPTION_KEY` torna os CPFs e telefones armazenados **irreversíveis**. Mantenha um backup seguro e isolado desta chave.
+
+> [!WARNING]
+> **Nunca versão arquivos `.env`:** Segredos reais, credenciais de banco e chaves criptográficas não devem jamais ser commitados no Git. O repositório já inclui `.env` no `.gitignore`.

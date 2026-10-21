@@ -1,26 +1,33 @@
-# Revisões Alembic
+# 📜 Histórico de Revisões do Esquema — Alembic
 
-Os arquivos Python desta pasta descrevem, em ordem, as alterações versionadas no esquema do banco. Cada revisão declara uma função `upgrade()` e, quando possível, uma função `downgrade()`.
+Este documento mantém o registro histórico e a árvore cronológica de todas as migrações aplicadas ao banco de dados do **Sistema de Fluxo de Caixa**.
 
-## Histórico atual
+---
 
-| Revisão | Descrição |
-|---|---|
-| `esquema_inicial` | Cria usuários, contas bancárias, movimentações, cálculos financeiros e metas. |
-| `transferencias` | Relaciona as duas pontas de uma transferência e a conta contraparte. |
-| `categorias_movimentacao` | Cria categorias fixas e normaliza movimentações existentes. |
-| `ajustes_e_resumos` | Adiciona ajustes assinados, totais separados de transferências e normaliza categorias legadas para a lista fixa. |
-| `limite_login` | Cria o armazenamento de tentativas de login para limitar falhas por endereço cliente. |
-| `normalizar_schema` | Normaliza o esquema MySQL existente. |
-| `proteger_cpf` | Cifra CPFs armazenados e cria índices HMAC para duplicatas. |
-| `adicionar_telefone_usuario` | Adiciona telefone opcional cifrado ao cadastro. |
+## 🌳 Árvore de Dependências das Revisões
 
-As dependências entre revisões são declaradas por `down_revision`. Os IDs das revisões antigas foram mantidos para preservar compatibilidade com bancos que já as aplicaram. Não renomeie ou remova revisões já aplicadas; crie uma nova revisão para mudanças futuras e revise o resultado antes de aplicá-la a dados existentes.
+```mermaid
+flowchart TD
+    R1["esquema_inicial<br/>(Criação de usuários, contas e fluxo)"] --> R2["transferencias<br/>(Vínculo entre pontas de transferência)"]
+    R2 --> R3["categorias_movimentacao<br/>(Tabela de categorias e normalização)"]
+    R3 --> R4["ajustes_e_resumos<br/>(Ajustes assinados e resumos contábeis)"]
+    R4 --> R5["limite_login<br/>(Tabela de tentativas de login e rate limit)"]
+    R5 --> R6["normalizar_schema<br/>(Ajustes de índices e tipagem MySQL)"]
+    R6 --> R7["proteger_cpf<br/>(Cifragem Fernet e índice cego HMAC)"]
+    R7 --> R8["adicionar_telefone_usuario<br/>(Campo de telefone opcional cifrado)"]
+```
 
-A revisão `proteger_cpf` transforma CPFs legados em valores cifrados e cria
-impressões HMAC para busca de duplicatas. Ela requer `CPF_ENCRYPTION_KEY`,
-deve ser precedida por backup e não pode ser revertida para texto puro. A
-revisão seguinte adiciona o campo opcional de telefone cifrado com a mesma
-chave.
+---
 
-Os novos arquivos de revisão usam nomes descritivos em português. `alembic.ini` define `file_template = %%(slug)s`; para criar uma revisão com ID textual explícito, use por exemplo `alembic revision -m "limitar tentativas de login" --rev-id limite_login`. As operações de downgrade podem remover colunas ou tabelas, e a reversão do ajuste converte ajustes existentes em entradas/saídas. Faça backup e avalie os dados antes de reverter uma revisão.
+## 📋 Detalhamento de Cada Revisão
+
+| Ordem | Identificador da Revisão | Descrição Técnica e Impacto |
+|---|---|---|
+| 1 | `esquema_inicial` | Criação das tabelas fundamentais: `usuarios`, `contas_bancarias`, `fluxo_dinheiro`, `calculos_financeiros` e `metas_financeiras`. |
+| 2 | `transferencias` | Adição das colunas `transferencia_id`, `transferencia_direcao` e `conta_destino_id` na tabela `fluxo_dinheiro`. |
+| 3 | `categorias_movimentacao` | Criação da tabela de categorias fixas e migração de consistência das categorias existentes. |
+| 4 | `ajustes_e_resumos` | Habilitação do tipo `ajuste` com valores assinados para conciliação contábil sem distorcer totais de receitas e despesas. |
+| 5 | `limite_login` | Criação da tabela `tentativas_login` para rastreamento de IPs e mitigação de ataques de força bruta. |
+| 6 | `normalizar_schema` | Padronização de tipos de dados (`VARCHAR`, `DECIMAL(12,2)`) e criação de índices de consulta no MySQL. |
+| 7 | `proteger_cpf` | Cifragem de todos os CPFs em repouso com algoritmo Fernet e criação da coluna `cpf_indice` (HMAC-SHA256). |
+| 8 | `adicionar_telefone_usuario` | Adição do campo `telefone` na tabela `usuarios` (armazenado cifrado com a mesma chave Fernet). |

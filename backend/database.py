@@ -14,7 +14,11 @@ if not DATABASE_URL:
         "Defina-a no arquivo .env ou no ambiente."
     )
 
-engine = create_engine(DATABASE_URL)
+engine_kwargs = {}
+if DATABASE_URL.startswith("mysql"):
+    engine_kwargs.update({"pool_pre_ping": True, "pool_recycle": 3600})
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 
 SessionLocal = sessionmaker(
     autocommit=False,

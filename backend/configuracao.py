@@ -18,3 +18,15 @@ def carregar_configuracao() -> None:
         load_dotenv(arquivo_env_raiz, override=False)
 
     load_dotenv(override=False)
+
+
+def obter_configuracao() -> dict[str, str]:
+    """Retorna um dicionário com as configurações essenciais carregadas."""
+    carregar_configuracao()
+    return {
+        "APP_ENV": os.getenv("APP_ENV", "development"),
+        "DATABASE_URL": os.getenv("DATABASE_URL", ""),
+        "ACCESS_TOKEN_EXPIRE_MINUTES": os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"),
+        "CORS_ORIGINS": os.getenv("CORS_ORIGINS", ""),
+    }
+

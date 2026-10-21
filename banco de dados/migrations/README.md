@@ -1,41 +1,55 @@
-# Migrações do banco
+# 🔄 Migrações de Banco de Dados — Alembic
 
-Esta pasta contém a configuração e o histórico oficial das migrações Alembic do projeto. O código das revisões fica em `versions/`; os modelos e a conexão necessários para executá-las permanecem no `backend/`.
+Esta pasta contém a infraestrutura e os scripts do **Alembic**, responsável pelo versionamento estruturado e pela evolução contínua do esquema do banco de dados do **Sistema de Fluxo de Caixa**.
 
-## Arquivos
+---
 
-- `env.py` carrega a URL de conexão configurada em `DATABASE_URL`, importa os modelos do projeto para obter os metadados SQLAlchemy e executa as revisões em modo online ou offline.
-- `versions/` contém as revisões ordenadas por dependência: esquema inicial;
-  transferências; categorias fixas/normalizadas; ajustes e resumos; limite de
-  tentativas de login; normalização MySQL; cifragem de CPF; e telefone
-  opcional cifrado.
+## 🎯 Por Que Usar Migrações?
 
-Os arquivos de revisão têm nomes descritivos em português; os IDs usados pelo
-Alembic estão declarados nos próprios arquivos e ligados por `down_revision`.
-Esses IDs são parte do histórico dos bancos: não renomeie nem remova revisões
-já aplicadas. Consulte o histórico em
-[versions/README.md](versions/README.md). Novas revisões usam o slug definido
-em `file_template = %%(slug)s`.
+O Alembic garante que o esquema do banco de dados possa ser reproduzido de maneira determinística, rastreável e auditável em qualquer ambiente (desenvolvimento, homologação, testes e produção), prevenindo divergências e alterações manuais sem histórico.
 
-## Comandos
+---
 
-Execute na raiz do repositório:
+## 📁 Estrutura de Arquivos
 
-```bash
+```text
+migrations/
+├── env.py                  # Script de configuração do ambiente Alembic
+├── script.py.mako          # Template utilizado na geração de novas revisões
+├── versions/               # Pasta com as revisões versionadas em ordem cronológica
+└── README.md               # Esta documentação
+```
+
+---
+
+## 🚀 Comandos Mais Utilizados
+
+Execute todos os comandos a partir da **raiz do repositório**:
+
+### 1. Aplicar Todas as Migrações Pendentes
+```powershell
 python -m alembic -c "banco de dados/alembic.ini" upgrade head
 ```
 
-Para consultar a revisão atualmente aplicada:
-
-```bash
+### 2. Verificar a Versão Atual do Banco
+```powershell
 python -m alembic -c "banco de dados/alembic.ini" current
 ```
 
-`DATABASE_URL` deve estar configurada antes da execução. A migração
-`proteger_cpf` também exige `CPF_ENCRYPTION_KEY` e cifra os CPFs existentes;
-confirme que essa chave é a correta e mantenha um backup seguro dela. Antes de
-aplicar qualquer revisão, confirme que `DATABASE_URL` aponta para a base
-correta. Em banco existente, faça backup e compare o esquema com as revisões
-antes de usar `stamp` ou aplicar atualizações. A revisão de proteção do CPF
-bloqueia downgrade para evitar regravar dados em texto puro. Nunca execute
-comandos Alembic contra produção sem revisão, backup e aprovação explícita.
+### 3. Exibir o Histórico de Migrações
+```powershell
+python -m alembic -c "banco de dados/alembic.ini" history --verbose
+```
+
+### 4. Criar uma Nova Revisão
+```powershell
+python -m alembic -c "banco de dados/alembic.ini" revision -m "nome_da_migracao"
+```
+
+---
+
+## 🛡️ Cuidados e Diretrizes de Segurança
+
+- **Chave de Criptografia Obrigatória:** A revisão `proteger_cpf` exige a presença da variável de ambiente `CPF_ENCRYPTION_KEY` para migrar CPFs legados para formato criptografado.
+- **Prevenção de Perda de Dados:** A migração de proteção de CPF proíbe downgrade automático para evitar regravação acidental de dados pessoais em texto puro.
+- **Backup Obrigatório:** Antes de rodar `upgrade head` em bancos com dados existentes, efetue sempre um backup completo da base de dados.

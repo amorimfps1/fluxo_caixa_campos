@@ -1,68 +1,92 @@
-# Frontend
+# 🖥️ Frontend — Fluxo de Caixa
 
-Frontend estático em HTML, CSS e JavaScript nativo:
+Interface web estática, leve e responsiva do **Sistema de Fluxo de Caixa**, desenvolvida com **HTML5, CSS3 e JavaScript Vanilla** (sem frameworks pesados).
 
-- `login.html`: autenticação via `POST /login`;
-- `cadastro.html`: cadastro com nome, CPF obrigatório, e-mail, senha e
-  telefone opcional;
-- `index.html`: dashboard protegido, com contas e movimentações;
-- `css/style.css`: estilos compartilhados;
-- `js/api.js`: cliente HTTP e armazenamento do JWT em `sessionStorage`;
-- `js/login.js` e `js/dashboard.js`: fluxos de tela.
-- `js/cadastro.js`: validação de confirmação de senha e envio do cadastro.
+---
 
-## Contas e movimentações
+## 🎯 Arquitetura da Interface
 
-No dashboard, use **Nova conta** para cadastrar uma conta bancária com tipo e
-saldo inicial. Depois, **Nova movimentação** permite registrar receitas e
-despesas em uma conta ativa. As operações são enviadas à API com o token da
-sessão; após salvar, o dashboard consulta novamente as contas e movimentações
-para atualizar os saldos. Transferências e ajustes continuam disponíveis
-somente pela API.
+```mermaid
+flowchart LR
+    subgraph UI ["Páginas HTML"]
+        L["login.html"]
+        C["cadastro.html"]
+        D["index.html (Dashboard)"]
+    end
 
-## Execução local
+    subgraph Scripts ["Lógica JavaScript"]
+        LJ["login.js"]
+        CJ["cadastro.js"]
+        DJ["dashboard.js"]
+        API["api.js (Cliente Central)"]
+    end
 
-Inicie a API em um terminal, na raiz do projeto:
+    subgraph Backend ["Backend API"]
+        FASTAPI["FastAPI (http://127.0.0.1:8000)"]
+    end
 
-```powershell
-.\.venv\Scripts\python.exe main.py
+    L --> LJ
+    C --> CJ
+    D --> DJ
+
+    LJ --> API
+    CJ --> API
+    DJ --> API
+
+    API -->|"Fetch / JSON (Bearer JWT)"| FASTAPI
 ```
 
-Em outro terminal, sirva a pasta do frontend na porta HTTP padrão `80`:
+---
 
-```powershell
-Set-Location frontend
-..\.venv\Scripts\python.exe -m http.server 80 --bind 127.0.0.1
+## 📁 Estrutura de Arquivos
+
+```text
+frontend/
+├── css/
+│   └── style.css            # Folha de estilos unificada, variáveis CSS e temas
+├── js/
+│   ├── api.js               # Cliente HTTP compartilhado com fetch, sessionStorage e logs
+│   ├── cadastro.js          # Validações de confirmação de senha, CPF e submissão
+│   ├── dashboard.js         # Carregamento de contas, extrato, modais dinâmicos e métricas
+│   └── login.js             # Envio do formulário OAuth2 e armazenamento do JWT
+├── index.html               # Painel principal autenticado
+├── login.html               # Tela de autenticação com e-mail e senha
+├── cadastro.html            # Tela de criação de nova conta
+└── README.md                # Este documento
 ```
 
-Abra `http://app.fluxocaixa/login.html`. Para usar esse endereço, configure
-`app.fluxocaixa` para `127.0.0.1` no arquivo `hosts` do Windows (pode exigir
-permissão de administrador). Se a porta 80 não estiver disponível, use a porta
-`5173`:
+---
+
+## 🚀 Como Executar o Frontend
+
+Certifique-se de que a API backend já esteja em execução em `http://127.0.0.1:8000`.
+
+### Opção 1 — Live Server do VS Code (Recomendado)
+1. Instale a extensão **Live Server** no VS Code.
+2. Clique com o botão direito em `frontend/login.html` e selecione **"Open with Live Server"**.
+3. O navegador abrirá automaticamente em:
+   `http://127.0.0.1:5500/frontend/login.html`
+
+> 💡 **Nota:** A porta `5500` já está inclusa por padrão nas origens aceitas pelo CORS do backend!
+
+### Opção 2 — Servidor Python Local (Porta 5173)
+Em um terminal dedicado:
 
 ```powershell
 Set-Location frontend
 ..\.venv\Scripts\python.exe -m http.server 5173 --bind 127.0.0.1
 ```
 
-Nesse caso, abra `http://127.0.0.1:5173/login.html` ou
-`http://app.fluxocaixa:5173/login.html` ou pelo Live Server (`http://127.0.0.1:5500/login.html`). A API permite as origens locais documentadas.
-documentadas. O cliente chama a API em `http://127.0.0.1:8000`, portanto não
-é necessário criar outro alias DNS para ela.
+Acesse: [http://127.0.0.1:5173/login.html](http://127.0.0.1:5173/login.html).
 
-## Autenticação e limites de segurança
+---
 
-O login envia `username` (e-mail) e `password` como formulário OAuth2. A
-resposta contém `access_token`, guardado em `sessionStorage` e enviado como
-`Authorization: Bearer` nas chamadas protegidas. Se o token expirar, a API
-retorna 401 e a interface solicita novo login.
+## 🔐 Gerenciamento de Sessão e Token
 
-O cadastro aceita Gmail como endereço comum de e-mail, com senha local; isso
-não é autenticação Google OAuth. O CPF permanece obrigatório pela API. O
-telefone é opcional, cifrado no banco com a chave de dados sensíveis e
-descriptografado apenas na resposta ao próprio usuário. O CPF deve conter
-somente 11 dígitos ASCII; entradas com dígitos Unicode são recusadas.
-
-O servidor de desenvolvimento e a API usam HTTP sem TLS. Use-os apenas em
-`localhost` com usuários e dados fictícios; não publique essas portas na rede
-nem use este frontend como serviço de produção.
+1. **Armazenamento:** O token JWT de acesso retornado no login é mantido no `sessionStorage` do navegador sob a chave `fluxo_caixa_token`.
+2. **Injeção Automática:** Todas as requisições autenticadas feitas pelo `api.js` injetam o cabeçalho:
+   ```http
+   Authorization: Bearer <token>
+   ```
+3. **Expiração e Logout:** Caso o backend responda com **HTTP 401 (Não Autorizado)**, o `api.js` limpa automaticamente o token do `sessionStorage` e solicita um novo login ao usuário.
+4. **Log de Diagnóstico:** Todas as falhas de rede no `api.js` emitem detalhes informativos no console do navegador (`F12 -> Console`) para facilitar o diagnóstico de desenvolvimento.

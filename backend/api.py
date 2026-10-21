@@ -19,7 +19,7 @@ validar_chave_cpf()
 
 app = FastAPI(
     title="Sistema de Fluxo de Caixa",
-    description="API para controle de finanças domésticas",
+    description="API REST para controle e planejamento financeiro pessoal",
     version="1.0.0"
 )
 def _validar_app_env() -> str:
@@ -85,7 +85,17 @@ app.include_router(meta_financeira.router)
 @app.get("/")
 def inicio():
     return {
-        "mensagem": "API do Fluxo de Caixa funcionando!"
+        "mensagem": "API do Fluxo de Caixa funcionando!",
+        "status": "online"
+    }
+
+
+@app.get("/health")
+def status_saude():
+    return {
+        "status": "healthy",
+        "ambiente": os.getenv("APP_ENV", "development"),
+        "versao": "1.0.0"
     }
 
 
