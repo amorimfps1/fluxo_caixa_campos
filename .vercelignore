@@ -1,0 +1,13 @@
+# Ignora o backend e arquivos Python no deploy da Vercel
+# para evitar que a Vercel tente criar uma Serverless Function com o main.py
+backend/
+banco de dados/
+scripts/
+main.py
+requirements.txt
+pytest.ini
+.env*
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
