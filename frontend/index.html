@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -12,9 +11,10 @@
 
     <title>Fluxo de Caixa | Dashboard</title>
 
-    <link rel="stylesheet" href="css/style.css?v=3">
+    <link rel="stylesheet" href="css/style.css?v=4">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
     <script src="js/api.js" defer></script>
-    <script src="js/dashboard.js?v=3" defer></script>
+    <script src="js/dashboard.js?v=4" defer></script>
 </head>
 
 <body>
@@ -65,6 +65,14 @@
                 </a>
             </nav>
 
+            <div class="sidebar-user" id="user-profile-badge" hidden>
+                <div class="sidebar-user-avatar" id="user-avatar">U</div>
+                <div class="sidebar-user-info">
+                    <strong id="user-name">Usuário</strong>
+                    <span id="user-email">—</span>
+                </div>
+            </div>
+
             <div class="sidebar-footer">
                 <span class="status-dot"></span>
                 API do projeto
@@ -85,6 +93,11 @@
                 </div>
 
                 <div class="topbar-actions">
+                    <span class="loading-indicator" id="global-loading" hidden aria-live="polite">
+                        <span class="spinner" aria-hidden="true"></span>
+                        Sincronizando...
+                    </span>
+
                     <span class="date-label" id="current-date">
                         Carregando data...
                     </span>
@@ -182,20 +195,35 @@
                     <div class="panel-header">
                         <div>
                             <h3>Visão financeira</h3>
-                            <p>Receitas e despesas mensais</p>
+                            <p>Evolução do saldo e despesas por categoria</p>
                         </div>
 
-                        <span class="period-label">Este mês</span>
+                        <span class="period-label" id="dashboard-period-label">Este mês</span>
                     </div>
 
-                    <div class="chart-placeholder">
+                    <div class="charts-grid-two" id="dashboard-charts-container" hidden>
+                        <div class="chart-box">
+                            <h4 class="chart-subtitle">Evolução do saldo e fluxo</h4>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="chart-dashboard-evolution" aria-label="Gráfico de linha de evolução do saldo" role="img"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-box">
+                            <h4 class="chart-subtitle">Despesas por categoria</h4>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="chart-dashboard-category" aria-label="Gráfico de rosca de despesas por categoria" role="img"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-placeholder" id="dashboard-chart-empty">
                         <div class="chart-symbol" aria-hidden="true">▥</div>
 
-                        <h4>Seu gráfico aparecerá aqui</h4>
+                        <h4>Sem lançamentos para exibir gráficos</h4>
 
                         <p>
-                            Conectaremos este painel aos dados reais
-                            da API na próxima etapa.
+                            Registre sua primeira movimentação financeira para visualizar
+                            a evolução do saldo e a distribuição por categoria.
                         </p>
                     </div>
                 </article>
@@ -236,9 +264,18 @@
                         <p>Últimas entradas e saídas financeiras</p>
                     </div>
 
-                    <a href="#movimentacoes" class="text-link">
-                        Ver todas
-                    </a>
+                    <div class="panel-header-actions">
+                        <button
+                            type="button"
+                            class="button-secondary btn-exportar-csv"
+                            title="Exportar movimentações para CSV"
+                        >
+                            ⬇ Exportar CSV
+                        </button>
+                        <a href="#movimentacoes" class="text-link">
+                            Ver todas
+                        </a>
+                    </div>
                 </div>
 
                 <div class="table-container">
@@ -256,7 +293,7 @@
                         <tbody id="transactions-list">
                             <tr>
                                 <td colspan="5" class="table-empty">
-                                            Carregando movimentações da API...
+                                    Carregando movimentações da API...
                                 </td>
                             </tr>
                         </tbody>
@@ -276,7 +313,7 @@
                         </div>
                         <button
                             type="button"
-                            class="button-secondary btn-abrir-nova-conta"
+                            class="button-primary btn-abrir-nova-conta"
                         >
                             + Nova conta
                         </button>
@@ -296,30 +333,89 @@
                     <div class="panel-header">
                         <div>
                             <h3>Extrato completo de movimentações</h3>
-                            <p>Histórico detalhado de todas as receitas, despesas e transferências</p>
+                            <p>Histórico detalhado de todas as receitas, despesas, transferências e ajustes</p>
                         </div>
-                        <button
-                            type="button"
-                            class="button-primary btn-abrir-nova-movimentacao"
-                        >
-                            + Nova movimentação
-                        </button>
+                        <div class="panel-header-actions">
+                            <button
+                                type="button"
+                                class="button-secondary btn-exportar-csv"
+                                id="export-movements-csv"
+                            >
+                                ⬇ Exportar CSV
+                            </button>
+                            <button
+                                type="button"
+                                class="button-primary btn-abrir-nova-movimentacao"
+                            >
+                                + Nova movimentação
+                            </button>
+                        </div>
                     </div>
+
+                    <!-- Barra de filtros do extrato -->
+                    <form class="filter-bar" id="movements-filter-form">
+                        <div class="form-field">
+                            <label for="filter-account">Conta</label>
+                            <select id="filter-account" name="conta_bancaria_id">
+                                <option value="">Todas as contas</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="filter-category">Categoria</label>
+                            <select id="filter-category" name="categoria">
+                                <option value="">Todas as categorias</option>
+                                <option value="alimentacao">Alimentação</option>
+                                <option value="compras">Compras</option>
+                                <option value="contas">Contas</option>
+                                <option value="educacao">Educação</option>
+                                <option value="freelance">Freelance</option>
+                                <option value="impostos">Impostos</option>
+                                <option value="investimento">Investimento</option>
+                                <option value="lazer">Lazer</option>
+                                <option value="moradia">Moradia</option>
+                                <option value="outros">Outros</option>
+                                <option value="salario">Salário</option>
+                                <option value="saude">Saúde</option>
+                                <option value="transporte">Transporte</option>
+                                <option value="transferencia">Transferência</option>
+                                <option value="ajuste">Ajuste</option>
+                                <option value="vendas">Vendas</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="filter-start-date">Data inicial</label>
+                            <input type="date" id="filter-start-date" name="data_inicio">
+                        </div>
+
+                        <div class="form-field">
+                            <label for="filter-end-date">Data final</label>
+                            <input type="date" id="filter-end-date" name="data_fim">
+                        </div>
+
+                        <div class="filter-actions">
+                            <button type="submit" class="button-primary">Filtrar</button>
+                            <button type="button" class="button-secondary" id="clear-movements-filter">Limpar</button>
+                        </div>
+                    </form>
 
                     <div class="table-container">
                         <table>
                             <thead>
                                 <tr>
                                     <th>Descrição</th>
+                                    <th>Conta</th>
                                     <th>Categoria</th>
                                     <th>Data</th>
                                     <th>Tipo</th>
                                     <th class="align-right">Valor</th>
+                                    <th class="align-right">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="view-transactions-list">
                                 <tr>
-                                    <td colspan="5" class="table-empty">
+                                    <td colspan="7" class="table-empty">
                                         Carregando movimentações da API...
                                     </td>
                                 </tr>
@@ -338,46 +434,50 @@
                     </div>
                 </div>
 
-                <div class="category-grid">
-                    <div class="category-card"><div class="category-icon">🍽️</div><div><strong>Alimentação</strong><br><small style="color:var(--color-text-secondary);">Supermercado e refeições</small></div></div>
-                    <div class="category-card"><div class="category-icon">🏠</div><div><strong>Moradia</strong><br><small style="color:var(--color-text-secondary);">Aluguel e condomínio</small></div></div>
-                    <div class="category-card"><div class="category-icon">💼</div><div><strong>Salário</strong><br><small style="color:var(--color-text-secondary);">Remuneração mensal</small></div></div>
-                    <div class="category-card"><div class="category-icon">🚗</div><div><strong>Transporte</strong><br><small style="color:var(--color-text-secondary);">Combustível e transporte</small></div></div>
-                    <div class="category-card"><div class="category-icon">🏥</div><div><strong>Saúde</strong><br><small style="color:var(--color-text-secondary);">Farmácia e consultas</small></div></div>
-                    <div class="category-card"><div class="category-icon">🎓</div><div><strong>Educação</strong><br><small style="color:var(--color-text-secondary);">Cursos e mensalidades</small></div></div>
-                    <div class="category-card"><div class="category-icon">🎉</div><div><strong>Lazer</strong><br><small style="color:var(--color-text-secondary);">Passeios e cultura</small></div></div>
-                    <div class="category-card"><div class="category-icon">📈</div><div><strong>Investimento</strong><br><small style="color:var(--color-text-secondary);">Aportes e patrimônio</small></div></div>
-                    <div class="category-card"><div class="category-icon">🧾</div><div><strong>Contas</strong><br><small style="color:var(--color-text-secondary);">Água, energia e internet</small></div></div>
-                    <div class="category-card"><div class="category-icon">🛒</div><div><strong>Compras</strong><br><small style="color:var(--color-text-secondary);">Vestuário e eletrônicos</small></div></div>
-                    <div class="category-card"><div class="category-icon">⚖️</div><div><strong>Impostos</strong><br><small style="color:var(--color-text-secondary);">Tributos e taxas</small></div></div>
-                    <div class="category-card"><div class="category-icon">💻</div><div><strong>Freelance</strong><br><small style="color:var(--color-text-secondary);">Trabalhos extras</small></div></div>
-                    <div class="category-card"><div class="category-icon">🏷️</div><div><strong>Vendas</strong><br><small style="color:var(--color-text-secondary);">Comércio e desapegos</small></div></div>
-                    <div class="category-card"><div class="category-icon">🔄</div><div><strong>Transferência</strong><br><small style="color:var(--color-text-secondary);">Entre contas</small></div></div>
-                    <div class="category-card"><div class="category-icon">⚙️</div><div><strong>Ajuste</strong><br><small style="color:var(--color-text-secondary);">Correção contábil</small></div></div>
-                    <div class="category-card"><div class="category-icon">📦</div><div><strong>Outros</strong><br><small style="color:var(--color-text-secondary);">Diversos</small></div></div>
+                <div class="category-grid" id="categories-cards-grid">
+                    <div class="category-card" data-category="alimentacao"><div class="category-icon">🍽️</div><div><strong>Alimentação</strong><br><small style="color:var(--color-text-secondary);">Supermercado e refeições</small><span class="category-stat" data-category-total="alimentacao"></span></div></div>
+                    <div class="category-card" data-category="moradia"><div class="category-icon">🏠</div><div><strong>Moradia</strong><br><small style="color:var(--color-text-secondary);">Aluguel e condomínio</small><span class="category-stat" data-category-total="moradia"></span></div></div>
+                    <div class="category-card" data-category="salario"><div class="category-icon">💼</div><div><strong>Salário</strong><br><small style="color:var(--color-text-secondary);">Remuneração mensal</small><span class="category-stat" data-category-total="salario"></span></div></div>
+                    <div class="category-card" data-category="transporte"><div class="category-icon">🚗</div><div><strong>Transporte</strong><br><small style="color:var(--color-text-secondary);">Combustível e transporte</small><span class="category-stat" data-category-total="transporte"></span></div></div>
+                    <div class="category-card" data-category="saude"><div class="category-icon">🏥</div><div><strong>Saúde</strong><br><small style="color:var(--color-text-secondary);">Farmácia e consultas</small><span class="category-stat" data-category-total="saude"></span></div></div>
+                    <div class="category-card" data-category="educacao"><div class="category-icon">🎓</div><div><strong>Educação</strong><br><small style="color:var(--color-text-secondary);">Cursos e mensalidades</small><span class="category-stat" data-category-total="educacao"></span></div></div>
+                    <div class="category-card" data-category="lazer"><div class="category-icon">🎉</div><div><strong>Lazer</strong><br><small style="color:var(--color-text-secondary);">Passeios e cultura</small><span class="category-stat" data-category-total="lazer"></span></div></div>
+                    <div class="category-card" data-category="investimento"><div class="category-icon">📈</div><div><strong>Investimento</strong><br><small style="color:var(--color-text-secondary);">Aportes e patrimônio</small><span class="category-stat" data-category-total="investimento"></span></div></div>
+                    <div class="category-card" data-category="contas"><div class="category-icon">🧾</div><div><strong>Contas</strong><br><small style="color:var(--color-text-secondary);">Água, energia e internet</small><span class="category-stat" data-category-total="contas"></span></div></div>
+                    <div class="category-card" data-category="compras"><div class="category-icon">🛒</div><div><strong>Compras</strong><br><small style="color:var(--color-text-secondary);">Vestuário e eletrônicos</small><span class="category-stat" data-category-total="compras"></span></div></div>
+                    <div class="category-card" data-category="impostos"><div class="category-icon">⚖️</div><div><strong>Impostos</strong><br><small style="color:var(--color-text-secondary);">Tributos e taxas</small><span class="category-stat" data-category-total="impostos"></span></div></div>
+                    <div class="category-card" data-category="freelance"><div class="category-icon">💻</div><div><strong>Freelance</strong><br><small style="color:var(--color-text-secondary);">Trabalhos extras</small><span class="category-stat" data-category-total="freelance"></span></div></div>
+                    <div class="category-card" data-category="vendas"><div class="category-icon">🏷️</div><div><strong>Vendas</strong><br><small style="color:var(--color-text-secondary);">Comércio e desapegos</small><span class="category-stat" data-category-total="vendas"></span></div></div>
+                    <div class="category-card" data-category="transferencia"><div class="category-icon">🔄</div><div><strong>Transferência</strong><br><small style="color:var(--color-text-secondary);">Entre contas</small><span class="category-stat" data-category-total="transferencia"></span></div></div>
+                    <div class="category-card" data-category="ajuste"><div class="category-icon">⚙️</div><div><strong>Ajuste</strong><br><small style="color:var(--color-text-secondary);">Correção contábil</small><span class="category-stat" data-category-total="ajuste"></span></div></div>
+                    <div class="category-card" data-category="outros"><div class="category-icon">📦</div><div><strong>Outros</strong><br><small style="color:var(--color-text-secondary);">Diversos</small><span class="category-stat" data-category-total="outros"></span></div></div>
                 </div>
 
                 <article class="panel chart-panel">
                     <div class="panel-header">
                         <div>
                             <h3>Distribuição por categoria</h3>
-                            <p>Receitas e despesas mensais por grupo</p>
+                            <p>Receitas e despesas acumuladas por grupo</p>
                         </div>
                         <span class="period-label">Categorias</span>
                     </div>
 
-                    <div class="chart-placeholder">
+                    <div class="chart-canvas-wrapper chart-canvas-tall" id="categories-chart-container" hidden>
+                        <canvas id="chart-categories-distribution" aria-label="Gráfico de distribuição por categoria" role="img"></canvas>
+                    </div>
+
+                    <div class="chart-placeholder" id="categories-chart-empty">
                         <div class="chart-symbol" aria-hidden="true">▧</div>
-                        <h4>Seu gráfico aparecerá aqui</h4>
+                        <h4>Nenhuma movimentação categorizada</h4>
                         <p>
-                            Conectaremos este painel aos dados reais
-                            da API na próxima etapa.
+                            Adicione receitas ou despesas para visualizar a distribuição
+                            financeira entre as categorias.
                         </p>
                     </div>
                 </article>
             </div>
 
-            <!-- View: Investimentos -->
+            <!-- View: Investimentos e Metas -->
             <div id="view-investimentos" class="app-view" hidden>
                 <section class="summary-grid" style="margin-bottom: 24px;">
                     <article class="summary-card">
@@ -396,63 +496,239 @@
                         <p class="card-value" id="savings-total">—</p>
                         <p class="card-description">Saldo total em contas poupança</p>
                     </article>
+                    <article class="summary-card">
+                        <div class="card-heading">
+                            <span>Metas ativas</span>
+                            <span class="card-icon">🎯</span>
+                        </div>
+                        <p class="card-value" id="goals-active-count">—</p>
+                        <p class="card-description">Objetivos financeiros em andamento</p>
+                    </article>
+                    <article class="summary-card">
+                        <div class="card-heading">
+                            <span>Total acumulado em metas</span>
+                            <span class="card-icon income-icon">✓</span>
+                        </div>
+                        <p class="card-value" id="goals-saved-total">—</p>
+                        <p class="card-description">Soma do valor atual das metas</p>
+                    </article>
                 </section>
 
-                <article class="panel chart-panel">
-                    <div class="panel-header">
-                        <div>
-                            <h3>Evolução dos investimentos</h3>
-                            <p>Crescimento patrimonial e rentabilidade acumulada</p>
+                <section class="content-grid">
+                    <article class="panel chart-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Evolução dos investimentos</h3>
+                                <p>Composição patrimonial e aportes realizados</p>
+                            </div>
+                            <span class="period-label">Investimentos</span>
                         </div>
-                        <span class="period-label">Investimentos</span>
-                    </div>
 
-                    <div class="chart-placeholder">
-                        <div class="chart-symbol" aria-hidden="true">↗</div>
-                        <h4>Seu gráfico aparecerá aqui</h4>
-                        <p>
-                            Conectaremos este painel aos dados reais
-                            da API na próxima etapa.
-                        </p>
-                    </div>
-                </article>
+                        <div class="chart-canvas-wrapper chart-canvas-tall" id="investments-chart-container" hidden>
+                            <canvas id="chart-investments-evolution" aria-label="Gráfico de evolução dos investimentos" role="img"></canvas>
+                        </div>
+
+                        <div class="chart-placeholder" id="investments-chart-empty">
+                            <div class="chart-symbol" aria-hidden="true">↗</div>
+                            <h4>Sem patrimônio ou aportes registrados</h4>
+                            <p>
+                                Cadastre contas de poupança/investimento ou registre aportes
+                                para acompanhar a evolução patrimonial.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3>Metas financeiras</h3>
+                                <p>Planejamento e objetivos de economia</p>
+                            </div>
+                            <button
+                                type="button"
+                                class="button-primary"
+                                id="new-goal"
+                            >
+                                + Nova meta
+                            </button>
+                        </div>
+
+                        <div class="empty-state" id="goals-list">
+                            <div class="empty-icon" aria-hidden="true">🎯</div>
+                            <p>Nenhuma meta financeira cadastrada.</p>
+                            <span>Defina objetivos de economia para acompanhar seu progresso.</span>
+                        </div>
+                    </article>
+                </section>
             </div>
 
             <!-- View: Relatórios -->
             <div id="view-relatorios" class="app-view" hidden>
-                <article class="panel chart-panel">
+                <article class="panel" style="margin-bottom: 24px;">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Relatório financeiro por período customizado</h3>
+                            <p>Consulte o balanço consolidado de entradas, saídas, transferências e saldos em qualquer intervalo</p>
+                        </div>
+                        <div class="panel-header-actions">
+                            <button
+                                type="button"
+                                class="button-secondary btn-exportar-csv"
+                                id="export-report-csv"
+                            >
+                                ⬇ Exportar CSV do período
+                            </button>
+                        </div>
+                    </div>
+
+                    <form class="filter-bar" id="custom-report-form">
+                        <div class="form-field">
+                            <label for="report-account">Conta bancária</label>
+                            <select id="report-account" name="conta_bancaria_id">
+                                <option value="">Todas as contas (Consolidado)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="report-start-date">Data inicial</label>
+                            <input type="date" id="report-start-date" name="data_inicio" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="report-end-date">Data final</label>
+                            <input type="date" id="report-end-date" name="data_fim" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="report-save-type">Salvar cálculo oficial (opcional)</label>
+                            <select id="report-save-type" name="tipo_calculo">
+                                <option value="">Apenas visualizar resumo</option>
+                                <option value="diario">Salvar como Diário (1 dia)</option>
+                                <option value="semanal">Salvar como Semanal (7 dias)</option>
+                                <option value="mensal">Salvar como Mensal (mês completo)</option>
+                                <option value="anual">Salvar como Anual (ano completo)</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button type="submit" class="button-primary" id="generate-report-btn">
+                                Gerar relatório
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Indicadores do relatório de período customizado -->
+                    <div class="summary-grid report-summary-grid" id="report-summary-cards">
+                        <article class="summary-card">
+                            <div class="card-heading">
+                                <span>Saldo inicial no período</span>
+                                <span class="card-icon">R$</span>
+                            </div>
+                            <p class="card-value" id="report-initial-balance">—</p>
+                            <p class="card-description" id="report-period-description">Selecione um período acima</p>
+                        </article>
+
+                        <article class="summary-card">
+                            <div class="card-heading">
+                                <span>Entradas no período</span>
+                                <span class="card-icon income-icon">↑</span>
+                            </div>
+                            <p class="card-value" id="report-total-income">—</p>
+                            <p class="card-description" id="report-transfers-in">Transferências recebidas: R$ 0,00</p>
+                        </article>
+
+                        <article class="summary-card">
+                            <div class="card-heading">
+                                <span>Saídas no período</span>
+                                <span class="card-icon expense-icon">↓</span>
+                            </div>
+                            <p class="card-value" id="report-total-expenses">—</p>
+                            <p class="card-description" id="report-investments-out">Aportes em investimento: R$ 0,00</p>
+                        </article>
+
+                        <article class="summary-card">
+                            <div class="card-heading">
+                                <span>Saldo final no período</span>
+                                <span class="card-icon">=</span>
+                            </div>
+                            <p class="card-value" id="report-final-balance">—</p>
+                            <p class="card-description" id="report-net-result">Resultado líquido: —</p>
+                        </article>
+                    </div>
+                </article>
+
+                <article class="panel chart-panel" style="margin-bottom: 24px;">
                     <div class="panel-header">
                         <div>
                             <h3>Visão financeira consolidada</h3>
-                            <p>Receitas e despesas mensais</p>
+                            <p>Comparativo de receitas, despesas e resultado por período</p>
                         </div>
-                        <span class="period-label">Este mês</span>
+                        <span class="period-label" id="reports-period-label">Este mês</span>
                     </div>
 
-                    <div class="chart-placeholder">
+                    <div class="chart-canvas-wrapper chart-canvas-tall" id="reports-chart-container" hidden>
+                        <canvas id="chart-reports-consolidated" aria-label="Gráfico consolidado de relatórios" role="img"></canvas>
+                    </div>
+
+                    <div class="chart-placeholder" id="reports-chart-empty">
                         <div class="chart-symbol" aria-hidden="true">▥</div>
-                        <h4>Seu gráfico aparecerá aqui</h4>
+                        <h4>Sem dados suficientes para o relatório gráfico</h4>
                         <p>
-                            Conectaremos este painel aos dados reais
-                            da API na próxima etapa.
+                            Registre movimentações ou gere um relatório de período para
+                            visualizar o gráfico comparativo.
                         </p>
+                    </div>
+                </article>
+
+                <article class="panel transactions-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Histórico de cálculos consolidados salvos</h3>
+                            <p>Relatórios oficiais gravados no banco de dados via API</p>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Conta</th>
+                                    <th>Tipo</th>
+                                    <th>Período</th>
+                                    <th class="align-right">Saldo Inicial</th>
+                                    <th class="align-right">Entradas</th>
+                                    <th class="align-right">Saídas</th>
+                                    <th class="align-right">Saldo Final</th>
+                                    <th class="align-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="saved-calculations-list">
+                                <tr>
+                                    <td colspan="8" class="table-empty">
+                                        Nenhum cálculo consolidado salvo ainda.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </article>
             </div>
 
             <footer class="footer">
                 <p>Fluxo de Caixa · Controle financeiro pessoal</p>
-                <p>Frontend em desenvolvimento</p>
+                <p>API FastAPI + Chart.js conectados em tempo real</p>
             </footer>
 
         </main>
 
+        <!-- Modal: Cadastrar / Editar Conta Bancária -->
         <dialog class="form-dialog" id="account-dialog" aria-labelledby="account-dialog-title">
             <form id="account-form" class="dialog-form">
+                <input type="hidden" id="account-edit-id" name="conta_id" value="">
                 <div class="dialog-header">
                     <div>
                         <h2 id="account-dialog-title">Cadastrar conta bancária</h2>
-                        <p>Adicione uma conta para organizar seu saldo e movimentações.</p>
+                        <p id="account-dialog-subtitle">Adicione uma conta para organizar seu saldo e movimentações.</p>
                     </div>
                     <button
                         type="button"
@@ -486,7 +762,7 @@
                     </select>
                 </div>
 
-                <div class="form-field">
+                <div class="form-field" id="account-balance-field">
                     <label for="account-balance">Saldo inicial</label>
                     <input
                         id="account-balance"
@@ -501,6 +777,14 @@
                     >
                 </div>
 
+                <div class="form-field" id="account-active-field" hidden>
+                    <label for="account-active">Status da conta</label>
+                    <select id="account-active" name="ativa">
+                        <option value="true">Ativa</option>
+                        <option value="false">Inativa</option>
+                    </select>
+                </div>
+
                 <p class="form-message" id="account-message" role="status" aria-live="polite"></p>
 
                 <div class="dialog-actions">
@@ -511,19 +795,20 @@
                     >
                         Cancelar
                     </button>
-                    <button type="submit" class="button-primary">
+                    <button type="submit" class="button-primary" id="account-submit-btn">
                         Salvar conta
                     </button>
                 </div>
             </form>
         </dialog>
 
+        <!-- Modal: Nova Movimentação -->
         <dialog class="form-dialog" id="movement-dialog" aria-labelledby="movement-dialog-title">
             <form id="movement-form" class="dialog-form">
                 <div class="dialog-header">
                     <div>
                         <h2 id="movement-dialog-title">Nova movimentação</h2>
-                        <p>Registre uma receita ou despesa em uma conta bancária.</p>
+                        <p>Registre uma receita, despesa, transferência ou ajuste em uma conta bancária.</p>
                     </div>
                     <button
                         type="button"
@@ -538,8 +823,10 @@
                 <div class="form-field">
                     <label for="movement-type">Tipo</label>
                     <select id="movement-type" name="tipo" required>
-                        <option value="entrada">Receita</option>
-                        <option value="saida">Despesa</option>
+                        <option value="entrada">Receita (Entrada)</option>
+                        <option value="saida">Despesa (Saída)</option>
+                        <option value="transferencia">Transferência entre contas</option>
+                        <option value="ajuste">Ajuste de conciliação</option>
                     </select>
                 </div>
 
@@ -547,6 +834,11 @@
                     <label for="movement-account">Conta bancária</label>
                     <select id="movement-account" name="conta_bancaria_id" required></select>
                     <span class="field-help" id="movement-account-help"></span>
+                </div>
+
+                <div class="form-field" id="movement-destination-field" hidden>
+                    <label for="movement-destination-account">Conta de destino</label>
+                    <select id="movement-destination-account" name="conta_destino_id"></select>
                 </div>
 
                 <div class="form-field">
@@ -575,7 +867,7 @@
                     >
                 </div>
 
-                <div class="form-field">
+                <div class="form-field" id="movement-category-field">
                     <label for="movement-category">Categoria</label>
                     <select id="movement-category" name="categoria" required>
                         <option value="alimentacao">Alimentação</option>
@@ -592,6 +884,8 @@
                         <option value="saude">Saúde</option>
                         <option value="transporte">Transporte</option>
                         <option value="vendas">Vendas</option>
+                        <option value="transferencia">Transferência</option>
+                        <option value="ajuste">Ajuste</option>
                     </select>
                 </div>
 
@@ -626,6 +920,116 @@
                 </div>
             </form>
         </dialog>
+
+        <!-- Modal: Cadastrar / Editar Meta Financeira -->
+        <dialog class="form-dialog" id="goal-dialog" aria-labelledby="goal-dialog-title">
+            <form id="goal-form" class="dialog-form">
+                <input type="hidden" id="goal-edit-id" name="meta_id" value="">
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="goal-dialog-title">Nova meta financeira</h2>
+                        <p>Defina um objetivo de economia e acompanhe o percentual atingido.</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="dialog-close"
+                        data-close-dialog="goal-dialog"
+                        aria-label="Fechar"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div class="form-field">
+                    <label for="goal-name">Nome da meta</label>
+                    <input
+                        id="goal-name"
+                        name="nome"
+                        type="text"
+                        minlength="1"
+                        maxlength="150"
+                        placeholder="Ex: Reserva de emergência"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="goal-target-amount">Valor objetivo (R$)</label>
+                    <input
+                        id="goal-target-amount"
+                        name="valor_meta"
+                        type="number"
+                        min="0.01"
+                        max="9999999999.99"
+                        step="0.01"
+                        inputmode="decimal"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="goal-current-amount">Valor já acumulado (R$)</label>
+                    <input
+                        id="goal-current-amount"
+                        name="valor_atual"
+                        type="number"
+                        min="0"
+                        max="9999999999.99"
+                        step="0.01"
+                        value="0.00"
+                        inputmode="decimal"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="goal-start-date">Data de início</label>
+                    <input id="goal-start-date" name="data_inicio" type="date" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="goal-deadline-date">Data limite <span class="field-optional">(opcional)</span></label>
+                    <input id="goal-deadline-date" name="data_limite" type="date">
+                </div>
+
+                <div class="form-field">
+                    <label for="goal-status">Status</label>
+                    <select id="goal-status" name="status">
+                        <option value="em_andamento">Em andamento</option>
+                        <option value="concluida">Concluída</option>
+                        <option value="cancelada">Cancelada</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="goal-description">Descrição <span class="field-optional">(opcional)</span></label>
+                    <textarea
+                        id="goal-description"
+                        name="descricao"
+                        maxlength="255"
+                        rows="2"
+                    ></textarea>
+                </div>
+
+                <p class="form-message" id="goal-message" role="status" aria-live="polite"></p>
+
+                <div class="dialog-actions">
+                    <button
+                        type="button"
+                        class="button-secondary"
+                        data-close-dialog="goal-dialog"
+                    >
+                        Cancelar
+                    </button>
+                    <button type="submit" class="button-primary">
+                        Salvar meta
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Container de notificações Toast -->
+        <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
     </div>
 </body>
 </html>

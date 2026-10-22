@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -11,7 +12,8 @@ from models import (
 )
 from esquema import (
     CalculoFinanceiroCreate,
-    CalculoFinanceiroResponse
+    CalculoFinanceiroResponse,
+    ResumoPeriodoResponse,
 )
 from financeiro import (
     calcular_resumo_anual,
@@ -115,6 +117,99 @@ def criar_calculo(
     )
 
     return calculo
+
+
+# =========================================================
+# RESUMO FINANCEIRO POR PERÍODO CUSTOMIZADO
+# =========================================================
+
+@router.get(
+    "/resumo",
+    response_model=ResumoPeriodoResponse,
+)
+def obter_resumo_periodo(
+    data_inicio: date,
+    data_fim: date,
+    conta_bancaria_id: int | None = None,
+    db: Session = Depends(get_db),
+    usuario_logado: Usuario = Depends(obter_usuario_logado),
+):
+    if data_fim < data_inicio:
+        raise HTTPException(
+            status_code=422,
+            detail="data_fim não pode ser anterior a data_inicio.",
+        )
+
+    if conta_bancaria_id is not None:
+        conta = (
+            db.query(ContaBancaria)
+            .filter(
+                ContaBancaria.id == conta_bancaria_id,
+                ContaBancaria.usuario_id == usuario_logado.id,
+            )
+            .first()
+        )
+        if not conta:
+            raise HTTPException(
+                status_code=404,
+                detail="Conta bancária não encontrada.",
+            )
+        try:
+            return calcular_resumo_periodo(
+                db,
+                conta.id,
+                data_inicio,
+                data_fim,
+            )
+        except ValueError as erro:
+            raise HTTPException(status_code=400, detail=str(erro))
+
+    contas = (
+        db.query(ContaBancaria)
+        .filter(ContaBancaria.usuario_id == usuario_logado.id)
+        .all()
+    )
+
+    if data_inicio > date.today():
+        raise HTTPException(
+            status_code=400,
+            detail="A data inicial não pode estar no futuro.",
+        )
+
+    acumulado = {
+        "conta_bancaria_id": None,
+        "data_inicio": data_inicio,
+        "data_fim": data_fim,
+        "saldo_inicial": Decimal("0.00"),
+        "total_entradas": Decimal("0.00"),
+        "total_saidas": Decimal("0.00"),
+        "total_investimentos": Decimal("0.00"),
+        "total_transferencias_recebidas": Decimal("0.00"),
+        "total_transferencias_enviadas": Decimal("0.00"),
+        "total_ajustes": Decimal("0.00"),
+        "saldo_final": Decimal("0.00"),
+    }
+
+    for conta in contas:
+        resumo_conta = calcular_resumo_periodo(
+            db,
+            conta.id,
+            data_inicio,
+            data_fim,
+        )
+        for chave in (
+            "saldo_inicial",
+            "total_entradas",
+            "total_saidas",
+            "total_investimentos",
+            "total_transferencias_recebidas",
+            "total_transferencias_enviadas",
+            "total_ajustes",
+            "saldo_final",
+        ):
+            acumulado[chave] += resumo_conta[chave]
+
+    return acumulado
 
 
 # =========================================================

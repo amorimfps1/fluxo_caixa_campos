@@ -867,3 +867,108 @@ def test_usuario_b_nao_pode_manipular_conta_movimentacao_relatorio_ou_meta_de_a(
     assert movimento_a_depois.json()["descricao"] == "Entrada protegida"
     assert relatorio_a_depois.status_code == 200
     assert meta_a_depois.status_code == 200
+
+
+
+def test_resumo_periodo_customizado_e_exportacao_csv(
+    client: TestClient,
+) -> None:
+    _, token_a = _usuario_autenticado(client)
+    _, token_b = _usuario_autenticado(client)
+    conta_1 = _criar_conta(client, token_a)
+    conta_2 = client.post(
+        "/contas-bancarias/",
+        headers=token_a,
+        json={
+            "nome_banco": "Conta Poupança Relatório",
+            "tipo_conta": "poupanca",
+            "valor_conta_atual": "500.00",
+            "ativa": True,
+        },
+    ).json()
+
+    hoje = date.today()
+    inicio_custom = hoje - timedelta(days=3)
+
+    for conta_id, descricao, valor, tipo, categoria, data_mov in (
+        (conta_1["id"], "Salário parcial", "300.00", "entrada", "salario", inicio_custom),
+        (conta_1["id"], "Mercado semana", "120.00", "saida", "alimentacao", hoje),
+        (conta_2["id"], "Rendimento poupança", "50.00", "entrada", "investimento", hoje),
+    ):
+        resp = client.post(
+            "/fluxo-dinheiro/",
+            headers=token_a,
+            json={
+                "conta_bancaria_id": conta_id,
+                "descricao": descricao,
+                "valor": valor,
+                "tipo": tipo,
+                "categoria": categoria,
+                "data_movimentacao": data_mov.isoformat(),
+            },
+        )
+        assert resp.status_code == 201, resp.text
+
+    # 1. Resumo consolidado de todas as contas em intervalo customizado (4 dias)
+    resumo_geral = client.get(
+        f"/calculos-financeiros/resumo?data_inicio={inicio_custom.isoformat()}"
+        f"&data_fim={hoje.isoformat()}",
+        headers=token_a,
+    )
+    assert resumo_geral.status_code == 200, resumo_geral.text
+    dados_gerais = resumo_geral.json()
+    assert dados_gerais["conta_bancaria_id"] is None
+    assert dados_gerais["saldo_inicial"] == "1500.00"
+    assert dados_gerais["total_entradas"] == "350.00"
+    assert dados_gerais["total_saidas"] == "120.00"
+    assert dados_gerais["saldo_final"] == "1730.00"
+
+    # 2. Resumo filtrado por uma conta específica
+    resumo_conta_1 = client.get(
+        f"/calculos-financeiros/resumo?conta_bancaria_id={conta_1['id']}"
+        f"&data_inicio={inicio_custom.isoformat()}&data_fim={hoje.isoformat()}",
+        headers=token_a,
+    )
+    assert resumo_conta_1.status_code == 200, resumo_conta_1.text
+    dados_c1 = resumo_conta_1.json()
+    assert dados_c1["conta_bancaria_id"] == conta_1["id"]
+    assert dados_c1["saldo_inicial"] == "1000.00"
+    assert dados_c1["total_entradas"] == "300.00"
+    assert dados_c1["total_saidas"] == "120.00"
+    assert dados_c1["saldo_final"] == "1180.00"
+
+    # 3. Isolamento entre usuários e validações de período no resumo
+    assert (
+        client.get(
+            f"/calculos-financeiros/resumo?conta_bancaria_id={conta_1['id']}"
+            f"&data_inicio={inicio_custom.isoformat()}&data_fim={hoje.isoformat()}",
+            headers=token_b,
+        ).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"/calculos-financeiros/resumo?data_inicio={hoje.isoformat()}"
+            f"&data_fim={inicio_custom.isoformat()}",
+            headers=token_a,
+        ).status_code
+        == 422
+    )
+
+    # 4. Exportação CSV
+    csv_resp = client.get(
+        f"/fluxo-dinheiro/exportar-csv?data_inicio={inicio_custom.isoformat()}"
+        f"&data_fim={hoje.isoformat()}",
+        headers=token_a,
+    )
+    assert csv_resp.status_code == 200
+    assert "text/csv" in csv_resp.headers["content-type"]
+    conteudo_csv = csv_resp.text
+    assert "id;data_movimentacao;conta_bancaria_id;tipo;categoria;descricao;valor;observacao" in conteudo_csv
+    assert "Salário parcial" in conteudo_csv
+    assert "Mercado semana" in conteudo_csv
+
+    # Usuário B não vê os dados de A no CSV
+    csv_b = client.get("/fluxo-dinheiro/exportar-csv", headers=token_b)
+    assert csv_b.status_code == 200
+    assert "Salário parcial" not in csv_b.text

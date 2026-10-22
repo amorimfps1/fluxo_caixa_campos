@@ -17,6 +17,9 @@ if not DATABASE_URL:
 engine_kwargs = {}
 if DATABASE_URL.startswith("mysql"):
     engine_kwargs.update({"pool_pre_ping": True, "pool_recycle": 3600})
+    if "tidbcloud.com" in DATABASE_URL or os.getenv("DB_SSL", "").lower() in ("true", "1"):
+        import ssl
+        engine_kwargs["connect_args"] = {"ssl": ssl.create_default_context()}
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 

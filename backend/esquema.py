@@ -612,3 +612,22 @@ class MetaFinanceiraResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+
+class ResumoPeriodoResponse(BaseModel):
+    """
+    Resumo financeiro consolidado para qualquer intervalo customizado de datas.
+    """
+
+    conta_bancaria_id: Optional[int] = None
+    data_inicio: date
+    data_fim: date
+    saldo_inicial: Decimal
+    total_entradas: Decimal
+    total_saidas: Decimal
+    total_investimentos: Decimal
+    total_transferencias_recebidas: Decimal
+    total_transferencias_enviadas: Decimal
+    total_ajustes: Decimal
+    saldo_final: Decimal

@@ -1,8 +1,10 @@
+import csv
+import io
 from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from autenticacao import obter_usuario_logado
@@ -157,19 +159,13 @@ def criar_movimentacao(
     return movimentacao
 
 
-@router.get(
-    "/",
-    response_model=list[FluxoDinheiroResponse],
-)
-def listar_movimentacoes(
+def _construir_consulta_movimentacoes(
+    db: Session,
+    usuario_id: int,
     conta_bancaria_id: int | None = None,
     categoria: str | None = None,
     data_inicio: date | None = None,
     data_fim: date | None = None,
-    limit: int = Query(default=50, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
-    db: Session = Depends(get_db),
-    usuario_logado: Usuario = Depends(obter_usuario_logado),
 ):
     if data_inicio and data_fim and data_fim < data_inicio:
         raise HTTPException(
@@ -182,7 +178,7 @@ def listar_movimentacoes(
             ContaBancaria,
             FluxoDinheiro.conta_bancaria_id == ContaBancaria.id,
         )
-        .filter(ContaBancaria.usuario_id == usuario_logado.id)
+        .filter(ContaBancaria.usuario_id == usuario_id)
     )
     if conta_bancaria_id is not None:
         consulta = consulta.filter(
@@ -203,12 +199,93 @@ def listar_movimentacoes(
         consulta = consulta.filter(
             FluxoDinheiro.data_movimentacao <= data_fim
         )
-    return (
-        consulta.order_by(FluxoDinheiro.data_movimentacao.desc(),
-                          FluxoDinheiro.id.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
+    return consulta.order_by(
+        FluxoDinheiro.data_movimentacao.desc(),
+        FluxoDinheiro.id.desc(),
+    )
+
+
+@router.get(
+    "/",
+    response_model=list[FluxoDinheiroResponse],
+)
+def listar_movimentacoes(
+    conta_bancaria_id: int | None = None,
+    categoria: str | None = None,
+    data_inicio: date | None = None,
+    data_fim: date | None = None,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    usuario_logado: Usuario = Depends(obter_usuario_logado),
+):
+    consulta = _construir_consulta_movimentacoes(
+        db=db,
+        usuario_id=usuario_logado.id,
+        conta_bancaria_id=conta_bancaria_id,
+        categoria=categoria,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+    )
+    return consulta.offset(offset).limit(limit).all()
+
+
+@router.get("/exportar-csv")
+def exportar_movimentacoes_csv(
+    conta_bancaria_id: int | None = None,
+    categoria: str | None = None,
+    data_inicio: date | None = None,
+    data_fim: date | None = None,
+    db: Session = Depends(get_db),
+    usuario_logado: Usuario = Depends(obter_usuario_logado),
+):
+    consulta = _construir_consulta_movimentacoes(
+        db=db,
+        usuario_id=usuario_logado.id,
+        conta_bancaria_id=conta_bancaria_id,
+        categoria=categoria,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+    )
+    movimentacoes = consulta.all()
+
+    buffer = io.StringIO()
+    buffer.write("\ufeff")
+    escritor = csv.writer(buffer, delimiter=";")
+    escritor.writerow(
+        [
+            "id",
+            "data_movimentacao",
+            "conta_bancaria_id",
+            "tipo",
+            "categoria",
+            "descricao",
+            "valor",
+            "observacao",
+        ]
+    )
+    for mov in movimentacoes:
+        escritor.writerow(
+            [
+                mov.id,
+                mov.data_movimentacao.isoformat(),
+                mov.conta_bancaria_id,
+                mov.tipo,
+                mov.categoria,
+                mov.descricao,
+                f"{Decimal(str(mov.valor)):.2f}",
+                mov.observacao or "",
+            ]
+        )
+
+    return Response(
+        content=buffer.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                'attachment; filename="movimentacoes_fluxo_caixa.csv"'
+            )
+        },
     )
 
 
