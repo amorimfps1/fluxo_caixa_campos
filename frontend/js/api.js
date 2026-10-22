@@ -3,6 +3,9 @@
  * Comunicação com a API FastAPI.
  */
 
+// URL padrão da API em produção no Render
+const RENDER_API_URL = "https://fluxo-caixa-api.onrender.com";
+
 function obterUrlBaseApi() {
     if (window.__API_URL__) {
         return window.__API_URL__.replace(/\/+$/, "");
@@ -11,6 +14,11 @@ function obterUrlBaseApi() {
     if (urlPersistida) {
         return urlPersistida.trim().replace(/\/+$/, "");
     }
+    // Quando executado em HTTPS (Vercel / Produção), conecta ao backend no Render
+    if (window.location.protocol === "https:") {
+        return RENDER_API_URL;
+    }
+    // Ambiente de desenvolvimento local em HTTP
     return "http://127.0.0.1:8000";
 }
 
