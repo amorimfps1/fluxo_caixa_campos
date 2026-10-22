@@ -11,15 +11,23 @@ carregar_configuracao()
 def normalizar_database_url(raw_url: str) -> str:
     """Normaliza e escapa a URL do banco para conexões SQLAlchemy seguras.
     
-    Corrige acidentais '@@' e codifica caracteres especiais na senha.
+    1. Garante o dialeto mysql+pymysql caso o usuário informe apenas mysql://.
+    2. Corrige acidentais '@@' e sanitiza o host.
+    3. Codifica caracteres especiais na senha via quote_plus.
     """
     if not raw_url:
         return raw_url
     raw_url = raw_url.strip()
-    if "@" not in raw_url or "://" not in raw_url:
+    if "://" not in raw_url:
         return raw_url
 
     scheme, _, rest = raw_url.partition("://")
+    if scheme == "mysql":
+        scheme = "mysql+pymysql"
+
+    if "@" not in rest:
+        return f"{scheme}://{rest}"
+
     user_pass_part, _, host_part = rest.rpartition("@")
     host_part = host_part.lstrip("@")
 
@@ -45,7 +53,14 @@ if DATABASE_URL.startswith("mysql"):
     engine_kwargs.update({"pool_pre_ping": True, "pool_recycle": 3600})
     if "tidbcloud.com" in DATABASE_URL or os.getenv("DB_SSL", "").lower() in ("true", "1"):
         import ssl
-        engine_kwargs["connect_args"] = {"ssl": ssl.create_default_context()}
+        ctx = ssl.create_default_context()
+        ca_path = os.getenv("CA_PATH", "/etc/ssl/certs/ca-certificates.crt")
+        if os.path.exists(ca_path):
+            try:
+                ctx.load_verify_locations(ca_path)
+            except Exception:
+                pass
+        engine_kwargs["connect_args"] = {"ssl": ctx}
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 
