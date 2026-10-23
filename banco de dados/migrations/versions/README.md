@@ -1,33 +1,33 @@
 # 📜 Histórico de Revisões do Esquema — Alembic
 
-Este documento mantém o registro histórico e a árvore cronológica de todas as migrações aplicadas ao banco de dados do **Sistema de Fluxo de Caixa**.
+Este documento registra a linha do tempo e a árvore de dependências das 8 revisões que compõem o esquema relacional do **Sistema de Fluxo de Caixa**.
 
 ---
 
-## 🌳 Árvore de Dependências das Revisões
+## 🌳 Árvore Linear de Revisões
 
 ```mermaid
 flowchart TD
-    R1["esquema_inicial<br/>(Criação de usuários, contas e fluxo)"] --> R2["transferencias<br/>(Vínculo entre pontas de transferência)"]
-    R2 --> R3["categorias_movimentacao<br/>(Tabela de categorias e normalização)"]
-    R3 --> R4["ajustes_e_resumos<br/>(Ajustes assinados e resumos contábeis)"]
-    R4 --> R5["limite_login<br/>(Tabela de tentativas de login e rate limit)"]
-    R5 --> R6["normalizar_schema<br/>(Ajustes de índices e tipagem MySQL)"]
-    R6 --> R7["proteger_cpf<br/>(Cifragem Fernet e índice cego HMAC)"]
-    R7 --> R8["adicionar_telefone_usuario<br/>(Campo de telefone opcional cifrado)"]
+    R1["1. esquema_inicial<br/>(Tabelas base: usuarios, contas, fluxo, calculos, metas)"] --> R2["2. transferencias<br/>(Vínculo atômico entre contas: transferencia_id e direção)"]
+    R2 --> R3["3. categorias_movimentacao<br/>(Tabela de domínio de categorias fixas e FK)"]
+    R3 --> R4["4. ajustes_e_resumos<br/>(Suporte a conciliação contábil assinada)"]
+    R4 --> R5["5. limite_login<br/>(Tabela tentativas_login para Rate Limiting)"]
+    R5 --> R6["6. normalizar_schema<br/>(Padronização DECIMAL(12,2), FKs e índices MySQL)"]
+    R6 --> R7["7. proteger_cpf<br/>(Cifragem Fernet em repouso + Blind Index cpf_indice)"]
+    R7 --> R8["8. adicionar_telefone_usuario<br/>(Coluna telefone opcional cifrada com Fernet)"]
 ```
 
 ---
 
-## 📋 Detalhamento de Cada Revisão
+## 📋 Detalhamento Técnico das Revisões
 
-| Ordem | Identificador da Revisão | Descrição Técnica e Impacto |
-|---|---|---|
-| 1 | `esquema_inicial` | Criação das tabelas fundamentais: `usuarios`, `contas_bancarias`, `fluxo_dinheiro`, `calculos_financeiros` e `metas_financeiras`. |
-| 2 | `transferencias` | Adição das colunas `transferencia_id`, `transferencia_direcao` e `conta_destino_id` na tabela `fluxo_dinheiro`. |
-| 3 | `categorias_movimentacao` | Criação da tabela de categorias fixas e migração de consistência das categorias existentes. |
-| 4 | `ajustes_e_resumos` | Habilitação do tipo `ajuste` com valores assinados para conciliação contábil sem distorcer totais de receitas e despesas. |
-| 5 | `limite_login` | Criação da tabela `tentativas_login` para rastreamento de IPs e mitigação de ataques de força bruta. |
-| 6 | `normalizar_schema` | Padronização de tipos de dados (`VARCHAR`, `DECIMAL(12,2)`) e criação de índices de consulta no MySQL. |
-| 7 | `proteger_cpf` | Cifragem de todos os CPFs em repouso com algoritmo Fernet e criação da coluna `cpf_indice` (HMAC-SHA256). |
-| 8 | `adicionar_telefone_usuario` | Adição do campo `telefone` na tabela `usuarios` (armazenado cifrado com a mesma chave Fernet). |
+| # | Revisão (`revision`) | Revisão Anterior (`down_revision`) | Descrição e Impacto no Banco |
+|---|---|---|---|
+| **1** | `esquema_inicial` | `None` | Criação das tabelas principais (`usuarios`, `contas_bancarias`, `fluxo_dinheiro`, `calculos_financeiros`, `metas_financeiras`). |
+| **2** | `transferencias` | `esquema_inicial` | Inclusão de `transferencia_id`, `transferencia_direcao` e `conta_destino_id` em `fluxo_dinheiro` para rastreio de transferências entre contas. |
+| **3** | `categorias_movimentacao` | `transferencias` | Criação da tabela `categorias_movimentacao` populada com as 16 categorias oficiais e normalização dos registros existentes. |
+| **4** | `ajustes_e_resumos` | `categorias_movimentacao` | Inclusão do tipo `ajuste` no enum de movimentações e suporte a valores negativos de conciliação. |
+| **5** | `limite_login` | `ajustes_e_resumos` | Criação da tabela `tentativas_login` para controle de força bruta por IP e conta. |
+| **6** | `normalizar_schema` | `limite_login` | Alinhamento de tipos `DECIMAL(12,2)`, chaves estrangeiras com `ON DELETE CASCADE` e índices compostos de performance. |
+| **7** | `proteger_cpf` | `normalizar_schema` | Migração de segurança LGPD: cifra CPFs com Fernet e adiciona a coluna `cpf_indice` (`UNIQUE`) com HMAC-SHA256. |
+| **8** | `adicionar_telefone_usuario` | `proteger_cpf` (`head`) | Adiciona a coluna opcional `telefone` (`VARCHAR(255)`) na tabela `usuarios`, armazenada cifrada com Fernet. |

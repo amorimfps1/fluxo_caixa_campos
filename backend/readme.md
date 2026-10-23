@@ -1,68 +1,64 @@
 # ⚙️ Backend — Fluxo de Caixa
 
-Módulo central de regras de negócio, persistência relacional e exposição de endpoints REST do **Sistema de Fluxo de Caixa**, construído com **FastAPI** e **SQLAlchemy**.
+> ⚡ **API em Produção (Render):** [https://fluxo-caixa-cuq1.onrender.com](https://fluxo-caixa-cuq1.onrender.com)  
+> 📖 **Swagger UI:** [https://fluxo-caixa-cuq1.onrender.com/docs](https://fluxo-caixa-cuq1.onrender.com/docs)
+
+Módulo central de regras de negócio, criptografia, persistência relacional e exposição de endpoints REST do **Sistema de Fluxo de Caixa**, construído com **FastAPI** e **SQLAlchemy 2.x**.
 
 ---
 
 ## 🎯 Responsabilidades do Backend
 
-- Centralizar as regras de integridade financeira (cálculos de saldos, conciliações, poupanças e investimentos).
-- Gerenciar o ciclo de vida de autenticação por tokens **JWT (JSON Web Tokens)** no padrão OAuth2 Password Bearer.
-- Garantir o isolamento total de dados entre diferentes usuários.
-- Cifrar e proteger dados sensíveis de usuários em conformidade com as diretrizes de privacidade.
-- Fornecer documentação viva e interativa via **OpenAPI / Swagger UI**.
+- Centralizar a integridade contábil com precisão `Decimal(12, 2)` (saldos consolidados, conciliações, poupanças, investimentos e transferências atômicas).
+- Gerenciar autenticação **OAuth2 Password Bearer** com tokens **JWT (HS256)** e rate limiting contra força bruta.
+- Garantir isolamento multiusuário estrito em todas as consultas e escritas.
+- Cifrar dados pessoais sensíveis (CPF e telefone) em repouso com **Fernet** e manter unicidade via **Blind Index HMAC-SHA256**.
+- Conectar de forma transparente tanto ao **MySQL 8 local** quanto ao **TiDB Cloud Serverless** via TLS/SSL nativo.
 
 ---
 
-## 🧩 Componentes Principais
+## 🧩 Componentes do Módulo
 
 | Arquivo / Diretório | Responsabilidade Principal |
 |---|---|
-| [`api.py`](api.py) | Inicialização da aplicação FastAPI, configuração de CORS, registro de rotas e endpoint de saúde (`/health`). |
-| [`database.py`](database.py) | Gerenciamento da engine SQLAlchemy com conexão em pool resiliente (`pool_pre_ping=True`, `pool_recycle=3600`) e gerador de sessões (`get_db`). |
-| [`configuracao.py`](configuracao.py) | Carregamento desacoplado de configurações locais do `.env` e `%LOCALAPPDATA%`. |
-| [`autenticacao.py`](autenticacao.py) | Criação, decodificação e validação de tokens JWT; injeção de dependência do usuário autenticado. |
-| [`dados_sensiveis.py`](dados_sensiveis.py) | Algoritmos de cifragem Fernet para CPF/telefone e geração de índice cego HMAC-SHA256 para busca de duplicidades. |
-| [`financeiro.py`](financeiro.py) | Regras matemáticas financeiras: cálculos agregados em SQL, validação de limites de poupança e consolidação de transferências. |
-| [`models.py`](models.py) | Declaração dos modelos relacionais ORM (tabelas: `usuarios`, `contas_bancarias`, `fluxo_dinheiro`, `calculos_financeiros`, `metas_financeiras`, `tentativas_login`). |
-| [`esquema.py`](esquema.py) | Modelos Pydantic v2 para validação rigorosa de entrada (Payloads) e serialização segura de saída (Responses). |
-| [`rotasdeapi/`](rotasdeapi/) | Módulos de endpoints REST segmentados por domínio (`usuario.py`, `conta_bancaria.py`, `fluxo_dinheiro.py`, etc.). |
-| [`seguranca/`](seguranca/) | Hashing e verificação de senhas com algoritmo Argon2/Bcrypt através do `pwdlib`. |
-| [`tests/`](tests/) | Bateria abrangente de testes automatizados com SQLite em memória. |
+| [`api.py`](api.py) | Instância FastAPI, validação estrita de `APP_ENV`, política de CORS e rotas `/` e `/health`. |
+| [`database.py`](database.py) | Normalizador automático de `DATABASE_URL`, injeção de `ssl.create_default_context()` para TiDB Cloud e pool SQLAlchemy (`pool_pre_ping=True`, `pool_recycle=3600`). |
+| [`configuracao.py`](configuracao.py) | Carregamento seguro de variáveis de ambiente a partir do `.env` local ou ambiente do servidor. |
+| [`autenticacao.py`](autenticacao.py) | Emissão, decodificação e validação de tokens JWT e dependência `obter_usuario_logado`. |
+| [`dados_sensiveis.py`](dados_sensiveis.py) | Cifragem Fernet (`CPF_ENCRYPTION_KEY`) e geração de índice cego HMAC-SHA256 (`cpf_indice`). |
+| [`financeiro.py`](financeiro.py) | Motor contábil: recálculo de saldo, validação de contas sem cheque especial e resumos por período. |
+| [`models.py`](models.py) | Entidades ORM (`Usuario`, `ContaBancaria`, `FluxoDinheiro`, `CategoriaMovimentacao`, `CalculoFinanceiro`, `MetaFinanceira`, `TentativaLogin`). |
+| [`esquema.py`](esquema.py) | Schemas Pydantic v2 para validação de entrada, CPF, complexidade de senha e serialização de saída. |
+| [`rotasdeapi/`](rotasdeapi/) | Controladores REST divididos por recurso (`usuario.py`, `conta_bancaria.py`, `fluxo_dinheiro.py`, `calculo_financeiro.py`, `meta_financeira.py`). |
+| [`seguranca/`](seguranca/) | Hashing de senhas com `pwdlib` (Argon2id / Bcrypt) e verificação em tempo constante. |
+| [`tests/`](tests/) | Suíte com 65 testes automatizados em SQLite em memória e 5 testes de concorrência MySQL. |
 
 ---
 
-## 🏗️ Padrões de Arquitetura
+## 🏗️ Destaques de Engenharia no Backend
 
-### 1. Injeção de Dependências
-As rotas da API recebem suas dependências de forma declarativa pelo FastAPI:
-- `db: Session = Depends(get_db)` garante uma sessão de banco aberta e fechada deterministicamente por requisição.
-- `usuario_atual: Usuario = Depends(obter_usuario_logado)` garante que a rota só seja acessível por usuários com token JWT válido, isolando os dados de cada conta.
+### 1. Conexão Resiliente e Normalização de URL (`database.py`)
+A função `normalizar_database_url` trata automaticamente variações de string de conexão em nuvem:
+- Converte `mysql://` para `mysql+pymysql://`.
+- Redireciona referências acidentais ao schema reservado `/sys` para `/test`.
+- Codifica caracteres especiais na senha com `urllib.parse.quote_plus`.
+- Quando detecta `tidbcloud.com` ou `DB_SSL=true`, instancia `ssl.create_default_context()` diretamente no `connect_args={"ssl": ssl_ctx}`, garantindo compatibilidade com OpenSSL 3 e Python 3.10–3.14 em Linux e Windows.
 
-### 2. Resiliência de Conexão com o Banco
-Em [database.py](database.py), o pool de conexões com o MySQL é configurado com:
-- `pool_pre_ping=True`: Testa a validade da conexão antes de entregá-la à requisição, evitando falhas silenciosas de timeout ("MySQL server has gone away").
-- `pool_recycle=3600`: Recicla periodicamente conexões antigas para respeitar os limites de inatividade do servidor MySQL.
-
-### 3. Criptografia de Dados em Repouso
-- **CPF e Telefone:** Cifrados com a chave simétrica `CPF_ENCRYPTION_KEY` antes de qualquer gravação no banco de dados.
-- **Índice HMAC:** O CPF recebe hash HMAC com chave derivada e é armazenado na coluna `cpf_indice` com restrição `UNIQUE`, impedindo cadastros duplicados sem expor o CPF em texto puro.
+### 2. Política de CORS por Ambiente (`api.py`)
+- **`APP_ENV=development`:** Permite origens locais de desenvolvimento (`127.0.0.1:5500`, `127.0.0.1:5173`, `app.fluxocaixa`) e previews da Vercel.
+- **`APP_ENV=production`:** Exige que `CORS_ORIGINS` seja explicitamente definida e bloqueia o uso de curinga `*`, liberando apenas o domínio oficial de produção (`https://fluxo-caixa-coral-two.vercel.app`).
 
 ---
 
-## 🚀 Como Executar o Backend
+## 🚀 Como Executar
 
-### Via Ponto de Entrada Raiz (Recomendado)
+### Localmente (Desenvolvimento)
+Na raiz do repositório:
 ```powershell
 python main.py
 ```
 
-### Via Uvicorn Direto
-```powershell
-uvicorn api:app --host 127.0.0.1 --port 8000 --reload
+### Em Produção (Render Start Command)
+```bash
+python -m alembic -c "banco de dados/alembic.ini" upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
-
-Acesse a documentação interativa em:
-- **Swagger UI:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **ReDoc:** [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
-- **Status Operacional:** [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)

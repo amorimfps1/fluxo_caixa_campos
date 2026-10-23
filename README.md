@@ -1,16 +1,22 @@
-# 💰 Sistema de Fluxo de Caixa
+# 💰 Sistema de Fluxo de Caixa — Versão Demo
+
+> 🌐 **Acesse a Aplicação Online (Vercel):** [**https://fluxo-caixa-coral-two.vercel.app**](https://fluxo-caixa-coral-two.vercel.app)  
+> ⚡ **API Backend em Produção (Render):** [**https://fluxo-caixa-cuq1.onrender.com**](https://fluxo-caixa-cuq1.onrender.com) | [**Swagger UI (`/docs`)**](https://fluxo-caixa-cuq1.onrender.com/docs) | [**Healthcheck (`/health`)**](https://fluxo-caixa-cuq1.onrender.com/health)
 
 <div align="center">
 
+[![Live Demo](https://img.shields.io/badge/Demo_Online-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://fluxo-caixa-coral-two.vercel.app)
+[![API Status](https://img.shields.io/badge/API_Backend-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://fluxo-caixa-cuq1.onrender.com/health)
+[![Database](https://img.shields.io/badge/Database-TiDB_Cloud_MySQL-FF3E00?style=for-the-badge&logo=mysql&logoColor=white)](https://tidbcloud.com)
+
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-1.0.0-009688?logo=fastapi&logoColor=white)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-red?logo=databricks&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-8.0%2B-4479A1?logo=mysql&logoColor=white)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.x_ORM-red?logo=databricks&logoColor=white)
 ![Alembic](https://img.shields.io/badge/Alembic-Migrations-orange)
-![Pytest](https://img.shields.io/badge/Pytest-62%20passing-brightgreen?logo=pytest&logoColor=white)
+![Pytest](https://img.shields.io/badge/Pytest-65%20passing-brightgreen?logo=pytest&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
-**Aplicação completa de gestão e planejamento financeiro pessoal com API REST assíncrona em FastAPI, persistência relacional com SQLAlchemy e MySQL, interface web responsiva e suíte abrangente de testes automatizados.**
+**Plataforma Full-Stack de gestão e planejamento financeiro pessoal em nuvem, com API REST em FastAPI, banco de dados relacional distribuído (MySQL / TiDB Cloud Serverless), criptografia em repouso (LGPD), interface web responsiva na Vercel e 65 testes automatizados.**
 
 </div>
 
@@ -18,14 +24,14 @@
 
 ## 📑 Sumário
 
+- [Acesso Rápido à Demo Online](#-acesso-rápido-à-demo-online)
 - [Visão Geral](#-visão-geral)
-- [Arquitetura do Sistema](#-arquitetura-do-sistema)
+- [Arquitetura Full-Stack (Nuvem & Local)](#-arquitetura-full-stack-nuvem--local)
 - [Principais Funcionalidades](#-principais-funcionalidades)
 - [Stack Tecnológica](#-stack-tecnológica)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
-- [Pré-requisitos](#-pré-requisitos)
-- [Instalação e Configuração](#-instalação-e-configuração)
-- [Executando a Aplicação](#-executando-a-aplicação)
+- [Execução Local (Desenvolvimento)](#-execução-local-desenvolvimento)
+- [Deploy em Nuvem (Vercel + Render + TiDB Cloud)](#-deploy-em-nuvem-vercel--render--tidb-cloud)
 - [Resumo das Rotas da API](#-resumo-das-rotas-da-api)
 - [Segurança e Proteção de Dados](#-segurança-e-proteção-de-dados)
 - [Testes Automatizados](#-testes-automatizados)
@@ -33,49 +39,69 @@
 
 ---
 
-## 🌟 Visão Geral
+## 🌍 Acesso Rápido à Demo Online
 
-O **Sistema de Fluxo de Caixa** foi desenvolvido para oferecer controle rigoroso, transparente e seguro das finanças pessoais. Ele substitui planilhas manuais propensas a erros por um modelo transacional íntegro, que calcula receitas, despesas, transferências entre contas e conciliações em tempo real com precisão `Decimal`.
+| Ambiente / Serviço | Plataforma | URL Pública |
+|---|---|---|
+| **Aplicação Web (Frontend)** | Vercel | [https://fluxo-caixa-coral-two.vercel.app](https://fluxo-caixa-coral-two.vercel.app) |
+| **Tela de Login** | Vercel | [https://fluxo-caixa-coral-two.vercel.app/login.html](https://fluxo-caixa-coral-two.vercel.app/login.html) |
+| **Tela de Cadastro** | Vercel | [https://fluxo-caixa-coral-two.vercel.app/cadastro.html](https://fluxo-caixa-coral-two.vercel.app/cadastro.html) |
+| **API REST (Backend)** | Render | [https://fluxo-caixa-cuq1.onrender.com](https://fluxo-caixa-cuq1.onrender.com) |
+| **Documentação Interativa (Swagger)** | Render | [https://fluxo-caixa-cuq1.onrender.com/docs](https://fluxo-caixa-cuq1.onrender.com/docs) |
+| **Monitoramento de Saúde** | Render | [https://fluxo-caixa-cuq1.onrender.com/health](https://fluxo-caixa-cuq1.onrender.com/health) |
+
+> [!NOTE]
+> No plano gratuito do Render, caso a API fique inativa por alguns minutos, a primeira requisição (*cold start*) pode levar cerca de **30 a 50 segundos** para despertar o contêiner. Após acordar, todas as operações respondem instantaneamente.
 
 ---
 
-## 🏛️ Arquitetura do Sistema
+## 🌟 Visão Geral
 
-A aplicação segue uma arquitetura em camadas desacopladas com separação clara de responsabilidades:
+O **Sistema de Fluxo de Caixa** foi projetado para substituir planilhas manuais por uma arquitetura financeira transacional, auditável e segura. Toda movimentação financeira (receitas, despesas, transferências entre contas e ajustes de conciliação) opera com aritmética exata `Decimal(12, 2)`, garantindo consistência contábil em tempo real tanto localmente quanto na nuvem.
+
+---
+
+## 🏛️ Arquitetura Full-Stack (Nuvem & Local)
+
+A aplicação opera de forma híbrida (detecção automática de ambiente HTTPS em produção ou HTTP em desenvolvimento) com camadas desacopladas:
 
 ```mermaid
 flowchart TD
-    subgraph FrontendLayer ["🖥️ Camada de Apresentação (Frontend)"]
-        UI["Interface do Usuário (HTML5 / CSS3 / JS)"]
-        CLIENT["Cliente HTTP api.js (Fetch API + SessionStorage)"]
+    subgraph CloudFrontend ["🌐 Camada de Apresentação (Vercel CDN / HTTPS)"]
+        UI["Páginas Estáticas (login.html, cadastro.html, index.html)"]
+        CHARTS["Visualização Analítica (Chart.js + Exportação CSV)"]
+        CLIENT["Cliente HTTP Inteligente (frontend/js/api.js)"]
+        UI --> CHARTS
         UI --> CLIENT
     end
 
-    subgraph APILayer ["⚡ Camada de Aplicação (FastAPI)"]
-        CORS["CORS Middleware (Allowlist)"]
-        AUTH["Segurança & JWT (OAuth2PasswordBearer)"]
+    subgraph CloudBackend ["⚡ Camada de Aplicação (Render Web Service / FastAPI)"]
+        CORS["Middleware CORS Estrito (Allowlist)"]
+        AUTH["Autenticação OAuth2 + JWT (HS256)"]
+        RATELIMIT["Rate Limiter Anti-Brute Force (IP + Conta)"]
         ROUTERS["Controladores REST (/rotasdeapi)"]
-        RULES["Regras de Negócio & Cálculos (financeiro.py)"]
-        CRYPTO["Criptografia Fernet & HMAC Blind Index"]
-        
-        CLIENT -- "HTTP REST (Bearer JWT)" --> CORS
-        CORS --> AUTH
+        FINANCE["Motor Contábil & Regras (financeiro.py)"]
+        CRYPTO["Criptografia Fernet AES-128 & Blind Index HMAC"]
+
+        CLIENT -- "HTTPS REST JSON (Bearer Token)" --> CORS
+        CORS --> RATELIMIT
+        RATELIMIT --> AUTH
         AUTH --> ROUTERS
-        ROUTERS --> RULES
+        ROUTERS --> FINANCE
         ROUTERS --> CRYPTO
     end
 
-    subgraph DataLayer ["🗄️ Camada de Persistência (SQLAlchemy + MySQL)"]
-        MODELS["Modelos Declarativos ORM (models.py)"]
-        POOL["Engine com Pool Pre-Ping & Reciclagem"]
-        ALEMBIC["Alembic (Versionamento de Esquema)"]
-        DB[("MySQL Database")]
-        
-        RULES --> MODELS
-        CRYPTO --> MODELS
-        MODELS --> POOL
-        POOL --> DB
-        ALEMBIC -. "Migrações DDL" .-> DB
+    subgraph CloudData ["🗄️ Camada de Persistência (TiDB Cloud Serverless / MySQL 8)"]
+        ORM["Modelos Declarativos SQLAlchemy 2.x (models.py)"]
+        POOL["Engine com SSLContext Nativo, Pool Pre-Ping & Recycle"]
+        ALEMBIC["Alembic Migrations (8 Revisões Versionadas)"]
+        TIDB[("TiDB Cloud MySQL (TLS 1.3)")]
+
+        FINANCE --> ORM
+        CRYPTO --> ORM
+        ORM --> POOL
+        POOL -- "Conexão Criptografada SSL/TLS" --> TIDB
+        ALEMBIC -. "Upgrade Automático no Deploy" .-> TIDB
     end
 ```
 
@@ -83,35 +109,33 @@ flowchart TD
 
 ## 🚀 Principais Funcionalidades
 
-### 💼 Backend & API
-- **Autenticação Segura:** Login OAuth2 com tokens JWT, expiração configurável e rate limiting contra força bruta (máx. 5 tentativas com bloqueio temporário).
-- **Proteção de Dados Sensíveis:** Cifragem simétrica Fernet para CPFs e telefones no banco de dados, com índice cego HMAC-SHA256 para prevenir duplicidades sem expor o valor original.
-- **Contas Bancárias:** Criação, edição e exclusão de contas correntes, poupanças e contas de investimento com isolamento estrito entre usuários.
-- **Movimentações Completas:** Registro de entradas, saídas, investimentos, transferências entre contas (com par vinculado de débito/crédito) e ajustes de conciliação assinados.
-- **Regras de Negócio Rigorosas:** Contas de poupança e investimentos não podem ficar negativas; categorias fixas normalizadas; atomicidade transacional.
-- **Cálculos e Metas Financeiras:** Endpoints dedicados para consolidação por período (diário, semanal, mensal, anual) e progresso de metas de economia.
-- **Healthcheck & Monitoramento:** Endpoint `/health` para monitoramento de integridade da API e `/docs` interativo OpenAPI Swagger UI.
+### 💼 Backend & Regras de Negócio
+- **Autenticação JWT & Rate Limiting:** Emissão de tokens OAuth2 (`Bearer`) com bloqueio progressivo (`HTTP 429`) após 5 tentativas inválidas em 15 minutos.
+- **Proteção LGPD em Repouso:** CPF e telefone armazenados cifrados com **Fernet (AES-128-CBC + HMAC-SHA256)** e unicidade garantida por **Blind Index (`cpf_indice`)** sem expor dados sensíveis.
+- **Gestão Multi-Contas:** Suporte a contas `corrente`, `poupanca` e `investimento`, com trava contábil que impede saldo negativo em poupanças e investimentos.
+- **Transferências Atômicas Vinculadas:** Transferências entre contas geram pares vinculados por `transferencia_id` (UUID) com bloqueio pessimista (`SELECT ... FOR UPDATE`), garantindo que a exclusão de qualquer ponta reverta ambas atomicamente.
+- **Conciliação e Balanços Periódicos:** Suporte a lançamentos do tipo `ajuste` (positivos ou negativos) e consolidação de períodos (`diario`, `semanal`, `mensal`, `anual`).
+- **Metas Financeiras:** Acompanhamento de objetivos de economia com cálculo de percentual atingido e promoção automática para o status `concluida`.
 
-### 🎨 Frontend
-- **Dashboard Intuitivo:** Visualização instantânea de saldo total, saldo por conta e últimas movimentações reais.
-- **Modais Dinâmicos:** Abertura rápida de formulários para cadastro de novas contas e novas movimentações.
-- **Autenticação Integrada:** Telas dedicadas para login e cadastro de usuários com validação instantânea.
-- **Compatibilidade Local:** Suporte nativo tanto ao Live Server do VS Code (`porta 5500`) quanto ao servidor Python local (`porta 5173` ou `80`).
+### 🖥️ Frontend & Experiência do Usuário
+- **Dashboard Interativo:** Cards de resumo (Saldo Total, Entradas, Saídas e Investimentos), gráficos dinâmicos de evolução de fluxo e distribuição de despesas por categoria.
+- **Filtros Avançados e Exportação CSV:** Filtragem combinada por conta, tipo, categoria e intervalo de datas, além de exportação instantânea do extrato para arquivo `.csv`.
+- **Detecção Automática de Ambiente:** O módulo [`frontend/js/api.js`](frontend/js/api.js) identifica automaticamente se está rodando em produção (`https://` na Vercel) ou localmente (`http://127.0.0.1`), direcionando as chamadas sem necessidade de alterar código.
 
 ---
 
 ## 🛠️ Stack Tecnológica
 
-| Camada | Tecnologia | Função |
+| Camada | Tecnologia | Papel no Sistema |
 |---|---|---|
-| **Linguagem** | Python 3.10+ | Linguagem principal do ecossistema backend |
-| **Framework Web** | FastAPI | Construção da API REST assíncrona de alta performance |
-| **ORM** | SQLAlchemy 2.x | Mapeamento objeto-relacional e gerenciamento de transações |
-| **Banco de Dados** | MySQL 8.x | Banco relacional com integridade referencial ACID |
-| **Migrações** | Alembic | Versionamento e evolução do esquema do banco |
-| **Criptografia** | Cryptography (Fernet) + pwdlib | Cifragem de campos sensíveis e hash seguro de senhas |
-| **Testes** | Pytest + AnyIO + Starlette TestClient | Testes unitários, de isolamento e concorrência |
-| **Frontend** | HTML5, CSS3, JavaScript Vanilla | Interface estática leve sem dependência de frameworks |
+| **Frontend Hosting** | Vercel | Hospedagem estática global com HTTPS e roteamento via `vercel.json` |
+| **Frontend Core** | HTML5, CSS3, JS Vanilla, Chart.js | Interface responsiva, gráficos analíticos e consumo REST |
+| **Backend Hosting** | Render | Contêiner Python gerenciado com deploy contínuo integrado ao GitHub |
+| **Framework API** | FastAPI + Uvicorn | API REST assíncrona com validação Pydantic v2 e OpenAPI 3.1 |
+| **ORM & Migrações** | SQLAlchemy 2.x + Alembic | Persistência relacional, controle transacional e versionamento de schema |
+| **Banco em Nuvem** | TiDB Cloud Serverless (MySQL) | Cluster MySQL distribuído na nuvem com conexão TLS/SSL |
+| **Segurança** | Cryptography (Fernet) + pwdlib (Argon2) + PyJWT | Cifragem de PII, hashing de senhas de última geração e tokens JWT |
+| **Qualidade & Testes** | Pytest + HTTPX | 65 testes unitários e de integração automatizados + 5 testes de concorrência MySQL |
 
 ---
 
@@ -119,142 +143,121 @@ flowchart TD
 
 ```text
 fluxo_caixas/
-├── backend/                        # Núcleo da API REST
-│   ├── rotasdeapi/                 # Controladores organizados por recurso
-│   │   ├── usuario.py              # Cadastro, autenticação e perfil
-│   │   ├── conta_bancaria.py       # Gestão de contas financeiras
-│   │   ├── fluxo_dinheiro.py       # Movimentações e transferências
-│   │   ├── calculo_financeiro.py   # Resumos e balanços periódicos
-│   │   └── meta_financeira.py      # Gestão de metas de economia
-│   ├── seguranca/                  # Algoritmos de hash e validação de senhas
-│   ├── tests/                      # Suíte de testes automatizados (62+ testes)
-│   ├── api.py                      # Instância principal FastAPI, CORS e rotas
-│   ├── autenticacao.py             # Criação e decodificação de JWT
-│   ├── configuracao.py             # Carregamento centralizado de variáveis
-│   ├── dados_sensiveis.py          # Cifragem Fernet e índice cego HMAC
-│   ├── database.py                 # Engine SQLAlchemy com Pool Pre-Ping
-│   ├── esquema.py                  # Schemas Pydantic de validação
-│   ├── financeiro.py               # Lógica de negócio e cálculos
-│   └── models.py                   # Modelos relacionais ORM
-├── banco de dados/                 # Infraestrutura de banco de dados
-│   ├── migrations/                 # Scripts oficiais de migração Alembic
-│   │   └── versions/               # Histórico das revisões do banco
-│   └── alembic.ini                 # Configuração do ambiente Alembic
-├── frontend/                       # Interface estática
-│   ├── css/                        # Estilos responsivos
-│   ├── js/                         # api.js, dashboard.js, login.js, cadastro.js
-│   ├── index.html                  # Dashboard autenticado
-│   ├── login.html                  # Tela de login
-│   └── cadastro.html               # Tela de cadastro de novos usuários
-├── scripts/                        # Utilitários de manutenção e testes
-├── .env.example                    # Modelo seguro de variáveis de ambiente
-├── main.py                         # Ponto de entrada para inicialização local
-├── pytest.ini                      # Configuração da suíte de testes
-└── requirements.txt                # Dependências Python do projeto
+├── backend/                        # Núcleo da API REST e regras de negócio
+│   ├── rotasdeapi/                 # Controladores REST modulares
+│   │   ├── usuario.py              # Cadastro, login OAuth2, rate limit e perfil (/usuarios, /login)
+│   │   ├── conta_bancaria.py       # CRUD de contas bancárias (/contas-bancarias)
+│   │   ├── fluxo_dinheiro.py       # Lançamentos, transferências e extrato (/fluxo-dinheiro)
+│   │   ├── calculo_financeiro.py   # Consolidação de períodos (/calculos-financeiros)
+│   │   ├── meta_financeira.py      # Metas de economia (/metas-financeiras)
+│   │   └── readme.md               # Catálogo técnico de rotas e payloads
+│   ├── seguranca/                  # Módulo de hashing de senhas (pwdlib Argon2/Bcrypt)
+│   │   ├── seguranca.py            # Funções gerar_hash_senha e verificar_senha
+│   │   └── readme.md               # Arquitetura de segurança e criptografia
+│   ├── tests/                      # Suíte de testes automatizados (65 testes SQLite + 5 MySQL)
+│   │   ├── conftest.py             # Fixtures isoladas em memória
+│   │   ├── test_*.py               # Módulos de teste por domínio
+│   │   └── README.md               # Guia de execução dos testes
+│   ├── api.py                      # Instância FastAPI, política de CORS e healthcheck
+│   ├── autenticacao.py             # Emissão e validação de tokens JWT
+│   ├── configuracao.py             # Carregamento seguro de variáveis de ambiente
+│   ├── dados_sensiveis.py          # Cifragem Fernet e Blind Index HMAC-SHA256
+│   ├── database.py                 # Engine SQLAlchemy, normalizador de URL e SSLContext nativo
+│   ├── esquema.py                  # Schemas Pydantic v2 (entrada e saída)
+│   ├── financeiro.py               # Motor de cálculo de saldos e resumos contábeis
+│   ├── models.py                   # Entidades ORM SQLAlchemy
+│   └── readme.md                   # Documentação interna do backend
+├── banco de dados/                 # Camada de dados e versionamento de schema
+│   ├── migrations/                 # Ambiente de migrações Alembic
+│   │   ├── versions/               # 8 revisões cronológicas do banco de dados
+│   │   │   └── README.md           # Histórico detalhado das revisões
+│   │   ├── env.py                  # Contexto de execução Alembic
+│   │   └── README.md               # Guia de comandos Alembic
+│   ├── alembic.ini                 # Configuração do Alembic
+│   ├── *.sql                       # Dumps SQL legados (apenas referência histórica)
+│   └── readme.md                   # Modelagem ERD e dicionário de dados
+├── frontend/                       # Aplicação Web Estática (publicada na Vercel)
+│   ├── css/style.css               # Design system responsivo
+│   ├── js/                         # Módulos JavaScript (api.js, login.js, cadastro.js, dashboard.js)
+│   ├── index.html                  # Dashboard financeiro principal
+│   ├── login.html                  # Página de autenticação
+│   ├── cadastro.html               # Página de criação de conta
+│   └── README.md                   # Documentação da camada de interface
+├── scripts/                        # Utilitários administrativos
+│   ├── remover_usuario_teste.py    # Remoção transacional segura de usuários de teste
+│   └── README.md                   # Guia de uso dos scripts
+├── .env.example                    # Template seguro de variáveis de ambiente
+├── .vercelignore                   # Exclusão de arquivos Python no deploy estático da Vercel
+├── ESTRUTURA.md                    # Mapa arquitetural detalhado do sistema
+├── main.py                         # Ponto de entrada unificado da aplicação
+├── pytest.ini                      # Configuração do Pytest
+├── requirements.txt                # Dependências Python fixadas
+└── vercel.json                     # Regras de roteamento e publicação na Vercel
 ```
 
 ---
 
-## 📋 Pré-requisitos
+## 💻 Execução Local (Desenvolvimento)
 
-- **Python 3.10 ou superior** instalado.
-- **MySQL Server 8.0+** ativo localmente ou em container Docker.
-- **Git** para clonagem e versionamento.
-- Navegador web moderno (Chrome, Firefox, Edge, Safari).
+### 1. Clonar e Preparar o Ambiente Virtual
 
----
-
-## ⚙️ Instalação e Configuração
-
-### 1. Clonar o Repositório
-
-```bash
+```powershell
 git clone https://github.com/arthurcamrocha20052008/fluxo_caixa.git
 cd fluxo_caixas
-```
-
-### 2. Criar e Ativar o Ambiente Virtual
-
-```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
-
-### 3. Instalar Dependências
-
-```powershell
-python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Configurar as Variáveis de Ambiente
+### 2. Configurar Variáveis de Ambiente (`.env`)
 
-Copie o arquivo de exemplo para `.env`:
+Copie o arquivo modelo e gere suas chaves locais:
 
 ```powershell
 Copy-Item .env.example .env
-```
 
-Gere as chaves criptográficas necessárias:
-
-```powershell
-# Chave JWT (mínimo de 32 caracteres)
+# Gerar JWT_SECRET_KEY
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 
-# Chave Fernet (para CPF e telefone)
+# Gerar CPF_ENCRYPTION_KEY (Fernet)
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Abra o arquivo `.env` e configure seus valores:
+Preencha o `.env` com os dados do seu banco MySQL local (ou TiDB Cloud de desenvolvimento).
 
-```ini
-DATABASE_URL=mysql+pymysql://seu_usuario:sua_senha@127.0.0.1:3306/fluxo_caixa
-JWT_SECRET_KEY=sua_chave_jwt_gerada_acima
-CPF_ENCRYPTION_KEY=sua_chave_fernet_gerada_acima
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-APP_ENV=development
-CORS_ORIGINS=http://app.fluxocaixa,http://app.fluxocaixa:5173,http://127.0.0.1:5173,http://127.0.0.1:5500
-```
-
-### 5. Executar as Migrações do Banco
-
-Com o MySQL rodando e a base de dados criada, execute:
+### 3. Aplicar Migrações e Subir a API
 
 ```powershell
 python -m alembic -c "banco de dados/alembic.ini" upgrade head
-```
-
----
-
-## 🚀 Executando a Aplicação
-
-### 1. Iniciar o Backend (API)
-
-A partir da raiz do projeto:
-
-```powershell
 python main.py
 ```
 
-A API estará disponível em:
-- **API Base:** `http://127.0.0.1:8000`
-- **Healthcheck:** `http://127.0.0.1:8000/health`
-- **Swagger UI Interativo:** `http://127.0.0.1:8000/docs`
-- **Especificação OpenAPI:** `http://127.0.0.1:8000/openapi.json`
+A API responderá localmente em `http://127.0.0.1:8000` (Swagger em `http://127.0.0.1:8000/docs`).
 
-### 2. Iniciar o Frontend
+### 4. Abrir o Frontend Localmente
 
-Você tem duas opções para servir a interface:
+- **Via VS Code Live Server:** Clique com o botão direito em `frontend/login.html` → **"Open with Live Server"** (`http://127.0.0.1:5500/frontend/login.html`).
+- **Via Python HTTP Server:**
+  ```powershell
+  python -m http.server 5173 --bind 127.0.0.1 --directory frontend
+  ```
+  Acesse `http://127.0.0.1:5173/login.html`.
 
-#### Opção A — Live Server do VS Code (Recomendado para Dev)
-Abra a pasta do projeto no VS Code, clique com o botão direito em `frontend/login.html` e selecione **"Open with Live Server"**. O navegador abrirá em `http://127.0.0.1:5500/frontend/login.html` (já liberado no CORS).
+---
 
-#### Opção B — Servidor Local Python (Porta 5173)
-```powershell
-Set-Location frontend
-..\.venv\Scripts\python.exe -m http.server 5173 --bind 127.0.0.1
-```
-Acesse no navegador: `http://127.0.0.1:5173/login.html`.
+## ☁️ Deploy em Nuvem (Vercel + Render + TiDB Cloud)
+
+A arquitetura de produção está configurada para deploy contínuo a partir da branch `main`:
+
+1. **Banco de Dados (TiDB Cloud Serverless):**
+   - Cluster MySQL serverless com TLS obrigatório na porta `4000`, utilizando o banco `test`.
+   - O módulo [`backend/database.py`](backend/database.py) normaliza automaticamente a `DATABASE_URL` e injeta `ssl.create_default_context()` nativo no `connect_args`.
+2. **Backend (Render Web Service):**
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `python -m alembic -c "banco de dados/alembic.ini" upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Variáveis de Ambiente:** `APP_ENV=production`, `CORS_ORIGINS=https://fluxo-caixa-coral-two.vercel.app`, `DATABASE_URL`, `JWT_SECRET_KEY`, `CPF_ENCRYPTION_KEY`.
+3. **Frontend (Vercel):**
+   - Configurado via [`vercel.json`](vercel.json) (`outputDirectory: "frontend"`, `cleanUrls: false`) e [`.vercelignore`](.vercelignore) para publicar apenas os ativos estáticos e redirecionar `/` para `/login.html`.
 
 ---
 
@@ -262,71 +265,70 @@ Acesse no navegador: `http://127.0.0.1:5173/login.html`.
 
 | Módulo | Método | Rota | Descrição | Autenticação |
 |---|---|---|---|---|
-| **Sistema** | `GET` | `/` | Boas-vindas e status da API | Não |
-| **Sistema** | `GET` | `/health` | Verificação de integridade operacional | Não |
-| **Usuários** | `POST` | `/usuarios/` | Cadastro com validação de CPF | Não |
-| **Usuários** | `POST` | `/login` | Autenticação OAuth2 e retorno do JWT | Não |
-| **Usuários** | `GET` | `/usuarios/me` | Dados do usuário autenticado | Sim (Bearer) |
-| **Contas** | `GET` | `/contas-bancarias/` | Lista contas bancárias do usuário | Sim (Bearer) |
-| **Contas** | `POST` | `/contas-bancarias/` | Cadastra nova conta com saldo inicial | Sim (Bearer) |
-| **Contas** | `PUT` | `/contas-bancarias/{id}` | Atualiza nome/tipo da conta | Sim (Bearer) |
-| **Contas** | `DELETE`| `/contas-bancarias/{id}` | Inativa/remove conta | Sim (Bearer) |
-| **Fluxo** | `GET` | `/fluxo-dinheiro/` | Extrato com filtros de período e conta | Sim (Bearer) |
-| **Fluxo** | `POST` | `/fluxo-dinheiro/` | Lançamento (receita, despesa, transf.) | Sim (Bearer) |
-| **Fluxo** | `DELETE`| `/fluxo-dinheiro/{id}` | Remove movimentação (reverte transações)| Sim (Bearer) |
-| **Cálculos** | `POST` | `/calculos-financeiros/` | Consolida balanço por período | Sim (Bearer) |
-| **Cálculos** | `GET` | `/calculos-financeiros/` | Histórico de cálculos consolidados | Sim (Bearer) |
-| **Metas** | `GET` | `/metas-financeiras/` | Consulta metas ativas e concluídas | Sim (Bearer) |
-| **Metas** | `POST` | `/metas-financeiras/` | Cria nova meta de economia | Sim (Bearer) |
+| **Sistema** | `GET` | `/` | Status online da API | Pública |
+| **Sistema** | `GET` | `/health` | Healthcheck operacional e ambiente ativo | Pública |
+| **Usuários** | `POST` | `/usuarios/` | Cadastro de usuário com validação de CPF e senha forte | Pública |
+| **Usuários** | `POST` | `/login` | Autenticação OAuth2 (`username` = e-mail, `password` = senha) | Pública |
+| **Usuários** | `GET` | `/usuarios/me` | Retorna perfil do usuário autenticado | Bearer JWT |
+| **Contas** | `GET` | `/contas-bancarias/` | Lista contas bancárias e saldos consolidados | Bearer JWT |
+| **Contas** | `POST` | `/contas-bancarias/` | Cria conta bancária com lançamento opcional de saldo inicial | Bearer JWT |
+| **Contas** | `PUT` | `/contas-bancarias/{id}` | Atualiza dados cadastrais da conta | Bearer JWT |
+| **Contas** | `DELETE`| `/contas-bancarias/{id}` | Remove conta bancária sem vínculos pendentes | Bearer JWT |
+| **Fluxo** | `GET` | `/fluxo-dinheiro/` | Lista movimentações com filtros de conta, categoria e datas | Bearer JWT |
+| **Fluxo** | `POST` | `/fluxo-dinheiro/` | Registra entrada, saída, ajuste ou transferência entre contas | Bearer JWT |
+| **Fluxo** | `PUT` | `/fluxo-dinheiro/{id}` | Atualiza movimentação financeira | Bearer JWT |
+| **Fluxo** | `DELETE`| `/fluxo-dinheiro/{id}` | Exclui movimentação (ou par atômico de transferência) | Bearer JWT |
+| **Cálculos** | `POST` | `/calculos-financeiros/` | Gera e persiste balanço consolidado por período | Bearer JWT |
+| **Cálculos** | `GET` | `/calculos-financeiros/` | Histórico de balanços calculados | Bearer JWT |
+| **Metas** | `GET` | `/metas-financeiras/` | Lista metas financeiras do usuário | Bearer JWT |
+| **Metas** | `POST` | `/metas-financeiras/` | Cria nova meta de economia | Bearer JWT |
+| **Metas** | `PUT` | `/metas-financeiras/{id}` | Atualiza progresso da meta e conclui automaticamente ao atingir alvo | Bearer JWT |
+| **Metas** | `DELETE`| `/metas-financeiras/{id}` | Exclui meta financeira | Bearer JWT |
 
 ---
 
 ## 🔒 Segurança e Proteção de Dados
 
-- **Proteção do CPF e Telefone:** Em conformidade com as melhores práticas de privacidade (LGPD), o CPF e o telefone são cifrados com **Fernet** em repouso. O CPF nunca é retornado em texto puro pelas APIs.
-- **Prevenção de Duplicidade:** Um hash **HMAC-SHA256** com salt derivado gera um índice cego determinístico (`cpf_indice`), permitindo checar unicidade sem descriptografar a base.
-- **Proteção contra Brute Force:** Bloqueio progressivo temporário com código HTTP 429 para IPs com múltiplas tentativas inválidas em uma janela de 15 minutos.
-- **Controle de CORS Estrito:** Origens autorizadas explicitamente configuráveis por ambiente, prevenindo requisições indesejadas de domínios externos.
-- **Validação de Entrada:** Validação de formato e dígitos verificadores de CPF, bloqueio de dígitos Unicode arbitrários e tipagem estrita com Pydantic v2.
+- **Cifragem Simétrica Fernet:** CPF e telefone nunca são gravados em texto claro; são cifrados com AES-128-CBC + HMAC-SHA256 antes do `INSERT`.
+- **Blind Index (`cpf_indice`):** Permite validar se um CPF já está cadastrado através de um hash HMAC determinístico com chave derivada, sem descriptografar registros existentes.
+- **Hashing Argon2id / Bcrypt (`pwdlib`):** Senhas passam por validação de complexidade (mínimo 8 caracteres, maiúscula, minúscula, número e símbolo) e comparação em tempo constante.
+- **Proteção Anti-Enumeração e Rate Limit:** Respostas de login com tempo simulado quando o e-mail não existe e bloqueio `HTTP 429` após 5 falhas em 15 minutos.
+- **Isolamento Estrito por Token:** Todas as consultas SQL filtram obrigatoriamente pelo `usuario_id` extraído do token JWT assinado.
 
 ---
 
 ## 🧪 Testes Automatizados
 
-O projeto conta com uma suíte abrangente de testes automatizados com SQLite em memória, garantindo isolamento total da base de desenvolvimento.
-
-Execute os testes com:
+Execute toda a suíte de testes (65 testes rápidos em banco SQLite em memória isolado):
 
 ```powershell
 python -m pytest -q
 ```
 
-Para visualização detalhada com saída completa:
-
-```powershell
-python -m pytest -v
+Saída esperada:
+```text
+65 passed, 5 deselected in ~15s
 ```
 
-> 💡 **Nota:** Para executar os testes de concorrência específicos do MySQL (`SELECT ... FOR UPDATE`), consulte [backend/tests/README.md](backend/tests/README.md).
+Para detalhes completos da cobertura de testes e testes de concorrência MySQL, consulte [`backend/tests/README.md`](backend/tests/README.md).
 
 ---
 
 ## 📚 Documentações Complementares
 
-Para um mergulho detalhado em cada área da aplicação, consulte os guias especializados:
-
-- 🏛️ [**Guia de Arquitetura e Estrutura**](ESTRUTURA.md)
+- 🏛️ [**Arquitetura e Estrutura Detalhada**](ESTRUTURA.md)
 - ⚙️ [**Documentação do Backend**](backend/readme.md)
-- 🧭 [**Manual de Rotas e Endpoints da API**](backend/rotasdeapi/readme.md)
-- 🔐 [**Arquitetura de Segurança e Criptografia**](backend/seguranca/readme.md)
-- 🧪 [**Guia Completo da Suíte de Testes**](backend/tests/README.md)
-- 🗄️ [**Modelagem do Banco de Dados**](banco%20de%20dados/readme.md)
-- 🔄 [**Manual de Migrações Alembic**](banco%20de%20dados/migrations/README.md)
-- 📜 [**Changelog de Revisões do Esquema**](banco%20de%20dados/migrations/versions/README.md)
-- 🖥️ [**Manual do Frontend e Telas**](frontend/README.md)
+- 🧭 [**Catálogo Completo de Rotas da API**](backend/rotasdeapi/readme.md)
+- 🔐 [**Segurança, Criptografia e LGPD**](backend/seguranca/readme.md)
+- 🧪 [**Guia da Suíte de Testes Automatizados**](backend/tests/README.md)
+- 🗄️ [**Modelagem e Dicionário do Banco de Dados**](banco%20de%20dados/readme.md)
+- 🔄 [**Guia de Migrações Alembic**](banco%20de%20dados/migrations/README.md)
+- 📜 [**Histórico de Revisões do Esquema**](banco%20de%20dados/migrations/versions/README.md)
+- 🖥️ [**Documentação do Frontend e Deploy Vercel**](frontend/README.md)
+- 🛠️ [**Scripts Utilitários e Manutenção**](scripts/README.md)
 
 ---
 
 <div align="center">
-Desenvolvido com foco em segurança, integridade financeira e excelência arquitetural.
+Desenvolvido com foco em segurança, precisão contábil e arquitetura em nuvem.
 </div>

@@ -1,55 +1,54 @@
 # 🔄 Migrações de Banco de Dados — Alembic
 
-Esta pasta contém a infraestrutura e os scripts do **Alembic**, responsável pelo versionamento estruturado e pela evolução contínua do esquema do banco de dados do **Sistema de Fluxo de Caixa**.
+Esta pasta contém a infraestrutura oficial de migrações do **Alembic**, responsável por versionar e evoluir o esquema do banco de dados do **Sistema de Fluxo de Caixa** tanto localmente quanto no deploy automatizado em nuvem (Render + TiDB Cloud).
 
 ---
 
-## 🎯 Por Que Usar Migrações?
-
-O Alembic garante que o esquema do banco de dados possa ser reproduzido de maneira determinística, rastreável e auditável em qualquer ambiente (desenvolvimento, homologação, testes e produção), prevenindo divergências e alterações manuais sem histórico.
-
----
-
-## 📁 Estrutura de Arquivos
+## 📁 Estrutura
 
 ```text
 migrations/
-├── env.py                  # Script de configuração do ambiente Alembic
-├── script.py.mako          # Template utilizado na geração de novas revisões
-├── versions/               # Pasta com as revisões versionadas em ordem cronológica
-└── README.md               # Esta documentação
+├── env.py                  # Configuração do contexto Alembic (injeta backend/ no sys.path)
+├── script.py.mako          # Template padrão para geração de novas revisões
+├── versions/               # 8 revisões sequenciais do esquema
+│   └── README.md           # Árvore de dependências e detalhamento de cada revisão
+└── README.md               # Este guia operacional
 ```
 
 ---
 
-## 🚀 Comandos Mais Utilizados
+## 🚀 Comandos Operacionais
 
 Execute todos os comandos a partir da **raiz do repositório**:
 
-### 1. Aplicar Todas as Migrações Pendentes
+### 1. Aplicar Todas as Migrações (`upgrade head`)
 ```powershell
 python -m alembic -c "banco de dados/alembic.ini" upgrade head
 ```
 
-### 2. Verificar a Versão Atual do Banco
+### 2. Consultar a Revisão Atual do Banco
 ```powershell
 python -m alembic -c "banco de dados/alembic.ini" current
 ```
 
-### 3. Exibir o Histórico de Migrações
+### 3. Visualizar o Histórico Completo
 ```powershell
 python -m alembic -c "banco de dados/alembic.ini" history --verbose
 ```
 
-### 4. Criar uma Nova Revisão
+### 4. Gerar uma Nova Revisão
 ```powershell
-python -m alembic -c "banco de dados/alembic.ini" revision -m "nome_da_migracao"
+python -m alembic -c "banco de dados/alembic.ini" revision -m "descricao_da_mudanca"
 ```
 
 ---
 
-## 🛡️ Cuidados e Diretrizes de Segurança
+## ☁️ Execução Automática no Render (CI/CD)
 
-- **Chave de Criptografia Obrigatória:** A revisão `proteger_cpf` exige a presença da variável de ambiente `CPF_ENCRYPTION_KEY` para migrar CPFs legados para formato criptografado.
-- **Prevenção de Perda de Dados:** A migração de proteção de CPF proíbe downgrade automático para evitar regravação acidental de dados pessoais em texto puro.
-- **Backup Obrigatório:** Antes de rodar `upgrade head` em bancos com dados existentes, efetue sempre um backup completo da base de dados.
+No ambiente de produção do **Render**, o **Start Command** executa automaticamente `upgrade head` antes de iniciar o servidor Uvicorn:
+
+```bash
+python -m alembic -c "banco de dados/alembic.ini" upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+O arquivo [`env.py`](env.py) importa `DATABASE_URL` e `engine` diretamente de [`backend/database.py`](../../backend/database.py), herdando a normalização automática da URL e o contexto TLS/SSL nativo para conectar ao **TiDB Cloud Serverless**.

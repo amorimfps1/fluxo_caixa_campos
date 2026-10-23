@@ -11,9 +11,10 @@ Nenhuma credencial está fixa no código.
 
 O que será apagado, em ordem:
 1. Metas financeiras do usuário (`metas_financeiras`)
-2. Movimentações financeiras vinculadas às contas do usuário (`fluxo_dinheiro`)
-3. Contas bancárias do usuário (`contas_bancarias`)
-4. O próprio usuário (`usuarios`)
+2. Cálculos financeiros consolidados das contas do usuário (`calculos_financeiros`)
+3. Movimentações financeiras vinculadas às contas do usuário (`fluxo_dinheiro`)
+4. Contas bancárias do usuário (`contas_bancarias`)
+5. O próprio usuário (`usuarios`)
 
 As chaves estrangeiras usam `ON DELETE CASCADE` nas migrações Alembic
 (`fk_conta_usuario`, `fk_fluxo_conta`, `fk_meta_usuario`), mas a exclusão
@@ -21,7 +22,7 @@ As chaves estrangeiras usam `ON DELETE CASCADE` nas migrações Alembic
 antes de confirmar.
 
 A tabela `tentativas_login` não é apagada pelo script: sua chave é
-`chave_cliente` (hash SHA-256 do IP do cliente), não o id do usuário, e
+`chave_tentativa` (hash SHA-256 do IP/conta), não o id do usuário, e
 não há chave estrangeira para `usuarios.id`.
 """
 
@@ -30,11 +31,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+BACKEND_DIR = ROOT / "backend"
+for caminho in (ROOT, BACKEND_DIR):
+    if str(caminho) not in sys.path:
+        sys.path.insert(0, str(caminho))
 
 from configuracao import carregar_configuracao
-from database import SessionLocal, engine
+from database import DATABASE_URL, SessionLocal
 from models import Usuario
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
@@ -47,6 +50,10 @@ def contar_registros(session, usuario_id):
     tabelas = {
         "metas_financeiras": (
             "SELECT COUNT(*) FROM metas_financeiras WHERE usuario_id = :uid"
+        ),
+        "calculos_financeiros": (
+            "SELECT COUNT(*) FROM calculos_financeiros WHERE conta_bancaria_id IN "
+            "(SELECT id FROM contas_bancarias WHERE usuario_id = :uid)"
         ),
         "fluxo_dinheiro": (
             "SELECT COUNT(*) FROM fluxo_dinheiro WHERE conta_bancaria_id IN "
@@ -79,6 +86,7 @@ def exibir_resumo(session, usuario):
     print()
     print("Registros que serão apagados:")
     print(f"  - Metas financeiras:      {contagens['metas_financeiras']}")
+    print(f"  - Cálculos financeiros:   {contagens['calculos_financeiros']}")
     print(f"  - Movimentações:          {contagens['fluxo_dinheiro']}")
     print(f"  - Contas bancárias:       {contagens['contas_bancarias']}")
     print(f"  - Usuário:                {contagens['usuarios']}")
@@ -95,7 +103,15 @@ def remover_usuario(session, usuario_id):
             text("DELETE FROM metas_financeiras WHERE usuario_id = :uid"),
             {"uid": usuario_id},
         )
-        # 2. Movimentações financeiras (portável: subquery em vez de JOIN)
+        # 2. Cálculos financeiros vinculados às contas do usuário
+        session.execute(
+            text(
+                "DELETE FROM calculos_financeiros WHERE conta_bancaria_id IN "
+                "(SELECT id FROM contas_bancarias WHERE usuario_id = :uid)"
+            ),
+            {"uid": usuario_id},
+        )
+        # 3. Movimentações financeiras (portável: subquery em vez de JOIN)
         session.execute(
             text(
                 "DELETE FROM fluxo_dinheiro WHERE conta_bancaria_id IN "
@@ -103,12 +119,12 @@ def remover_usuario(session, usuario_id):
             ),
             {"uid": usuario_id},
         )
-        # 3. Contas bancárias
+        # 4. Contas bancárias
         session.execute(
             text("DELETE FROM contas_bancarias WHERE usuario_id = :uid"),
             {"uid": usuario_id},
         )
-        # 4. Usuário
+        # 5. Usuário
         session.execute(
             text("DELETE FROM usuarios WHERE id = :uid"),
             {"uid": usuario_id},
@@ -137,12 +153,11 @@ def main():
             print(f"Nenhum usuário encontrado com o e-mail: {email}")
             sys.exit(0)
 
-        database_url = os.getenv("DATABASE_URL", "")
-        nome_banco = make_url(database_url).database if database_url else None
+        nome_banco = make_url(DATABASE_URL).database if DATABASE_URL else None
 
         print("\n=== Banco de dados alvo ===")
         print(
-            f"DATABASE_URL: {make_url(database_url).render_as_string(hide_password=True) if database_url else '(não definida)'}"
+            f"DATABASE_URL: {make_url(DATABASE_URL).render_as_string(hide_password=True) if DATABASE_URL else '(não definida)'}"
         )
         print(f"Nome do schema/banco: {nome_banco or '<não especificado>'}")
         print()

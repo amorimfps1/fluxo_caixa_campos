@@ -1,39 +1,39 @@
 # 🖥️ Frontend — Fluxo de Caixa
 
-Interface web estática, leve e responsiva do **Sistema de Fluxo de Caixa**, desenvolvida com **HTML5, CSS3 e JavaScript Vanilla** (sem frameworks pesados).
+> 🌐 **Aplicação Online (Vercel):** [https://fluxo-caixa-coral-two.vercel.app](https://fluxo-caixa-coral-two.vercel.app)
+
+Interface web estática, rápida e responsiva do **Sistema de Fluxo de Caixa**, construída com **HTML5, CSS3, JavaScript Vanilla (ES6+)** e **Chart.js**, hospedada na **Vercel**.
 
 ---
 
-## 🎯 Arquitetura da Interface
+## 🎯 Arquitetura de Comunicação da Interface
 
 ```mermaid
 flowchart LR
-    subgraph UI ["Páginas HTML"]
+    subgraph Pages ["Páginas HTML (Vercel)"]
         L["login.html"]
         C["cadastro.html"]
         D["index.html (Dashboard)"]
     end
 
-    subgraph Scripts ["Lógica JavaScript"]
+    subgraph Controllers ["Módulos JS"]
         LJ["login.js"]
         CJ["cadastro.js"]
         DJ["dashboard.js"]
-        API["api.js (Cliente Central)"]
+        API["api.js (Cliente HTTP)"]
     end
 
-    subgraph Backend ["Backend API"]
-        FASTAPI["FastAPI (http://127.0.0.1:8000)"]
+    subgraph Targets ["Detecção Automática de Ambiente"]
+        PROD["HTTPS Produção<br/>https://fluxo-caixa-cuq1.onrender.com"]
+        DEV["HTTP Local<br/>http://127.0.0.1:8000"]
     end
 
-    L --> LJ
-    C --> CJ
-    D --> DJ
+    L --> LJ --> API
+    C --> CJ --> API
+    D --> DJ --> API
 
-    LJ --> API
-    CJ --> API
-    DJ --> API
-
-    API -->|"Fetch / JSON (Bearer JWT)"| FASTAPI
+    API -->|"window.location.protocol === 'https:'"| PROD
+    API -->|"window.location.protocol === 'http:'"| DEV
 ```
 
 ---
@@ -43,50 +43,42 @@ flowchart LR
 ```text
 frontend/
 ├── css/
-│   └── style.css            # Folha de estilos unificada, variáveis CSS e temas
+│   └── style.css            # Folha de estilos completa (layout, cards, tabelas, gráficos e modais)
 ├── js/
-│   ├── api.js               # Cliente HTTP compartilhado com fetch, sessionStorage e logs
-│   ├── cadastro.js          # Validações de confirmação de senha, CPF e submissão
-│   ├── dashboard.js         # Carregamento de contas, extrato, modais dinâmicos e métricas
-│   └── login.js             # Envio do formulário OAuth2 e armazenamento do JWT
-├── index.html               # Painel principal autenticado
-├── login.html               # Tela de autenticação com e-mail e senha
-├── cadastro.html            # Tela de criação de nova conta
-└── README.md                # Este documento
+│   ├── api.js               # Cliente Fetch centralizado, gestão de JWT e detecção de URL da API
+│   ├── cadastro.js          # Máscara de CPF/telefone, validação de senha e criação de conta
+│   ├── dashboard.js         # Estado do painel, gráficos Chart.js, filtros, modais e exportação CSV
+│   └── login.js             # Submissão OAuth2 (form-urlencoded) e redirecionamento seguro
+├── index.html               # Dashboard principal autenticado
+├── login.html               # Tela de login
+├── cadastro.html            # Tela de cadastro de usuário
+└── README.md                # Documentação do frontend
 ```
 
 ---
 
-## 🚀 Como Executar o Frontend
+## ✨ Recursos da Interface
 
-Certifique-se de que a API backend já esteja em execução em `http://127.0.0.1:8000`.
+- **Detecção Inteligente de Backend (`api.js`):**
+  - Quando acessado via **HTTPS** (na Vercel), conecta automaticamente ao backend de produção no Render (`https://fluxo-caixa-cuq1.onrender.com`).
+  - Quando acessado via **HTTP** (`127.0.0.1:5500` ou `127.0.0.1:5173`), conecta automaticamente ao backend local (`http://127.0.0.1:8000`).
+  - Permite sobrescrita opcional via `localStorage.setItem("fluxo_caixa_api_url", "...")` ou `window.__API_URL__`.
+- **Gráficos Interativos (Chart.js):**
+  - Evolução temporal de entradas, saídas e saldo líquido.
+  - Distribuição percentual de despesas por categoria.
+- **Exportação de Extrato (CSV):** Download imediato das movimentações filtradas em formato compatível com Excel/Google Sheets.
+- **Gestão de Sessão Segura:** Token JWT armazenado em `sessionStorage` (`fluxo_caixa_token`) com limpeza automática e redirecionamento em caso de expiração (`HTTP 401`).
 
-### Opção 1 — Live Server do VS Code (Recomendado)
-1. Instale a extensão **Live Server** no VS Code.
-2. Clique com o botão direito em `frontend/login.html` e selecione **"Open with Live Server"**.
-3. O navegador abrirá automaticamente em:
-   `http://127.0.0.1:5500/frontend/login.html`
+---
 
-> 💡 **Nota:** A porta `5500` já está inclusa por padrão nas origens aceitas pelo CORS do backend!
+## 🚀 Como Executar Localmente
 
-### Opção 2 — Servidor Python Local (Porta 5173)
-Em um terminal dedicado:
+### Opção 1 — VS Code Live Server (Porta 5500)
+Clique com o botão direito em [`login.html`](login.html) e selecione **"Open with Live Server"** (`http://127.0.0.1:5500/frontend/login.html`).
 
+### Opção 2 — Servidor HTTP do Python (Porta 5173)
+Na raiz do projeto:
 ```powershell
-Set-Location frontend
-..\.venv\Scripts\python.exe -m http.server 5173 --bind 127.0.0.1
+python -m http.server 5173 --bind 127.0.0.1 --directory frontend
 ```
-
-Acesse: [http://127.0.0.1:5173/login.html](http://127.0.0.1:5173/login.html).
-
----
-
-## 🔐 Gerenciamento de Sessão e Token
-
-1. **Armazenamento:** O token JWT de acesso retornado no login é mantido no `sessionStorage` do navegador sob a chave `fluxo_caixa_token`.
-2. **Injeção Automática:** Todas as requisições autenticadas feitas pelo `api.js` injetam o cabeçalho:
-   ```http
-   Authorization: Bearer <token>
-   ```
-3. **Expiração e Logout:** Caso o backend responda com **HTTP 401 (Não Autorizado)**, o `api.js` limpa automaticamente o token do `sessionStorage` e solicita um novo login ao usuário.
-4. **Log de Diagnóstico:** Todas as falhas de rede no `api.js` emitem detalhes informativos no console do navegador (`F12 -> Console`) para facilitar o diagnóstico de desenvolvimento.
+Acesse `http://127.0.0.1:5173/login.html`.
