@@ -4,9 +4,9 @@ from pydantic import (
     EmailStr,
     Field,
     computed_field,
-    field_validator
+    field_validator,
+    model_validator,
 )
-from pydantic import model_validator
 from dados_sensiveis import descriptografar_telefone
 
 from decimal import Decimal, ROUND_HALF_UP
@@ -21,7 +21,7 @@ class InputModel(BaseModel):
 
 
 # =========================================================
-# MODELOS DE ENTRADA
+# MODELOS DE ENTRADA E TIPOS COMPARTILHADOS
 # =========================================================
 
 CategoriaMovimentacaoInput = Literal[
@@ -41,6 +41,22 @@ CategoriaMovimentacaoInput = Literal[
     "transporte",
     "transferencia",
     "vendas",
+]
+
+TipoInvestimentoInput = Literal[
+    "CDB",
+    "LCI / LCA",
+    "Tesouro Direto",
+    "Fundos de Investimento",
+    "Ação",
+    "Fundos de Índice (ETFs)",
+    "Fundos Imobiliários (FIIs)",
+    "Subscrição",
+]
+
+NaturezaContaInput = Literal[
+    "fixa",
+    "variavel",
 ]
 
 
@@ -98,10 +114,6 @@ class UsuarioCreate(InputModel):
             )
         return telefone
 
-    # -----------------------------------------------------
-    # VALIDAR NOME
-    # -----------------------------------------------------
-
     @field_validator("nome_completo")
     @classmethod
     def validar_nome(cls, valor):
@@ -114,15 +126,9 @@ class UsuarioCreate(InputModel):
 
         return valor
 
-    # -----------------------------------------------------
-    # VALIDAR CPF
-    # -----------------------------------------------------
-
     @field_validator("cpf")
     @classmethod
     def validar_cpf(cls, valor: str) -> str:
-
-        # Remove pontos e hífen
         valor = (
             valor
             .replace(".", "")
@@ -168,14 +174,9 @@ class UsuarioCreate(InputModel):
 
         return valor
 
-    # -----------------------------------------------------
-    # VALIDAR SENHA
-    # -----------------------------------------------------
-
     @field_validator("senha")
     @classmethod
     def validar_senha(cls, valor):
-
         if not any(c.isupper() for c in valor):
             raise ValueError(
                 "A senha deve possuir pelo menos uma letra maiúscula."
@@ -397,15 +398,24 @@ class ContaBancariaUpdate(InputModel):
 
 
 # =========================================================
-# FLUXO DE DINHEIRO
+# FLUXO DE DINHEIRO E INVESTIMENTOS
 # =========================================================
+
+
+class InvestimentoCreate(InputModel):
+    conta_bancaria_id: int
+    tipo_investimento: TipoInvestimentoInput
+    valor: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    data_movimentacao: date = Field(default_factory=date.today)
+    observacao: Optional[str] = Field(default=None, max_length=255)
 
 
 class FluxoDinheiroCreate(InputModel):
     conta_bancaria_id: int
     conta_destino_id: Optional[int] = None
 
-    descricao: str = Field(
+    descricao: Optional[str] = Field(
+        default=None,
         min_length=1,
         max_length=200
     )
@@ -416,29 +426,74 @@ class FluxoDinheiroCreate(InputModel):
         "entrada",
         "saida",
         "transferencia",
+        "transferencia_externa",
         "ajuste",
     ]
 
-    categoria: CategoriaMovimentacaoInput
+    categoria: Optional[CategoriaMovimentacaoInput] = None
 
-    data_movimentacao: date
+    data_movimentacao: date = Field(default_factory=date.today)
 
     observacao: Optional[str] = Field(
         default=None,
         max_length=255
     )
 
+    natureza_conta: Optional[NaturezaContaInput] = None
+    tipo_investimento: Optional[TipoInvestimentoInput] = None
+
     @field_validator("categoria", mode="before")
     @classmethod
-    def normalizar_categoria(cls, valor: str) -> str:
-        if not isinstance(valor, str):
+    def normalizar_categoria(cls, valor: str | None) -> str | None:
+        if valor is None or not isinstance(valor, str):
             return valor
+        if not valor.strip():
+            return None
         return _normalizar_categoria(valor)
+
+    @field_validator("descricao", mode="before")
+    @classmethod
+    def normalizar_descricao(cls, valor: str | None) -> str | None:
+        if valor is None or not isinstance(valor, str):
+            return valor
+        texto = valor.strip()
+        return texto if texto else None
 
     @model_validator(mode="after")
     def validar_movimentacao(self):
-        if self.tipo == "transferencia":
-            if self.categoria != "transferencia":
+        sufixo_natureza = (
+            " (Conta Fixa)"
+            if self.natureza_conta == "fixa"
+            else " (Conta Variável)"
+            if self.natureza_conta == "variavel"
+            else ""
+        )
+
+        if self.tipo_investimento:
+            if self.categoria is None:
+                self.categoria = "investimento"
+            if self.descricao is None:
+                self.descricao = f"Investimento - {self.tipo_investimento}"
+
+        if self.tipo == "transferencia_externa":
+            if self.conta_destino_id is not None:
+                raise ValueError(
+                    "Transferência para fora não utiliza conta_destino_id."
+                )
+            if self.categoria == "transferencia":
+                raise ValueError(
+                    "A categoria transferencia é reservada para transferências entre contas."
+                )
+            if self.categoria is None:
+                self.categoria = (
+                    "contas" if self.natureza_conta == "fixa" else "outros"
+                )
+            if self.descricao is None:
+                self.descricao = f"Transferência para fora{sufixo_natureza}"
+        elif self.tipo == "transferencia":
+            if self.categoria is None:
+                self.categoria = "transferencia"
+            elif self.categoria != "transferencia":
                 raise ValueError(
                     "Transferências devem usar a categoria transferencia."
                 )
@@ -450,6 +505,8 @@ class FluxoDinheiroCreate(InputModel):
                 raise ValueError(
                     "A conta de origem e destino devem ser diferentes."
                 )
+            if self.descricao is None:
+                self.descricao = f"Transferência entre contas{sufixo_natureza}"
         elif self.conta_destino_id is not None:
             raise ValueError(
                 "conta_destino_id só pode ser usada em transferências."
@@ -460,15 +517,34 @@ class FluxoDinheiroCreate(InputModel):
             )
 
         if self.tipo == "ajuste":
-            if self.categoria != "ajuste":
+            if self.categoria is None:
+                self.categoria = "ajuste"
+            elif self.categoria != "ajuste":
                 raise ValueError("Ajustes devem usar a categoria ajuste.")
             if self.valor == 0:
                 raise ValueError("O valor do ajuste não pode ser zero.")
+            if self.descricao is None:
+                self.descricao = "Ajuste de conciliação"
         elif self.valor <= 0:
             raise ValueError("O valor da movimentação deve ser maior que zero.")
 
         if self.categoria == "ajuste" and self.tipo != "ajuste":
             raise ValueError("A categoria ajuste é reservada para ajustes.")
+
+        if self.categoria is None:
+            if self.natureza_conta == "fixa":
+                self.categoria = "contas"
+            else:
+                self.categoria = "outros"
+
+        if self.descricao is None:
+            rotulo_base = (
+                "Entrada financeira"
+                if self.tipo == "entrada"
+                else "Saída financeira"
+            )
+            self.descricao = f"{rotulo_base}{sufixo_natureza}"
+
         return self
 
 
@@ -480,6 +556,8 @@ class FluxoDinheiroUpdate(InputModel):
     categoria: CategoriaMovimentacaoInput
     data_movimentacao: date
     observacao: Optional[str] = Field(default=None, max_length=255)
+    natureza_conta: Optional[NaturezaContaInput] = None
+    tipo_investimento: Optional[TipoInvestimentoInput] = None
 
     @field_validator("categoria", mode="before")
     @classmethod
@@ -523,6 +601,8 @@ class FluxoDinheiroResponse(BaseModel):
     transferencia_id: Optional[str]
     transferencia_direcao: Optional[Literal["origem", "destino"]]
     conta_destino_id: Optional[int]
+    natureza_conta: Optional[Literal["fixa", "variavel"]] = None
+    tipo_investimento: Optional[str] = None
 
     model_config = ConfigDict(
         from_attributes=True
@@ -535,14 +615,6 @@ class FluxoDinheiroResponse(BaseModel):
 
 
 class CalculoFinanceiroCreate(InputModel):
-    """
-    Dados informados pelo usuário para solicitar
-    um cálculo financeiro.
-
-    Os valores financeiros NÃO são informados aqui.
-    Eles são calculados automaticamente pelo sistema.
-    """
-
     conta_bancaria_id: int
 
     tipo_calculo: Literal[
@@ -598,10 +670,6 @@ class CalculoFinanceiroCreate(InputModel):
 
 
 class CalculoFinanceiroResponse(BaseModel):
-    """
-    Resultado calculado automaticamente pelo sistema.
-    """
-
     id: int
     conta_bancaria_id: int
 
@@ -614,10 +682,6 @@ class CalculoFinanceiroResponse(BaseModel):
 
     data_inicio: date
     data_fim: date
-
-    # -----------------------------------------------------
-    # VALORES CALCULADOS PELO SISTEMA
-    # -----------------------------------------------------
 
     valor_original: Decimal
     total_entradas: Decimal
@@ -641,7 +705,6 @@ class CalculoFinanceiroResponse(BaseModel):
 
 
 class MetaFinanceiraCreate(InputModel):
-
     nome: str = Field(
         min_length=1,
         max_length=150
@@ -670,10 +733,6 @@ class MetaFinanceiraCreate(InputModel):
         max_length=255
     )
 
-    # -----------------------------------------------------
-    # VALIDAR DATA LIMITE
-    # -----------------------------------------------------
-
     @field_validator("data_limite")
     @classmethod
     def validar_data_limite(
@@ -681,7 +740,6 @@ class MetaFinanceiraCreate(InputModel):
         data_limite,
         info
     ):
-
         data_inicio = info.data.get(
             "data_inicio"
         )
@@ -735,12 +793,7 @@ class MetaFinanceiraResponse(BaseModel):
     )
 
 
-
 class ResumoPeriodoResponse(BaseModel):
-    """
-    Resumo financeiro consolidado para qualquer intervalo customizado de datas.
-    """
-
     conta_bancaria_id: Optional[int] = None
     data_inicio: date
     data_fim: date

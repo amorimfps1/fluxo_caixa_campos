@@ -231,6 +231,27 @@ function configurarNavegacao() {
         definirTexto("#view-title", info.title);
         definirTexto("#view-subtitle", info.subtitle);
 
+        // Tarefa 1 e Tarefa 2: Visibilidade e ação contextual do botão principal no topo
+        const botaoTopo = document.querySelector("#new-movement");
+        if (botaoTopo) {
+            if (viewName === "investimentos") {
+                botaoTopo.hidden = false;
+                botaoTopo.textContent = "+ Novo investimento";
+                botaoTopo.dataset.action = "investment";
+            } else if (
+                viewName === "dashboard" ||
+                viewName === "movimentacoes" ||
+                viewName === "relatorios"
+            ) {
+                botaoTopo.hidden = false;
+                botaoTopo.textContent = "+ Nova movimentação";
+                botaoTopo.dataset.action = "movement";
+            } else {
+                // Oculto em Contas Bancárias (#view-contas), Categorias e Configurações
+                botaoTopo.hidden = true;
+            }
+        }
+
         // Redimensiona gráficos ativos quando a aba se torna visível
         Object.values(graficosAtivos).forEach((grafico) => {
             if (grafico && typeof grafico.resize === "function") {
@@ -337,16 +358,43 @@ function inicializarDatasPadraoRelatorio() {
 function configurarDialogos() {
     const formularioConta = document.querySelector("#account-form");
     const formularioMovimentacao = document.querySelector("#movement-form");
+    const formularioInvestimento = document.querySelector("#investment-form");
     const formularioMeta = document.querySelector("#goal-form");
     const seletorTipoMovimento = document.querySelector("#movement-type");
+    const botaoTopo = document.querySelector("#new-movement");
 
     document.querySelectorAll(".btn-abrir-nova-conta, #new-account").forEach((botao) => {
         botao.addEventListener("click", () => abrirDialogoConta());
     });
-    document.querySelectorAll(".btn-abrir-nova-movimentacao, #new-movement").forEach((botao) => {
+    document.querySelectorAll(".btn-abrir-nova-movimentacao").forEach((botao) => {
         botao.addEventListener("click", abrirDialogoMovimentacao);
     });
+    botaoTopo?.addEventListener("click", () => {
+        if (botaoTopo.dataset.action === "investment") {
+            abrirDialogoInvestimento();
+        } else {
+            abrirDialogoMovimentacao();
+        }
+    });
+    document.querySelectorAll(".btn-abrir-novo-investimento, #new-investment-btn").forEach((botao) => {
+        botao.addEventListener("click", abrirDialogoInvestimento);
+    });
     document.querySelector("#new-goal")?.addEventListener("click", () => abrirDialogoMeta());
+
+    // Abas de classificação: Conta Fixa vs Conta Variável
+    const botoesNatureza = document.querySelectorAll(".nature-tab");
+    const inputNatureza = document.querySelector("#movement-nature");
+    botoesNatureza.forEach((aba) => {
+        aba.addEventListener("click", () => {
+            const valor = aba.getAttribute("data-nature-value") || "fixa";
+            if (inputNatureza) inputNatureza.value = valor;
+            botoesNatureza.forEach((outra) => {
+                const ativa = outra === aba;
+                outra.classList.toggle("active", ativa);
+                outra.setAttribute("aria-checked", String(ativa));
+            });
+        });
+    });
 
     document.querySelectorAll("[data-close-dialog]").forEach((botao) => {
         botao.addEventListener("click", () => {
@@ -359,6 +407,7 @@ function configurarDialogos() {
 
     formularioConta?.addEventListener("submit", salvarConta);
     formularioMovimentacao?.addEventListener("submit", salvarMovimentacao);
+    formularioInvestimento?.addEventListener("submit", salvarInvestimento);
     formularioMeta?.addEventListener("submit", salvarMeta);
 
     document.querySelector("#account-dialog")?.addEventListener("close", () => {
@@ -366,6 +415,9 @@ function configurarDialogos() {
     });
     document.querySelector("#movement-dialog")?.addEventListener("close", () => {
         limparMensagem("#movement-message");
+    });
+    document.querySelector("#investment-dialog")?.addEventListener("close", () => {
+        limparMensagem("#investment-message");
     });
     document.querySelector("#goal-dialog")?.addEventListener("close", () => {
         limparMensagem("#goal-message");
@@ -375,7 +427,6 @@ function configurarDialogos() {
 function atualizarCamposTipoMovimentacao() {
     const tipo = document.querySelector("#movement-type")?.value || "entrada";
     const campoDestino = document.querySelector("#movement-destination-field");
-    const seletorCategoria = document.querySelector("#movement-category");
     const inputValor = document.querySelector("#movement-amount");
 
     if (campoDestino) {
@@ -383,24 +434,7 @@ function atualizarCamposTipoMovimentacao() {
     }
 
     if (inputValor) {
-        if (tipo === "ajuste") {
-            inputValor.removeAttribute("min");
-        } else {
-            inputValor.setAttribute("min", "0.01");
-        }
-    }
-
-    if (seletorCategoria) {
-        if (tipo === "transferencia") {
-            seletorCategoria.value = "transferencia";
-        } else if (tipo === "ajuste") {
-            seletorCategoria.value = "ajuste";
-        } else if (
-            seletorCategoria.value === "transferencia" ||
-            seletorCategoria.value === "ajuste"
-        ) {
-            seletorCategoria.value = tipo === "entrada" ? "salario" : "alimentacao";
-        }
+        inputValor.setAttribute("min", "0.01");
     }
 }
 
@@ -499,6 +533,48 @@ function abrirDialogoMovimentacao() {
     if (dialogo instanceof HTMLDialogElement) dialogo.showModal();
 }
 
+function abrirDialogoInvestimento() {
+    if (contasCarregadas.length === 0) {
+        abrirDialogoConta();
+        definirMensagem(
+            "#account-message",
+            "Cadastre uma conta bancária ativa antes de registrar um investimento.",
+            "info"
+        );
+        return;
+    }
+
+    const seletorConta = document.querySelector("#investment-account");
+    const ajudaConta = document.querySelector("#investment-account-help");
+
+    if (seletorConta) {
+        seletorConta.replaceChildren();
+        contasCarregadas.forEach((conta) => {
+            const opcao = document.createElement("option");
+            opcao.value = String(conta.id);
+            opcao.textContent = `${conta.nome_banco} (${conta.tipo_conta}) — ${formatarMoeda(conta.valor_conta_atual)}`;
+            seletorConta.append(opcao);
+        });
+    }
+
+    const atualizarAjudaInvestimento = () => {
+        if (!seletorConta) return;
+        const idSelecionado = Number(seletorConta.value);
+        const conta = contasCarregadas.find((c) => c.id === idSelecionado);
+        if (ajudaConta && conta) {
+            ajudaConta.textContent = `Saldo disponível para débito: ${formatarMoeda(conta.valor_conta_atual)} (${conta.tipo_conta})`;
+        }
+    };
+
+    if (seletorConta) {
+        seletorConta.onchange = atualizarAjudaInvestimento;
+        atualizarAjudaInvestimento();
+    }
+
+    const dialogo = document.querySelector("#investment-dialog");
+    if (dialogo instanceof HTMLDialogElement) dialogo.showModal();
+}
+
 function abrirDialogoMeta(metaParaEditar = null) {
     const dialogo = document.querySelector("#goal-dialog");
     const form = document.querySelector("#goal-form");
@@ -594,24 +670,19 @@ async function salvarMovimentacao(event) {
     const formulario = event.currentTarget;
     const botao = formulario.querySelector('[type="submit"]');
     const dados = new FormData(formulario);
-    const tipo = dados.get("tipo").toString();
+    const tipo = (dados.get("tipo") || "entrada").toString();
+    const naturezaConta = (dados.get("natureza_conta") || "fixa").toString();
+    const observacao = (dados.get("observacao") || "").toString().trim();
 
     definirMensagem("#movement-message", "Salvando movimentação...", "info");
     botao.disabled = true;
 
     const payload = {
         conta_bancaria_id: Number(dados.get("conta_bancaria_id")),
-        descricao: dados.get("descricao").toString().trim(),
         valor: dados.get("valor"),
         tipo,
-        categoria:
-            tipo === "transferencia"
-                ? "transferencia"
-                : tipo === "ajuste"
-                ? "ajuste"
-                : dados.get("categoria"),
-        data_movimentacao: dados.get("data_movimentacao"),
-        observacao: dados.get("observacao").toString().trim() || null
+        natureza_conta: naturezaConta,
+        observacao: observacao || null
     };
 
     if (tipo === "transferencia") {
@@ -621,6 +692,13 @@ async function salvarMovimentacao(event) {
     try {
         await api.post("/fluxo-dinheiro/", payload);
         formulario.reset();
+        const inputNatureza = document.querySelector("#movement-nature");
+        if (inputNatureza) inputNatureza.value = "fixa";
+        document.querySelectorAll(".nature-tab").forEach((aba) => {
+            const fixa = aba.getAttribute("data-nature-value") === "fixa";
+            aba.classList.toggle("active", fixa);
+            aba.setAttribute("aria-checked", String(fixa));
+        });
         document.querySelector("#movement-dialog").close();
         mostrarToast("Movimentação registrada com sucesso!");
         await carregarDashboard();
@@ -629,6 +707,38 @@ async function salvarMovimentacao(event) {
         mostrarToast(error.message, "error");
     } finally {
         botao.disabled = false;
+    }
+}
+
+async function salvarInvestimento(event) {
+    event.preventDefault();
+    const formulario = event.currentTarget;
+    const botao = formulario.querySelector('[type="submit"]');
+    const dados = new FormData(formulario);
+    const tipoInvestimento = (dados.get("tipo_investimento") || "CDB").toString();
+    const observacao = (dados.get("observacao") || "").toString().trim();
+
+    definirMensagem("#investment-message", "Registrando investimento e debitando da conta...", "info");
+    if (botao) botao.disabled = true;
+
+    const payload = {
+        conta_bancaria_id: Number(dados.get("conta_bancaria_id")),
+        tipo_investimento: tipoInvestimento,
+        valor: dados.get("valor"),
+        observacao: observacao || null
+    };
+
+    try {
+        await api.post("/fluxo-dinheiro/investimentos", payload);
+        formulario.reset();
+        document.querySelector("#investment-dialog")?.close();
+        mostrarToast(`Investimento em ${tipoInvestimento} registrado com sucesso!`);
+        await carregarDashboard();
+    } catch (error) {
+        definirMensagem("#investment-message", error.message, "error");
+        mostrarToast(error.message, "error");
+    } finally {
+        if (botao) botao.disabled = false;
     }
 }
 
@@ -1056,9 +1166,13 @@ function atualizarContas(contas) {
         });
     }
 
-    const totalInvestimentos = contas
+    const totalContasInvestimento = contas
         .filter((c) => c.tipo_conta === "investimento")
         .reduce((acc, c) => acc + Number(c.valor_conta_atual), 0);
+    const totalAportesAtivos = todasMovimentacoesCache
+        .filter((m) => m.categoria === "investimento" && m.tipo === "saida")
+        .reduce((acc, m) => acc + Math.abs(Number(m.valor || 0)), 0);
+    const totalInvestimentos = totalContasInvestimento + totalAportesAtivos;
     const totalPoupanca = contas
         .filter((c) => c.tipo_conta === "poupanca")
         .reduce((acc, c) => acc + Number(c.valor_conta_atual), 0);

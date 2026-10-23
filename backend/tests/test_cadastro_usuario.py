@@ -383,3 +383,145 @@ def test_saudacao_dinamica_dashboard_frontend() -> None:
     assert "appearance: none;" in css_style
     assert "border-radius: 10px;" in css_style
     assert "select option" in css_style
+    assert 'id="investment-dialog"' in html_index
+    for ativo in (
+        "CDB",
+        "LCI / LCA",
+        "Tesouro Direto",
+        "Fundos de Investimento",
+        "Ação",
+        "Fundos de Índice (ETFs)",
+        "Fundos Imobiliários (FIIs)",
+        "Subscrição",
+    ):
+        assert ativo in html_index
+    assert "Conta Fixa" in html_index
+    assert "Conta Variável" in html_index
+    assert "Transferência para fora" in html_index
+
+
+def test_criar_investimento_debita_conta_e_reflete_em_relatorios(
+    client: TestClient,
+) -> None:
+    from datetime import date
+    from decimal import Decimal
+
+    dados = _dados_cadastro()
+    assert client.post("/usuarios/", json=dados).status_code == 201
+    token = client.post(
+        "/login",
+        data={"username": dados["email"], "password": dados["senha"]},
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r_conta = client.post(
+        "/contas-bancarias/",
+        headers=headers,
+        json={
+            "nome_banco": "Banco Investidor",
+            "tipo_conta": "corrente",
+            "valor_conta_atual": "5000.00",
+            "ativa": True,
+        },
+    )
+    assert r_conta.status_code == 201
+    conta_id = r_conta.json()["id"]
+
+    ativos_aportes = [
+        ("CDB", "1000.00"),
+        ("LCI / LCA", "500.00"),
+        ("Tesouro Direto", "300.00"),
+        ("Fundos Imobiliários (FIIs)", "200.00"),
+    ]
+    for ativo, valor in ativos_aportes:
+        r_inv = client.post(
+            "/fluxo-dinheiro/investimentos",
+            headers=headers,
+            json={
+                "conta_bancaria_id": conta_id,
+                "tipo_investimento": ativo,
+                "valor": valor,
+                "observacao": f"Aporte em {ativo}",
+            },
+        )
+        assert r_inv.status_code == 201, r_inv.text
+        corpo_inv = r_inv.json()
+        assert corpo_inv["tipo"] == "saida"
+        assert corpo_inv["categoria"] == "investimento"
+        assert corpo_inv["tipo_investimento"] == ativo
+
+    # Saldo deve ter sido debitado em R$ 2.000,00 (5000 - 2000 = 3000)
+    r_saldo = client.get(f"/contas-bancarias/{conta_id}", headers=headers)
+    assert Decimal(r_saldo.json()["valor_conta_atual"]) == Decimal("3000.00")
+
+    # Resumo de relatórios deve refletir total_investimentos = 2000.00
+    hoje = date.today().isoformat()
+    r_resumo = client.get(
+        f"/calculos-financeiros/resumo?conta_bancaria_id={conta_id}&data_inicio={hoje}&data_fim={hoje}",
+        headers=headers,
+    )
+    assert r_resumo.status_code == 200, r_resumo.text
+    resumo = r_resumo.json()
+    assert Decimal(resumo["total_investimentos"]) == Decimal("2000.00")
+    assert Decimal(resumo["saldo_final"]) == Decimal("3000.00")
+
+
+def test_movimentacao_simplificada_conta_fixa_variavel_e_transferencia_externa(
+    client: TestClient,
+) -> None:
+    from decimal import Decimal
+
+    dados = _dados_cadastro()
+    assert client.post("/usuarios/", json=dados).status_code == 201
+    token = client.post(
+        "/login",
+        data={"username": dados["email"], "password": dados["senha"]},
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    conta_1 = client.post(
+        "/contas-bancarias/",
+        headers=headers,
+        json={
+            "nome_banco": "Conta Principal",
+            "tipo_conta": "corrente",
+            "valor_conta_atual": "1000.00",
+            "ativa": True,
+        },
+    ).json()
+
+    # 1. Entrada simplificada (Conta Fixa) sem precisar enviar descricao/categoria/data
+    r_entrada = client.post(
+        "/fluxo-dinheiro/",
+        headers=headers,
+        json={
+            "conta_bancaria_id": conta_1["id"],
+            "tipo": "entrada",
+            "valor": "500.00",
+            "natureza_conta": "fixa",
+            "observacao": "Recebimento mensal",
+        },
+    )
+    assert r_entrada.status_code == 201, r_entrada.text
+    assert r_entrada.json()["natureza_conta"] == "fixa"
+
+    # 2. Transferência para fora (Conta Variável)
+    r_externa = client.post(
+        "/fluxo-dinheiro/",
+        headers=headers,
+        json={
+            "conta_bancaria_id": conta_1["id"],
+            "tipo": "transferencia_externa",
+            "valor": "150.00",
+            "natureza_conta": "variavel",
+            "observacao": "PIX para terceiro",
+        },
+    )
+    assert r_externa.status_code == 201, r_externa.text
+    assert r_externa.json()["tipo"] == "saida"
+    assert r_externa.json()["natureza_conta"] == "variavel"
+    assert "Transferência para fora" in r_externa.json()["descricao"]
+
+    # Saldo esperado: 1000 + 500 - 150 = 1350.00
+    r_saldo = client.get(f"/contas-bancarias/{conta_1['id']}", headers=headers)
+    assert Decimal(r_saldo.json()["valor_conta_atual"]) == Decimal("1350.00")

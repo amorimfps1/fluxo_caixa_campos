@@ -11,10 +11,10 @@
 
     <title>Fluxo de Caixa | Dashboard</title>
 
-    <link rel="stylesheet" href="css/style.css?v=7">
+    <link rel="stylesheet" href="css/style.css?v=8">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
     <script src="js/api.js" defer></script>
-    <script src="js/dashboard.js?v=7" defer></script>
+    <script src="js/dashboard.js?v=8" defer></script>
 </head>
 
 <body>
@@ -524,9 +524,18 @@
                         <div class="panel-header">
                             <div>
                                 <h3>Evolução dos investimentos</h3>
-                                <p>Composição patrimonial e aportes realizados</p>
+                                <p>Composição patrimonial e aportes realizados por tipo de ativo</p>
                             </div>
-                            <span class="period-label">Investimentos</span>
+                            <div class="panel-header-actions">
+                                <span class="period-label">Investimentos</span>
+                                <button
+                                    type="button"
+                                    class="button-primary btn-abrir-novo-investimento"
+                                    id="new-investment-btn"
+                                >
+                                    + Novo investimento
+                                </button>
+                            </div>
                         </div>
 
                         <div class="chart-canvas-wrapper chart-canvas-tall" id="investments-chart-container" hidden>
@@ -582,6 +591,12 @@
                                 id="export-report-csv"
                             >
                                 ⬇ Exportar CSV do período
+                            </button>
+                            <button
+                                type="button"
+                                class="button-primary btn-abrir-nova-movimentacao"
+                            >
+                                + Nova movimentação
                             </button>
                         </div>
                     </div>
@@ -1017,13 +1032,13 @@
             </form>
         </dialog>
 
-        <!-- Modal: Nova Movimentação -->
+        <!-- Modal: Nova Movimentação (Simplificado + Conta Fixa / Variável) -->
         <dialog class="form-dialog" id="movement-dialog" aria-labelledby="movement-dialog-title">
             <form id="movement-form" class="dialog-form">
                 <div class="dialog-header">
                     <div>
                         <h2 id="movement-dialog-title">Nova movimentação</h2>
-                        <p>Registre uma receita, despesa, transferência ou ajuste em uma conta bancária.</p>
+                        <p>Registre rapidamente entradas, saídas ou transferências classificadas como fixas ou variáveis.</p>
                     </div>
                     <button
                         type="button"
@@ -1035,13 +1050,39 @@
                     </button>
                 </div>
 
+                <!-- Abas de classificação: Conta Fixa vs Conta Variável -->
+                <div class="form-field">
+                    <label id="movement-nature-label">Classificação da conta</label>
+                    <input type="hidden" id="movement-nature" name="natureza_conta" value="fixa">
+                    <div class="nature-tabs" role="radiogroup" aria-labelledby="movement-nature-label">
+                        <button
+                            type="button"
+                            class="nature-tab active"
+                            data-nature-value="fixa"
+                            role="radio"
+                            aria-checked="true"
+                        >
+                            📌 Conta Fixa
+                        </button>
+                        <button
+                            type="button"
+                            class="nature-tab"
+                            data-nature-value="variavel"
+                            role="radio"
+                            aria-checked="false"
+                        >
+                            📊 Conta Variável
+                        </button>
+                    </div>
+                </div>
+
                 <div class="form-field">
                     <label for="movement-type">Tipo</label>
                     <select id="movement-type" name="tipo" required>
-                        <option value="entrada">Receita (Entrada)</option>
-                        <option value="saida">Despesa (Saída)</option>
+                        <option value="entrada">Entrada</option>
+                        <option value="saida">Saída</option>
                         <option value="transferencia">Transferência entre contas</option>
-                        <option value="ajuste">Ajuste de conciliação</option>
+                        <option value="transferencia_externa">Transferência para fora</option>
                     </select>
                 </div>
 
@@ -1052,24 +1093,12 @@
                 </div>
 
                 <div class="form-field" id="movement-destination-field" hidden>
-                    <label for="movement-destination-account">Conta de destino</label>
+                    <label for="movement-destination-account">Conta destinada</label>
                     <select id="movement-destination-account" name="conta_destino_id"></select>
                 </div>
 
                 <div class="form-field">
-                    <label for="movement-description">Descrição</label>
-                    <input
-                        id="movement-description"
-                        name="descricao"
-                        type="text"
-                        minlength="1"
-                        maxlength="200"
-                        required
-                    >
-                </div>
-
-                <div class="form-field">
-                    <label for="movement-amount">Valor</label>
+                    <label for="movement-amount">Valor (R$)</label>
                     <input
                         id="movement-amount"
                         name="valor"
@@ -1078,35 +1107,9 @@
                         max="9999999999.99"
                         step="0.01"
                         inputmode="decimal"
+                        placeholder="0,00"
                         required
                     >
-                </div>
-
-                <div class="form-field" id="movement-category-field">
-                    <label for="movement-category">Categoria</label>
-                    <select id="movement-category" name="categoria" required>
-                        <option value="alimentacao">Alimentação</option>
-                        <option value="compras">Compras</option>
-                        <option value="contas">Contas</option>
-                        <option value="educacao">Educação</option>
-                        <option value="freelance">Freelance</option>
-                        <option value="impostos">Impostos</option>
-                        <option value="investimento">Investimento</option>
-                        <option value="lazer">Lazer</option>
-                        <option value="moradia">Moradia</option>
-                        <option value="outros">Outros</option>
-                        <option value="salario">Salário</option>
-                        <option value="saude">Saúde</option>
-                        <option value="transporte">Transporte</option>
-                        <option value="vendas">Vendas</option>
-                        <option value="transferencia">Transferência</option>
-                        <option value="ajuste">Ajuste</option>
-                    </select>
-                </div>
-
-                <div class="form-field">
-                    <label for="movement-date">Data</label>
-                    <input id="movement-date" name="data_movimentacao" type="date" required>
                 </div>
 
                 <div class="form-field">
@@ -1116,6 +1119,7 @@
                         name="observacao"
                         maxlength="255"
                         rows="3"
+                        placeholder="Adicione detalhes sobre esta movimentação..."
                     ></textarea>
                 </div>
 
@@ -1131,6 +1135,87 @@
                     </button>
                     <button type="submit" class="button-primary">
                         Salvar movimentação
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Modal: Novo Investimento -->
+        <dialog class="form-dialog" id="investment-dialog" aria-labelledby="investment-dialog-title">
+            <form id="investment-form" class="dialog-form">
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="investment-dialog-title">Novo investimento</h2>
+                        <p>Selecione o tipo de ativo. O valor será debitado automaticamente da conta bancária escolhida e consolidado nos relatórios.</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="dialog-close"
+                        data-close-dialog="investment-dialog"
+                        aria-label="Fechar"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div class="form-field">
+                    <label for="investment-asset-type">Tipo de ativo</label>
+                    <select id="investment-asset-type" name="tipo_investimento" required>
+                        <option value="CDB">CDB</option>
+                        <option value="LCI / LCA">LCI / LCA</option>
+                        <option value="Tesouro Direto">Tesouro Direto</option>
+                        <option value="Fundos de Investimento">Fundos de Investimento</option>
+                        <option value="Ação">Ação</option>
+                        <option value="Fundos de Índice (ETFs)">Fundos de Índice (ETFs)</option>
+                        <option value="Fundos Imobiliários (FIIs)">Fundos Imobiliários (FIIs)</option>
+                        <option value="Subscrição">Subscrição</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="investment-account">Conta bancária para débito</label>
+                    <select id="investment-account" name="conta_bancaria_id" required></select>
+                    <span class="field-help" id="investment-account-help"></span>
+                </div>
+
+                <div class="form-field">
+                    <label for="investment-amount">Valor do aporte (R$)</label>
+                    <input
+                        id="investment-amount"
+                        name="valor"
+                        type="number"
+                        min="0.01"
+                        max="9999999999.99"
+                        step="0.01"
+                        inputmode="decimal"
+                        placeholder="0,00"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="investment-note">Observação <span class="field-optional">(opcional)</span></label>
+                    <textarea
+                        id="investment-note"
+                        name="observacao"
+                        maxlength="255"
+                        rows="3"
+                        placeholder="Ex: CDB 110% CDI liquidez diária..."
+                    ></textarea>
+                </div>
+
+                <p class="form-message" id="investment-message" role="status" aria-live="polite"></p>
+
+                <div class="dialog-actions">
+                    <button
+                        type="button"
+                        class="button-secondary"
+                        data-close-dialog="investment-dialog"
+                    >
+                        Cancelar
+                    </button>
+                    <button type="submit" class="button-primary" id="investment-submit-btn">
+                        Registrar investimento
                     </button>
                 </div>
             </form>

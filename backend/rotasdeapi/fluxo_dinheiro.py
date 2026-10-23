@@ -18,6 +18,7 @@ from esquema import (
     FluxoDinheiroCreate,
     FluxoDinheiroResponse,
     FluxoDinheiroUpdate,
+    InvestimentoCreate,
 )
 
 
@@ -123,6 +124,8 @@ def criar_movimentacao(
             observacao=dados.observacao,
             transferencia_id=id_transferencia,
             transferencia_direcao="origem",
+            natureza_conta=dados.natureza_conta,
+            tipo_investimento=dados.tipo_investimento,
         )
         destino = FluxoDinheiro(
             conta_bancaria_id=destino_id,
@@ -135,28 +138,63 @@ def criar_movimentacao(
             observacao=dados.observacao,
             transferencia_id=id_transferencia,
             transferencia_direcao="destino",
+            natureza_conta=dados.natureza_conta,
+            tipo_investimento=dados.tipo_investimento,
         )
         db.add_all([origem, destino])
         db.commit()
         db.refresh(origem)
         return origem
 
+    tipo_persistido = (
+        "saida" if dados.tipo == "transferencia_externa" else dados.tipo
+    )
     conta = contas[dados.conta_bancaria_id]
-    variacao = _variacao(dados.tipo, valor)
+    variacao = _variacao(tipo_persistido, valor)
     _validar_e_aplicar_saldos(contas, {conta.id: variacao})
     movimentacao = FluxoDinheiro(
         conta_bancaria_id=conta.id,
         descricao=dados.descricao,
         valor=valor,
-        tipo=dados.tipo,
+        tipo=tipo_persistido,
         categoria=dados.categoria,
         data_movimentacao=dados.data_movimentacao,
         observacao=dados.observacao,
+        natureza_conta=dados.natureza_conta,
+        tipo_investimento=dados.tipo_investimento,
     )
     db.add(movimentacao)
     db.commit()
     db.refresh(movimentacao)
     return movimentacao
+
+
+@router.post(
+    "/investimentos",
+    response_model=FluxoDinheiroResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def criar_investimento(
+    dados: InvestimentoCreate,
+    db: Session = Depends(get_db),
+    usuario_logado: Usuario = Depends(obter_usuario_logado),
+):
+    payload_movimentacao = FluxoDinheiroCreate(
+        conta_bancaria_id=dados.conta_bancaria_id,
+        descricao=f"Investimento - {dados.tipo_investimento}",
+        valor=dados.valor,
+        tipo="saida",
+        categoria="investimento",
+        data_movimentacao=dados.data_movimentacao,
+        observacao=dados.observacao,
+        natureza_conta="variavel",
+        tipo_investimento=dados.tipo_investimento,
+    )
+    return criar_movimentacao(
+        dados=payload_movimentacao,
+        db=db,
+        usuario_logado=usuario_logado,
+    )
 
 
 def _construir_consulta_movimentacoes(
@@ -375,6 +413,10 @@ def atualizar_movimentacao(
     movimentacao.categoria = dados.categoria
     movimentacao.data_movimentacao = dados.data_movimentacao
     movimentacao.observacao = dados.observacao
+    if dados.natureza_conta is not None:
+        movimentacao.natureza_conta = dados.natureza_conta
+    if dados.tipo_investimento is not None:
+        movimentacao.tipo_investimento = dados.tipo_investimento
     db.commit()
     db.refresh(movimentacao)
     return movimentacao

@@ -274,6 +274,16 @@ class FluxoDinheiro(Base):
         nullable=True
     )
 
+    natureza_conta = Column(
+        Enum("fixa", "variavel"),
+        nullable=True,
+    )
+
+    tipo_investimento = Column(
+        String(60),
+        nullable=True,
+    )
+
     conta_destino_id = Column(
         Integer,
         ForeignKey(
