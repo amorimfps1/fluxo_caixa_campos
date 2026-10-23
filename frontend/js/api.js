@@ -4,7 +4,7 @@
  */
 
 // URL padrão da API em produção no Render
-const RENDER_API_URL = "https://fluxo-caixa-api.onrender.com";
+const RENDER_API_URL = "https://fluxo-caixa-cuq1.onrender.com";
 
 function obterUrlBaseApi() {
     if (window.__API_URL__) {
