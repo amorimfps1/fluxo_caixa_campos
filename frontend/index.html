@@ -63,6 +63,11 @@
                     <span aria-hidden="true">▥</span>
                     Relatórios
                 </a>
+
+                <a href="#configuracoes" class="nav-link">
+                    <span aria-hidden="true">⚙</span>
+                    Configurações
+                </a>
             </nav>
 
             <div class="sidebar-user" id="user-profile-badge" hidden>
@@ -714,6 +719,216 @@
                 </article>
             </div>
 
+            <!-- View: Configurações -->
+            <div id="view-configuracoes" class="app-view" hidden>
+                <!-- Alternador de Tema (Claro / Escuro) -->
+                <article class="panel" style="margin-bottom: 24px;">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Aparência do sistema</h3>
+                            <p>Escolha entre o modo claro e o modo escuro. Sua preferência fica salva neste dispositivo.</p>
+                        </div>
+                        <button
+                            type="button"
+                            class="button-secondary theme-toggle-btn"
+                            id="theme-toggle-button"
+                            aria-pressed="false"
+                        >
+                            <span id="theme-toggle-icon" aria-hidden="true">🌙</span>
+                            <span id="theme-toggle-label">Ativar tema escuro</span>
+                        </button>
+                    </div>
+                    <p class="settings-hint" id="theme-status-text">
+                        Tema atual: <strong>Modo Claro</strong>
+                    </p>
+                </article>
+
+                <!-- Alteração de Dados Cadastrais e Senha -->
+                <article class="panel" style="margin-bottom: 24px;">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Dados cadastrais e segurança</h3>
+                            <p>Atualize seu nome, telefone, e-mail de acesso ou altere sua senha.</p>
+                        </div>
+                    </div>
+
+                    <form id="settings-profile-form" class="dialog-form settings-form" novalidate>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="settings-name">Nome completo</label>
+                                <input
+                                    id="settings-name"
+                                    name="nome_completo"
+                                    type="text"
+                                    minlength="3"
+                                    maxlength="150"
+                                    autocomplete="name"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-field">
+                                <label for="settings-email">E-mail de acesso</label>
+                                <input
+                                    id="settings-email"
+                                    name="email"
+                                    type="email"
+                                    maxlength="100"
+                                    autocomplete="email"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-field">
+                                <label for="settings-phone">
+                                    Telefone <span class="field-optional">(opcional)</span>
+                                </label>
+                                <input
+                                    id="settings-phone"
+                                    name="telefone"
+                                    type="tel"
+                                    inputmode="tel"
+                                    maxlength="32"
+                                    autocomplete="tel"
+                                    placeholder="+55 (11) 98765-4321"
+                                >
+                                <span class="field-help">
+                                    Armazenado com criptografia Fernet no banco de dados.
+                                </span>
+                            </div>
+                        </div>
+
+                        <hr class="settings-divider">
+
+                        <div>
+                            <h4 class="settings-section-subtitle">Alterar senha <span class="field-optional">(preencha apenas se desejar trocar a senha)</span></h4>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="settings-current-password">Senha atual</label>
+                                <div class="password-input-wrapper">
+                                    <input
+                                        id="settings-current-password"
+                                        name="senha_atual"
+                                        type="password"
+                                        autocomplete="current-password"
+                                        maxlength="100"
+                                    >
+                                    <button
+                                        type="button"
+                                        class="password-toggle-btn"
+                                        data-toggle-password="settings-current-password"
+                                        aria-label="Mostrar senha"
+                                        aria-pressed="false"
+                                        title="Mostrar ou ocultar senha"
+                                    >
+                                        <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                        <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="settings-new-password">Nova senha</label>
+                                <div class="password-input-wrapper">
+                                    <input
+                                        id="settings-new-password"
+                                        name="nova_senha"
+                                        type="password"
+                                        autocomplete="new-password"
+                                        minlength="8"
+                                        maxlength="100"
+                                    >
+                                    <button
+                                        type="button"
+                                        class="password-toggle-btn"
+                                        data-toggle-password="settings-new-password"
+                                        aria-label="Mostrar senha"
+                                        aria-pressed="false"
+                                        title="Mostrar ou ocultar senha"
+                                    >
+                                        <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                        <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <span class="field-help">
+                                    Mínimo de 8 caracteres com maiúscula, minúscula, número e símbolo.
+                                </span>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="settings-confirm-password">Confirmar nova senha</label>
+                                <div class="password-input-wrapper">
+                                    <input
+                                        id="settings-confirm-password"
+                                        name="confirmar_nova_senha"
+                                        type="password"
+                                        autocomplete="new-password"
+                                        minlength="8"
+                                        maxlength="100"
+                                    >
+                                    <button
+                                        type="button"
+                                        class="password-toggle-btn"
+                                        data-toggle-password="settings-confirm-password"
+                                        aria-label="Mostrar senha"
+                                        aria-pressed="false"
+                                        title="Mostrar ou ocultar senha"
+                                    >
+                                        <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                        <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="form-message" id="settings-profile-message" role="status" aria-live="polite"></p>
+
+                        <div class="dialog-actions">
+                            <button type="submit" class="button-primary" id="settings-save-btn">
+                                Salvar alterações
+                            </button>
+                        </div>
+                    </form>
+                </article>
+
+                <!-- Zona de Perigo: Exclusão Irreversível de Conta -->
+                <article class="panel danger-zone-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3 class="danger-zone-title">Zona de Perigo</h3>
+                            <p>A exclusão da conta é permanente e removerá todas as suas contas bancárias, movimentações, cálculos e metas.</p>
+                        </div>
+                        <button
+                            type="button"
+                            class="button-danger"
+                            id="open-delete-account-dialog"
+                        >
+                            Excluir minha conta
+                        </button>
+                    </div>
+                </article>
+            </div>
+
             <footer class="footer">
                 <p>Fluxo de Caixa · Controle financeiro pessoal</p>
                 <p>API FastAPI + Chart.js conectados em tempo real</p>
@@ -1023,6 +1238,71 @@
                     </button>
                     <button type="submit" class="button-primary">
                         Salvar meta
+                    </button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- Modal: Exclusão Irreversível de Conta (Zona de Perigo) -->
+        <dialog class="form-dialog" id="delete-account-dialog" aria-labelledby="delete-account-title">
+            <form id="delete-account-form" class="dialog-form" novalidate>
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="delete-account-title" class="danger-zone-title">Excluir conta permanentemente</h2>
+                        <p>Esta ação é irreversível. Digite sua senha atual para confirmar a exclusão definitiva de todos os seus dados.</p>
+                    </div>
+                    <button
+                        type="button"
+                        class="dialog-close"
+                        data-close-dialog="delete-account-dialog"
+                        aria-label="Fechar"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div class="form-field">
+                    <label for="delete-account-password">Confirme sua senha atual</label>
+                    <div class="password-input-wrapper">
+                        <input
+                            id="delete-account-password"
+                            name="senha_atual"
+                            type="password"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <button
+                            type="button"
+                            class="password-toggle-btn"
+                            data-toggle-password="delete-account-password"
+                            aria-label="Mostrar senha"
+                            aria-pressed="false"
+                            title="Mostrar ou ocultar senha"
+                        >
+                            <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <p class="form-message" id="delete-account-message" role="status" aria-live="polite"></p>
+
+                <div class="dialog-actions">
+                    <button
+                        type="button"
+                        class="button-secondary"
+                        data-close-dialog="delete-account-dialog"
+                    >
+                        Cancelar
+                    </button>
+                    <button type="submit" class="button-danger" id="delete-account-submit-btn">
+                        Sim, excluir minha conta
                     </button>
                 </div>
             </form>

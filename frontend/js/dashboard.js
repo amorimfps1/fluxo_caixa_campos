@@ -82,6 +82,11 @@ const titulosViews = {
         eyebrow: "CONSOLIDAÇÃO",
         title: "Relatórios financeiros",
         subtitle: "Balanços por período customizado, histórico e exportação CSV."
+    },
+    configuracoes: {
+        eyebrow: "PREFERÊNCIAS E CONTA",
+        title: "Configurações do sistema",
+        subtitle: "Personalize o tema, atualize seus dados cadastrais e gerencie a segurança da conta."
     }
 };
 
@@ -271,6 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarNavegacao();
     configurarDialogos();
     configurarFiltrosEExportacao();
+    configurarConfiguracoes();
     configurarBotaoSair();
     carregarDashboard();
 });
@@ -850,6 +856,14 @@ function atualizarPerfilUsuario(usuario) {
     definirTexto("#user-avatar", iniciais || "U");
     definirTexto("#user-name", usuario.nome_completo);
     definirTexto("#user-email", usuario.email);
+
+    const inputNome = document.querySelector("#settings-name");
+    const inputEmail = document.querySelector("#settings-email");
+    const inputTelefone = document.querySelector("#settings-phone");
+
+    if (inputNome) inputNome.value = usuario.nome_completo || "";
+    if (inputEmail) inputEmail.value = usuario.email || "";
+    if (inputTelefone) inputTelefone.value = usuario.telefone || "";
 }
 
 function popularSeletoresContas(contas) {
@@ -2034,4 +2048,220 @@ function exportarMovimentacoesCsv(listaMovimentacoes) {
     URL.revokeObjectURL(url);
 
     mostrarToast(`Arquivo CSV exportado com ${dados.length} registro(s)!`);
+}
+
+/* =========================================================
+   CONFIGURAÇÕES: TEMA, DADOS CADASTRAIS E ZONA DE PERIGO
+========================================================= */
+
+function inicializarBotoesVerSenhaDashboard(root = document) {
+    const botoes = root.querySelectorAll("[data-toggle-password]");
+    botoes.forEach((botao) => {
+        botao.addEventListener("click", () => {
+            const targetId = botao.getAttribute("data-toggle-password");
+            const input = document.getElementById(targetId);
+            if (!input) return;
+
+            const mostrar = input.type === "password";
+            input.type = mostrar ? "text" : "password";
+            botao.classList.toggle("is-visible", mostrar);
+            botao.setAttribute("aria-pressed", String(mostrar));
+            botao.setAttribute(
+                "aria-label",
+                mostrar ? "Ocultar senha" : "Mostrar senha"
+            );
+        });
+    });
+}
+
+function atualizarInterfaceTema(tema) {
+    const escuro = tema === "dark";
+    const botao = document.querySelector("#theme-toggle-button");
+    const icone = document.querySelector("#theme-toggle-icon");
+    const rotulo = document.querySelector("#theme-toggle-label");
+    const statusTexto = document.querySelector("#theme-status-text");
+
+    document.documentElement.setAttribute("data-theme", escuro ? "dark" : "light");
+    document.body.classList.toggle("dark-theme", escuro);
+
+    if (botao) {
+        botao.setAttribute("aria-pressed", String(escuro));
+    }
+    if (icone) {
+        icone.textContent = escuro ? "☀️" : "🌙";
+    }
+    if (rotulo) {
+        rotulo.textContent = escuro ? "Ativar tema claro" : "Ativar tema escuro";
+    }
+    if (statusTexto) {
+        statusTexto.textContent = "";
+        statusTexto.append("Tema atual: ");
+        const destaque = document.createElement("strong");
+        destaque.textContent = escuro ? "Modo Escuro" : "Modo Claro";
+        statusTexto.append(destaque);
+    }
+}
+
+function configurarConfiguracoes() {
+    inicializarBotoesVerSenhaDashboard();
+
+    const temaInicial = localStorage.getItem("fluxo_caixa_tema") || "light";
+    atualizarInterfaceTema(temaInicial);
+
+    const botaoTema = document.querySelector("#theme-toggle-button");
+    botaoTema?.addEventListener("click", () => {
+        const atual = localStorage.getItem("fluxo_caixa_tema") === "dark" ? "dark" : "light";
+        const proximo = atual === "dark" ? "light" : "dark";
+        localStorage.setItem("fluxo_caixa_tema", proximo);
+        atualizarInterfaceTema(proximo);
+        mostrarToast(
+            proximo === "dark" ? "Tema escuro ativado!" : "Tema claro ativado!",
+            "info"
+        );
+    });
+
+    const formPerfil = document.querySelector("#settings-profile-form");
+    formPerfil?.addEventListener("submit", salvarAlteracoesPerfil);
+
+    const btnAbrirExclusao = document.querySelector("#open-delete-account-dialog");
+    const dialogoExclusao = document.querySelector("#delete-account-dialog");
+    const formExclusao = document.querySelector("#delete-account-form");
+
+    btnAbrirExclusao?.addEventListener("click", () => {
+        formExclusao?.reset();
+        limparMensagem("#delete-account-message");
+        if (dialogoExclusao instanceof HTMLDialogElement) {
+            dialogoExclusao.showModal();
+        }
+    });
+
+    dialogoExclusao?.addEventListener("close", () => {
+        limparMensagem("#delete-account-message");
+    });
+
+    formExclusao?.addEventListener("submit", confirmarExclusaoConta);
+}
+
+async function salvarAlteracoesPerfil(event) {
+    event.preventDefault();
+    limparMensagem("#settings-profile-message");
+
+    const inputNome = document.querySelector("#settings-name");
+    const inputEmail = document.querySelector("#settings-email");
+    const inputTelefone = document.querySelector("#settings-phone");
+    const inputSenhaAtual = document.querySelector("#settings-current-password");
+    const inputNovaSenha = document.querySelector("#settings-new-password");
+    const inputConfirmarSenha = document.querySelector("#settings-confirm-password");
+    const btnSalvar = document.querySelector("#settings-save-btn");
+
+    const nomeCompleto = inputNome?.value.trim() || "";
+    const email = inputEmail?.value.trim() || "";
+    const telefone = inputTelefone?.value.trim() || "";
+    const senhaAtual = inputSenhaAtual?.value || "";
+    const novaSenha = inputNovaSenha?.value || "";
+    const confirmarSenha = inputConfirmarSenha?.value || "";
+
+    if (!nomeCompleto || !email) {
+        definirMensagem(
+            "#settings-profile-message",
+            "Nome completo e e-mail são obrigatórios.",
+            "error"
+        );
+        return;
+    }
+
+    if (novaSenha || confirmarSenha) {
+        if (!senhaAtual) {
+            definirMensagem(
+                "#settings-profile-message",
+                "Informe sua senha atual para definir uma nova senha.",
+                "error"
+            );
+            inputSenhaAtual?.focus();
+            return;
+        }
+        if (novaSenha !== confirmarSenha) {
+            definirMensagem(
+                "#settings-profile-message",
+                "A nova senha e a confirmação não conferem.",
+                "error"
+            );
+            inputConfirmarSenha?.focus();
+            return;
+        }
+    }
+
+    const payload = {
+        nome_completo: nomeCompleto,
+        email,
+        telefone: telefone || null
+    };
+
+    if (senhaAtual) {
+        payload.senha_atual = senhaAtual;
+    }
+    if (novaSenha) {
+        payload.nova_senha = novaSenha;
+    }
+
+    if (btnSalvar) btnSalvar.disabled = true;
+    definirMensagem("#settings-profile-message", "Salvando alterações...", "info");
+
+    try {
+        const atualizado = await api.put("/usuarios/me", payload);
+        usuarioAtual = atualizado;
+        atualizarPerfilUsuario(atualizado);
+
+        if (inputSenhaAtual) inputSenhaAtual.value = "";
+        if (inputNovaSenha) inputNovaSenha.value = "";
+        if (inputConfirmarSenha) inputConfirmarSenha.value = "";
+
+        definirMensagem(
+            "#settings-profile-message",
+            "Dados cadastrais atualizados com sucesso!",
+            "info"
+        );
+        mostrarToast("Configurações salvas com sucesso!");
+    } catch (error) {
+        definirMensagem("#settings-profile-message", error.message, "error");
+    } finally {
+        if (btnSalvar) btnSalvar.disabled = false;
+    }
+}
+
+async function confirmarExclusaoConta(event) {
+    event.preventDefault();
+    limparMensagem("#delete-account-message");
+
+    const inputSenha = document.querySelector("#delete-account-password");
+    const btnExcluir = document.querySelector("#delete-account-submit-btn");
+    const senhaAtual = inputSenha?.value || "";
+
+    if (!senhaAtual) {
+        definirMensagem(
+            "#delete-account-message",
+            "Digite sua senha atual para confirmar a exclusão da conta.",
+            "error"
+        );
+        inputSenha?.focus();
+        return;
+    }
+
+    if (btnExcluir) btnExcluir.disabled = true;
+    definirMensagem(
+        "#delete-account-message",
+        "Excluindo sua conta permanentemente...",
+        "info"
+    );
+
+    try {
+        await api.delete("/usuarios/me", { senha_atual: senhaAtual });
+        api.clearToken();
+        localStorage.removeItem("fluxo_caixa_tema");
+        window.location.replace("login.html");
+    } catch (error) {
+        definirMensagem("#delete-account-message", error.message, "error");
+    } finally {
+        if (btnExcluir) btnExcluir.disabled = false;
+    }
 }

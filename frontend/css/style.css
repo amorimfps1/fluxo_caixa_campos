@@ -1488,3 +1488,166 @@ tbody tr:hover {
 .password-toggle-btn.is-visible .icon-eye-closed {
     display: block;
 }
+
+/* ========================================
+   22. Página de Configurações, OTP e Tema Escuro
+======================================== */
+
+.otp-email-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.otp-email-row input {
+    flex: 1;
+}
+
+.otp-send-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.theme-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-hint {
+    margin-top: 6px;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.settings-divider {
+    margin: 20px 0 12px;
+    border: 0;
+    border-top: 1px solid var(--color-border);
+}
+
+.settings-section-subtitle {
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.danger-zone-panel {
+    border-color: #fecaca;
+    background: #fffafa;
+}
+
+.danger-zone-title {
+    color: var(--color-expense);
+}
+
+button.button-danger {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid #fca5a5;
+    border-radius: 10px;
+    background: #dc2626;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+button.button-danger:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+}
+
+button.button-small.button-danger {
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid #fecaca;
+    border-radius: 7px;
+    background: #ffffff;
+    color: var(--color-expense);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+button.button-small.button-danger:hover {
+    background: #fef2f2;
+    border-color: #fca5a5;
+}
+
+/* Tema Escuro (Dark Mode) */
+html[data-theme="dark"],
+body.dark-theme {
+    --color-primary: #22c55e;
+    --color-primary-dark: #4ade80;
+    --color-primary-light: rgba(34, 197, 94, 0.16);
+
+    --color-background: #0f172a;
+    --color-surface: #1e293b;
+
+    --color-text: #f1f5f9;
+    --color-text-secondary: #94a3b8;
+    --color-border: #334155;
+
+    --shadow-card: 0 8px 24px rgba(2, 6, 23, 0.35);
+}
+
+body.dark-theme .button-secondary,
+body.dark-theme .date-label,
+body.dark-theme .period-label,
+body.dark-theme .sidebar-user,
+body.dark-theme .filter-bar,
+body.dark-theme .chart-box,
+body.dark-theme .goal-card,
+body.dark-theme .account-item,
+body.dark-theme .chart-placeholder,
+body.dark-theme .empty-state {
+    background: #0f172a;
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+body.dark-theme .form-field input,
+body.dark-theme .form-field select,
+body.dark-theme .form-field textarea {
+    background: #0f172a;
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+body.dark-theme .form-dialog {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+body.dark-theme .dialog-close,
+body.dark-theme .button-small {
+    background: #0f172a;
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+body.dark-theme .password-toggle-btn:hover {
+    background: #334155;
+    color: var(--color-text);
+}
+
+body.dark-theme .danger-zone-panel {
+    background: rgba(220, 38, 38, 0.08);
+    border-color: rgba(248, 113, 113, 0.35);
+}
+
+body.dark-theme thead th {
+    background: #0f172a;
+    color: var(--color-text-secondary);
+}
+
+body.dark-theme tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}

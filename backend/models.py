@@ -63,6 +63,23 @@ class Usuario(Base):
         nullable=True,
     )
 
+    email_verificado = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("0"),
+    )
+
+    codigo_verificacao_hash = Column(
+        String(64),
+        nullable=True,
+    )
+
+    codigo_expira_em = Column(
+        DateTime,
+        nullable=True,
+    )
+
     senha_hash = Column(
         String(255),
         nullable=False

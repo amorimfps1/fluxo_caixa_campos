@@ -90,6 +90,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 telefone: phoneInput.value.trim() || null,
                 senha: passwordInput.value
             });
+            message.textContent =
+                "Conta criada com sucesso! Enviamos um e-mail de confirmação para o endereço cadastrado. Redirecionando para o login...";
+            message.className = "form-message info";
             window.location.assign("login.html?cadastro=sucesso");
         } catch (error) {
             message.textContent = error.message;

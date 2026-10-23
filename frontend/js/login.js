@@ -1,6 +1,6 @@
 /*
  * FLUXO DE CAIXA
- * Login, alternância de visibilidade de senha (olhinho) e redefinição segura de senha.
+ * Login, alternância de visibilidade de senha (olhinho) e recuperação de senha via OTP/CPF.
  */
 
 function inicializarBotoesVerSenha(root = document) {
@@ -48,7 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
         new URLSearchParams(window.location.search).get("cadastro") ===
             "sucesso"
     ) {
-        message.textContent = "Cadastro criado. Entre com seu e-mail e senha.";
+        message.textContent =
+            "Cadastro criado! Enviamos um e-mail de confirmação. Entre com seu e-mail e senha.";
         message.className = "form-message info";
     }
 
@@ -127,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // =========================================================
-    // MODAL: ESQUECEU A SENHA? (REDEFINIÇÃO PROTEGIDA)
+    // MODAL: ESQUECEU A SENHA? (OTP POR E-MAIL OU CPF)
     // =========================================================
     const forgotTrigger = document.querySelector("#forgot-password-trigger");
     const forgotDialog = document.querySelector("#forgot-password-dialog");
@@ -135,14 +136,22 @@ document.addEventListener("DOMContentLoaded", () => {
     const forgotClose = document.querySelector("#forgot-password-close");
     const forgotCancel = document.querySelector("#forgot-password-cancel");
     const forgotSubmit = document.querySelector("#forgot-password-submit");
+    const sendOtpButton = document.querySelector("#send-otp-button");
 
     const resetEmailInput = document.querySelector("#reset-email");
+    const resetOtpInput = document.querySelector("#reset-otp");
     const resetCpfInput = document.querySelector("#reset-cpf");
     const resetPasswordInput = document.querySelector("#reset-password");
     const resetConfirmInput = document.querySelector("#reset-password-confirm");
     const resetMessage = document.querySelector("#reset-message");
 
     aplicarMascaraCpf(resetCpfInput);
+
+    if (resetOtpInput) {
+        resetOtpInput.addEventListener("input", () => {
+            resetOtpInput.value = resetOtpInput.value.replace(/\D/g, "").slice(0, 6);
+        });
+    }
 
     function abrirModalRedefinicao() {
         if (!forgotDialog) return;
@@ -180,19 +189,60 @@ document.addEventListener("DOMContentLoaded", () => {
         forgotCancel.addEventListener("click", fecharModalRedefinicao);
     }
 
-    if (forgotForm && resetEmailInput && resetCpfInput && resetPasswordInput && resetConfirmInput && resetMessage) {
+    if (sendOtpButton && resetEmailInput && resetMessage) {
+        sendOtpButton.addEventListener("click", async () => {
+            const email = resetEmailInput.value.trim();
+            resetMessage.textContent = "";
+            resetMessage.className = "form-message";
+
+            if (!email || !resetEmailInput.checkValidity()) {
+                resetMessage.textContent = "Informe um e-mail válido para receber o código.";
+                resetMessage.classList.add("error");
+                resetEmailInput.focus();
+                return;
+            }
+
+            sendOtpButton.disabled = true;
+            resetMessage.textContent = "Enviando código de verificação para seu e-mail...";
+            resetMessage.classList.add("info");
+
+            try {
+                const resposta = await api.post("/usuarios/esqueci-senha", { email });
+                resetMessage.textContent =
+                    resposta?.mensagem ||
+                    "Código enviado! Verifique sua caixa de entrada e digite os 6 dígitos.";
+                resetMessage.className = "form-message info";
+                if (resetOtpInput) resetOtpInput.focus();
+            } catch (error) {
+                resetMessage.textContent = error.message;
+                resetMessage.className = "form-message error";
+            } finally {
+                sendOtpButton.disabled = false;
+            }
+        });
+    }
+
+    if (
+        forgotForm &&
+        resetEmailInput &&
+        resetPasswordInput &&
+        resetConfirmInput &&
+        resetMessage
+    ) {
         forgotForm.addEventListener("submit", async (event) => {
             event.preventDefault();
             resetMessage.textContent = "";
             resetMessage.className = "form-message";
 
             const email = resetEmailInput.value.trim();
-            const cpf = resetCpfInput.value.trim();
+            const codigoOtp = resetOtpInput ? resetOtpInput.value.trim() : "";
+            const cpf = resetCpfInput ? resetCpfInput.value.trim() : "";
             const novaSenha = resetPasswordInput.value;
             const confirmarSenha = resetConfirmInput.value;
 
-            if (!email || !cpf || !novaSenha || !confirmarSenha) {
-                resetMessage.textContent = "Preencha todos os campos para redefinir a senha.";
+            if (!email || (!codigoOtp && !cpf) || !novaSenha || !confirmarSenha) {
+                resetMessage.textContent =
+                    "Informe o e-mail, o código OTP (ou CPF) e a nova senha.";
                 resetMessage.classList.add("error");
                 return;
             }
@@ -205,15 +255,22 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (forgotSubmit) forgotSubmit.disabled = true;
-            resetMessage.textContent = "Validando dados e redefinindo senha...";
+            resetMessage.textContent = "Validando código e redefinindo senha...";
             resetMessage.classList.add("info");
 
             try {
-                await api.post("/usuarios/redefinir-senha", {
+                const payload = {
                     email,
-                    cpf,
                     nova_senha: novaSenha
-                });
+                };
+                if (codigoOtp) {
+                    payload.codigo_otp = codigoOtp;
+                }
+                if (cpf) {
+                    payload.cpf = cpf;
+                }
+
+                await api.post("/usuarios/redefinir-senha", payload);
 
                 fecharModalRedefinicao();
                 emailInput.value = email;

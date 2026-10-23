@@ -202,9 +202,37 @@ class UsuarioCreate(InputModel):
         return valor
 
 
+class EsqueciSenhaRequest(InputModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def normalizar_email(cls, valor: EmailStr) -> str:
+        return str(valor).strip().lower()
+
+
+class ConfirmarEmailRequest(InputModel):
+    email: EmailStr
+    codigo_otp: str = Field(min_length=6, max_length=10)
+
+    @field_validator("email")
+    @classmethod
+    def normalizar_email(cls, valor: EmailStr) -> str:
+        return str(valor).strip().lower()
+
+    @field_validator("codigo_otp")
+    @classmethod
+    def validar_codigo_otp(cls, valor: str) -> str:
+        codigo = valor.strip()
+        if not codigo.isdigit() or len(codigo) != 6:
+            raise ValueError("O código de verificação deve conter 6 dígitos numéricos.")
+        return codigo
+
+
 class RedefinirSenhaRequest(InputModel):
     email: EmailStr
-    cpf: str
+    codigo_otp: str | None = Field(default=None, min_length=6, max_length=10)
+    cpf: str | None = None
     nova_senha: str = Field(
         min_length=8,
         max_length=100
@@ -215,9 +243,21 @@ class RedefinirSenhaRequest(InputModel):
     def normalizar_email(cls, valor: EmailStr) -> str:
         return str(valor).strip().lower()
 
+    @field_validator("codigo_otp")
+    @classmethod
+    def validar_codigo_otp(cls, valor: str | None) -> str | None:
+        if valor is None or not valor.strip():
+            return None
+        codigo = valor.strip()
+        if not codigo.isdigit() or len(codigo) != 6:
+            raise ValueError("O código de verificação deve conter 6 dígitos numéricos.")
+        return codigo
+
     @field_validator("cpf")
     @classmethod
-    def validar_cpf(cls, valor: str) -> str:
+    def validar_cpf(cls, valor: str | None) -> str | None:
+        if valor is None or not valor.strip():
+            return None
         return UsuarioCreate.validar_cpf(valor)
 
     @field_validator("nova_senha")
@@ -225,12 +265,69 @@ class RedefinirSenhaRequest(InputModel):
     def validar_nova_senha(cls, valor: str) -> str:
         return UsuarioCreate.validar_senha(valor)
 
+    @model_validator(mode="after")
+    def validar_credencial_recuperacao(self):
+        if not self.codigo_otp and not self.cpf:
+            raise ValueError(
+                "Informe o código de verificação enviado por e-mail (codigo_otp) ou o CPF."
+            )
+        return self
+
+
+class UsuarioUpdateMe(InputModel):
+    nome_completo: str | None = Field(
+        default=None,
+        min_length=3,
+        max_length=150,
+    )
+    email: EmailStr | None = None
+    telefone: str | None = Field(default=None, max_length=32)
+    senha_atual: str | None = Field(default=None, min_length=1, max_length=100)
+    nova_senha: str | None = Field(default=None, min_length=8, max_length=100)
+
+    @field_validator("nome_completo")
+    @classmethod
+    def validar_nome(cls, valor: str | None) -> str | None:
+        if valor is None:
+            return None
+        return UsuarioCreate.validar_nome(valor)
+
+    @field_validator("email")
+    @classmethod
+    def normalizar_email(cls, valor: EmailStr | None) -> str | None:
+        if valor is None:
+            return None
+        return str(valor).strip().lower()
+
+    @field_validator("telefone")
+    @classmethod
+    def validar_telefone(cls, valor: str | None) -> str | None:
+        return UsuarioCreate.validar_telefone(valor)
+
+    @field_validator("nova_senha")
+    @classmethod
+    def validar_nova_senha(cls, valor: str | None) -> str | None:
+        if valor is None or not valor:
+            return None
+        return UsuarioCreate.validar_senha(valor)
+
+    @model_validator(mode="after")
+    def validar_alteracao_senha(self):
+        if self.nova_senha and not self.senha_atual:
+            raise ValueError("Informe a senha atual para definir uma nova senha.")
+        return self
+
+
+class ExcluirContaRequest(InputModel):
+    senha_atual: str = Field(min_length=1, max_length=100)
+
 
 class UsuarioResponse(BaseModel):
     id: int
     nome_completo: str
     email: EmailStr
     telefone: str | None
+    email_verificado: bool = False
     criado_em: datetime
 
     @field_validator("telefone", mode="before")

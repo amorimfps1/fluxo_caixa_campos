@@ -154,9 +154,30 @@ const api = {
         });
     },
 
-    delete(path) {
-        return this.request(path, {
+    delete(path, data) {
+        const options = {
             method: "DELETE"
-        });
+        };
+        if (data !== undefined) {
+            options.body = JSON.stringify(data);
+        }
+        return this.request(path, options);
     }
 };
+
+function aplicarTemaPreferido(tema) {
+    const temaFinal = tema === "dark" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", temaFinal);
+    if (document.body) {
+        document.body.classList.toggle("dark-theme", temaFinal === "dark");
+    }
+    localStorage.setItem("fluxo_caixa_tema", temaFinal);
+}
+
+function inicializarTemaSalvo() {
+    const temaSalvo = localStorage.getItem("fluxo_caixa_tema") || "light";
+    aplicarTemaPreferido(temaSalvo);
+}
+
+inicializarTemaSalvo();
+document.addEventListener("DOMContentLoaded", inicializarTemaSalvo);
