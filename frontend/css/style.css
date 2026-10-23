@@ -1656,3 +1656,104 @@ body.dark-theme tbody tr:hover {
     font-size: 12px;
     letter-spacing: 0.4px;
 }
+
+/* ========================================
+   23. Padronização dos Elementos <select> e Menus de Escolha
+======================================== */
+
+select,
+.form-select,
+.form-control,
+.form-field select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 40px 10px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background-color: var(--color-surface);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 13px center;
+    background-size: 16px 16px;
+    color: var(--color-text);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        background-color 0.18s ease;
+}
+
+.form-field input,
+.form-field textarea {
+    border-radius: 10px;
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        background-color 0.18s ease;
+}
+
+select:hover,
+.form-select:hover,
+.form-field select:hover,
+.form-field input:hover,
+.form-field textarea:hover {
+    border-color: #cbd5e1;
+}
+
+select:focus,
+select:focus-visible,
+.form-select:focus,
+.form-select:focus-visible,
+.form-field select:focus,
+.form-field select:focus-visible {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+select option {
+    padding: 10px 12px;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    font-size: 13px;
+}
+
+body.dark-theme select,
+body.dark-theme .form-select,
+body.dark-theme .form-field select {
+    background-color: #0f172a;
+    border-color: var(--color-border);
+    color: var(--color-text);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+body.dark-theme select:hover,
+body.dark-theme .form-select:hover,
+body.dark-theme .form-field select:hover,
+body.dark-theme .form-field input:hover,
+body.dark-theme .form-field textarea:hover {
+    border-color: #475569;
+}
+
+body.dark-theme select:focus,
+body.dark-theme select:focus-visible,
+body.dark-theme .form-select:focus,
+body.dark-theme .form-field select:focus,
+body.dark-theme .form-field select:focus-visible {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+body.dark-theme select option {
+    background-color: #1e293b;
+    color: #f1f5f9;
+}

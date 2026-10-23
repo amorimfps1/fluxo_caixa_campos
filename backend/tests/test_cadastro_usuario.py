@@ -378,3 +378,8 @@ def test_saudacao_dinamica_dashboard_frontend() -> None:
     assert "VISÃO GERAL" not in html_index
     assert "Olá, Sr(a). ${nome}" in js_dashboard
     assert 'getElementById("user-greeting")' in js_dashboard
+
+    css_style = (raiz_frontend / "css" / "style.css").read_text(encoding="utf-8")
+    assert "appearance: none;" in css_style
+    assert "border-radius: 10px;" in css_style
+    assert "select option" in css_style
