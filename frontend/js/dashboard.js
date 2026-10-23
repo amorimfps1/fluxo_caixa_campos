@@ -290,6 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
     configurarDialogos();
     configurarFiltrosEExportacao();
     configurarConfiguracoes();
+    inicializarSelectsArredondados();
     configurarBotaoSair();
     carregarDashboard();
 });
@@ -2295,4 +2296,141 @@ async function confirmarExclusaoConta(event) {
     } finally {
         if (btnExcluir) btnExcluir.disabled = false;
     }
+}
+
+/* =========================================================
+   SELECTS CUSTOMIZADOS COM MENU SUSPENSO ARREDONDADO
+========================================================= */
+
+function inicializarSelectsArredondados(root = document) {
+    const selects = root.querySelectorAll("select");
+    const wrappersAtivos = new Set();
+
+    function fecharTodosMenus(excetoWrapper = null) {
+        wrappersAtivos.forEach((wrapper) => {
+            if (wrapper !== excetoWrapper) {
+                wrapper.classList.remove("is-open");
+                const menu = wrapper.querySelector(".custom-select-menu");
+                const trigger = wrapper.querySelector(".custom-select-trigger");
+                if (menu) menu.hidden = true;
+                if (trigger) trigger.setAttribute("aria-expanded", "false");
+            }
+        });
+    }
+
+    selects.forEach((select) => {
+        if (select.dataset.customSelectReady === "true") return;
+        select.dataset.customSelectReady = "true";
+        select.classList.add("custom-select-native");
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "custom-select-wrapper";
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.append(select);
+        wrappersAtivos.add(wrapper);
+
+        const trigger = document.createElement("button");
+        trigger.type = "button";
+        trigger.className = "custom-select-trigger";
+        trigger.setAttribute("aria-haspopup", "listbox");
+        trigger.setAttribute("aria-expanded", "false");
+
+        const labelSpan = document.createElement("span");
+        labelSpan.className = "custom-select-label";
+
+        const arrowSpan = document.createElement("span");
+        arrowSpan.className = "custom-select-arrow";
+        arrowSpan.setAttribute("aria-hidden", "true");
+        arrowSpan.innerHTML =
+            '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+
+        trigger.append(labelSpan, arrowSpan);
+
+        const menu = document.createElement("ul");
+        menu.className = "custom-select-menu";
+        menu.setAttribute("role", "listbox");
+        menu.hidden = true;
+
+        wrapper.append(trigger, menu);
+
+        function sincronizarOpcoes() {
+            const opcoes = Array.from(select.options);
+            const selecionada =
+                opcoes.find((opt) => opt.value === select.value) ||
+                opcoes[select.selectedIndex] ||
+                opcoes[0];
+
+            labelSpan.textContent = selecionada ? selecionada.textContent : "Selecione...";
+            menu.replaceChildren();
+
+            opcoes.forEach((opt) => {
+                const item = document.createElement("li");
+                item.className = "custom-select-option";
+                item.setAttribute("role", "option");
+                const ativo = opt.value === select.value;
+                item.classList.toggle("is-selected", ativo);
+                item.setAttribute("aria-selected", String(ativo));
+                item.textContent = opt.textContent;
+
+                item.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    if (select.value !== opt.value) {
+                        select.value = opt.value;
+                        select.dispatchEvent(new Event("change", { bubbles: true }));
+                    }
+                    sincronizarOpcoes();
+                    fecharTodosMenus();
+                });
+
+                menu.append(item);
+            });
+        }
+
+        trigger.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const abrindo = menu.hidden;
+            fecharTodosMenus(wrapper);
+            sincronizarOpcoes();
+            menu.hidden = !abrindo;
+            wrapper.classList.toggle("is-open", abrindo);
+            trigger.setAttribute("aria-expanded", String(abrindo));
+        });
+
+        select.addEventListener("change", sincronizarOpcoes);
+        select.form?.addEventListener("reset", () => {
+            setTimeout(sincronizarOpcoes, 0);
+        });
+
+        // Intercepta atribuições diretas a select.value (ex: abrirDialogoConta / atualizarCamposTipoMovimentacao)
+        const descritorNativo = Object.getOwnPropertyDescriptor(
+            HTMLSelectElement.prototype,
+            "value"
+        );
+        if (descritorNativo && descritorNativo.get && descritorNativo.set) {
+            Object.defineProperty(select, "value", {
+                get() {
+                    return descritorNativo.get.call(this);
+                },
+                set(novoValor) {
+                    descritorNativo.set.call(this, novoValor);
+                    sincronizarOpcoes();
+                },
+                configurable: true
+            });
+        }
+
+        const observer = new MutationObserver(() => {
+            sincronizarOpcoes();
+        });
+        observer.observe(select, { childList: true, subtree: true, attributes: true });
+
+        sincronizarOpcoes();
+    });
+
+    document.addEventListener("click", () => fecharTodosMenus());
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            fecharTodosMenus();
+        }
+    });
 }
