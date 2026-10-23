@@ -35,6 +35,7 @@ const api = {
 
     clearToken() {
         sessionStorage.removeItem("fluxo_caixa_token");
+        sessionStorage.removeItem("fluxo_caixa_nome_usuario");
     },
 
     async request(path, options = {}) {

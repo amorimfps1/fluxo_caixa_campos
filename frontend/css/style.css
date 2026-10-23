@@ -1651,3 +1651,8 @@ body.dark-theme thead th {
 body.dark-theme tbody tr:hover {
     background: rgba(255, 255, 255, 0.03);
 }
+
+#user-greeting {
+    font-size: 12px;
+    letter-spacing: 0.4px;
+}

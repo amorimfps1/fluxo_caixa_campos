@@ -52,9 +52,18 @@ const CORES_GRAFICOS = [
     "#84cc16"
 ];
 
+function obterSaudacaoUsuario(usuario = usuarioAtual) {
+    const nome = (
+        usuario?.nome_completo ||
+        sessionStorage.getItem("fluxo_caixa_nome_usuario") ||
+        ""
+    ).trim();
+    return nome ? `Olá, Sr(a). ${nome}` : "Olá, bem-vindo(a)";
+}
+
 const titulosViews = {
     dashboard: {
-        eyebrow: "VISÃO GERAL",
+        eyebrow: "Olá, bem-vindo(a)",
         title: "Dashboard financeiro",
         subtitle: "Acompanhe suas finanças em um só lugar."
     },
@@ -214,7 +223,11 @@ function configurarNavegacao() {
         });
 
         const info = titulosViews[viewName] || titulosViews.dashboard;
-        definirTexto("#view-eyebrow", info.eyebrow);
+        const textoSaudacao =
+            viewName === "dashboard"
+                ? obterSaudacaoUsuario(usuarioAtual)
+                : info.eyebrow;
+        definirTexto("#user-greeting", textoSaudacao);
         definirTexto("#view-title", info.title);
         definirTexto("#view-subtitle", info.subtitle);
 
@@ -842,12 +855,30 @@ async function carregarDashboard() {
 }
 
 function atualizarPerfilUsuario(usuario) {
-    const badge = document.querySelector("#user-profile-badge");
-    if (!badge || !usuario) return;
+    if (!usuario) return;
 
-    badge.hidden = false;
-    const iniciais = (usuario.nome_completo || "U")
+    const nomeUsuario = (usuario.nome_completo || "").trim();
+    if (nomeUsuario) {
+        sessionStorage.setItem("fluxo_caixa_nome_usuario", nomeUsuario);
+    }
+
+    const saudacao = obterSaudacaoUsuario(usuario);
+    titulosViews.dashboard.eyebrow = saudacao;
+
+    const greetingElement = document.getElementById("user-greeting");
+    const hashAtual = (window.location.hash || "#dashboard")
+        .replace("#", "")
         .trim()
+        .toLowerCase();
+    if (greetingElement && (!hashAtual || hashAtual === "dashboard" || !titulosViews[hashAtual])) {
+        greetingElement.textContent = saudacao;
+    }
+
+    const badge = document.querySelector("#user-profile-badge");
+    if (badge) {
+        badge.hidden = false;
+    }
+    const iniciais = (nomeUsuario || "U")
         .split(/\s+/)
         .slice(0, 2)
         .map((parte) => parte[0]?.toUpperCase() || "")

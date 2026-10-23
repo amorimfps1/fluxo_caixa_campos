@@ -365,3 +365,16 @@ def test_atualizar_dados_cadastrais_e_zona_de_perigo_usuarios_me(
     )
     assert r_del_ok.status_code == 200, r_del_ok.text
     assert db.query(Usuario).filter_by(email=novo_email).first() is None
+
+
+def test_saudacao_dinamica_dashboard_frontend() -> None:
+    from pathlib import Path
+
+    raiz_frontend = Path(__file__).resolve().parents[2] / "frontend"
+    html_index = (raiz_frontend / "index.html").read_text(encoding="utf-8")
+    js_dashboard = (raiz_frontend / "js" / "dashboard.js").read_text(encoding="utf-8")
+
+    assert 'id="user-greeting"' in html_index
+    assert "VISÃO GERAL" not in html_index
+    assert "Olá, Sr(a). ${nome}" in js_dashboard
+    assert 'getElementById("user-greeting")' in js_dashboard
