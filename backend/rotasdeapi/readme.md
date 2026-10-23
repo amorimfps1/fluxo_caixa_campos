@@ -55,6 +55,19 @@ Autentica o usuário e emite o token JWT.
 Retorna os dados cadastrais do usuário autenticado.
 - **Autenticação:** Bearer JWT.
 
+### `POST /usuarios/redefinir-senha`
+Redefine a senha do usuário mediante validação criptográfica do e-mail e do CPF cadastrado.
+- **Autenticação:** Pública (protegida por rate limit anti-força bruta por IP e conta + comparação HMAC em tempo constante).
+- **Body (`application/json`):**
+  ```json
+  {
+    "email": "arthur@exemplo.com",
+    "cpf": "123.456.789-09",
+    "nova_senha": "NovaSenhaForte@2026"
+  }
+  ```
+- **Resposta (`200 OK`):** `{"mensagem": "Senha redefinida com sucesso."}`
+
 ---
 
 ## 🏦 2. Contas Bancárias (`conta_bancaria.py`)

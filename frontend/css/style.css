@@ -1408,3 +1408,83 @@ tbody tr:hover {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* ========================================
+   21. Botão de Ver Senha (Olhinho) & Esqueci a Senha
+======================================== */
+
+.field-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.forgot-password-link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-primary-dark);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.forgot-password-link:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.password-input-wrapper input {
+    padding-right: 44px;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.password-toggle-btn:hover {
+    background: #f1f5f9;
+    color: var(--color-text);
+}
+
+.password-toggle-btn .icon-eye {
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+}
+
+.password-toggle-btn .icon-eye-closed {
+    display: none;
+}
+
+.password-toggle-btn.is-visible .icon-eye-open {
+    display: none;
+}
+
+.password-toggle-btn.is-visible .icon-eye-closed {
+    display: block;
+}

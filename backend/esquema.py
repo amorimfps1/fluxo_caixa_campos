@@ -202,6 +202,30 @@ class UsuarioCreate(InputModel):
         return valor
 
 
+class RedefinirSenhaRequest(InputModel):
+    email: EmailStr
+    cpf: str
+    nova_senha: str = Field(
+        min_length=8,
+        max_length=100
+    )
+
+    @field_validator("email")
+    @classmethod
+    def normalizar_email(cls, valor: EmailStr) -> str:
+        return str(valor).strip().lower()
+
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf(cls, valor: str) -> str:
+        return UsuarioCreate.validar_cpf(valor)
+
+    @field_validator("nova_senha")
+    @classmethod
+    def validar_nova_senha(cls, valor: str) -> str:
+        return UsuarioCreate.validar_senha(valor)
+
+
 class UsuarioResponse(BaseModel):
     id: int
     nome_completo: str

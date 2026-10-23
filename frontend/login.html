@@ -41,14 +41,42 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="senha">Senha</label>
-                    <input
-                        id="senha"
-                        name="password"
-                        type="password"
-                        autocomplete="current-password"
-                        required
-                    >
+                    <div class="field-label-row">
+                        <label for="senha">Senha</label>
+                        <button
+                            type="button"
+                            id="forgot-password-trigger"
+                            class="forgot-password-link"
+                        >
+                            Esqueceu a senha?
+                        </button>
+                    </div>
+                    <div class="password-input-wrapper">
+                        <input
+                            id="senha"
+                            name="password"
+                            type="password"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <button
+                            type="button"
+                            class="password-toggle-btn"
+                            data-toggle-password="senha"
+                            aria-label="Mostrar senha"
+                            aria-pressed="false"
+                            title="Mostrar ou ocultar senha"
+                        >
+                            <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <p
@@ -68,5 +96,142 @@
             </p>
         </section>
     </main>
+
+    <!-- Modal seguro de redefinição de senha -->
+    <dialog class="form-dialog" id="forgot-password-dialog" aria-labelledby="forgot-password-title">
+        <form id="forgot-password-form" class="dialog-form" novalidate>
+            <div class="dialog-header">
+                <div>
+                    <h2 id="forgot-password-title">Redefinir sua senha</h2>
+                    <p>Confirme seu e-mail e CPF cadastrados para criar uma nova senha com segurança.</p>
+                </div>
+                <button
+                    type="button"
+                    class="dialog-close"
+                    id="forgot-password-close"
+                    aria-label="Fechar janela"
+                >&times;</button>
+            </div>
+
+            <div class="form-field">
+                <label for="reset-email">E-mail cadastrado</label>
+                <input
+                    id="reset-email"
+                    name="email"
+                    type="email"
+                    autocomplete="email"
+                    required
+                >
+            </div>
+
+            <div class="form-field">
+                <label for="reset-cpf">CPF cadastrado</label>
+                <input
+                    id="reset-cpf"
+                    name="cpf"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    maxlength="14"
+                    placeholder="000.000.000-00"
+                    required
+                >
+                <span class="field-help">
+                    Validação criptográfica de titularidade da conta.
+                </span>
+            </div>
+
+            <div class="form-field">
+                <label for="reset-password">Nova senha</label>
+                <div class="password-input-wrapper">
+                    <input
+                        id="reset-password"
+                        name="nova_senha"
+                        type="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        maxlength="100"
+                        required
+                    >
+                    <button
+                        type="button"
+                        class="password-toggle-btn"
+                        data-toggle-password="reset-password"
+                        aria-label="Mostrar senha"
+                        aria-pressed="false"
+                        title="Mostrar ou ocultar senha"
+                    >
+                        <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                    </button>
+                </div>
+                <span class="field-help">
+                    Mínimo de 8 caracteres com maiúscula, minúscula, número e símbolo.
+                </span>
+            </div>
+
+            <div class="form-field">
+                <label for="reset-password-confirm">Confirme a nova senha</label>
+                <div class="password-input-wrapper">
+                    <input
+                        id="reset-password-confirm"
+                        name="confirmar_nova_senha"
+                        type="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        maxlength="100"
+                        required
+                    >
+                    <button
+                        type="button"
+                        class="password-toggle-btn"
+                        data-toggle-password="reset-password-confirm"
+                        aria-label="Mostrar senha"
+                        aria-pressed="false"
+                        title="Mostrar ou ocultar senha"
+                    >
+                        <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <p
+                id="reset-message"
+                class="form-message"
+                role="status"
+                aria-live="polite"
+            ></p>
+
+            <div class="dialog-actions">
+                <button
+                    type="button"
+                    class="button-secondary"
+                    id="forgot-password-cancel"
+                >
+                    Cancelar
+                </button>
+                <button
+                    type="submit"
+                    class="button-primary"
+                    id="forgot-password-submit"
+                >
+                    Salvar nova senha
+                </button>
+            </div>
+        </form>
+    </dialog>
 </body>
 </html>

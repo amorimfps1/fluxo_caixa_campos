@@ -70,4 +70,71 @@ def test_cadastro_rejeita_telefone_invalido(
     )
 
     assert resposta.status_code == 422
+    assert resposta.status_code == 422
     assert db.query(Usuario).count() == 0
+
+
+def test_redefinir_senha_com_cpf_e_email_corretos(
+    client: TestClient,
+) -> None:
+    dados = _dados_cadastro()
+    r_criacao = client.post("/usuarios/", json=dados)
+    assert r_criacao.status_code == 201
+
+    nova_senha = "NovaSenhaForte2027@"
+    r_reset = client.post(
+        "/usuarios/redefinir-senha",
+        json={
+            "email": dados["email"],
+            "cpf": "529.982.247-25",
+            "nova_senha": nova_senha,
+        },
+    )
+    assert r_reset.status_code == 200
+    assert r_reset.json()["mensagem"] == "Senha redefinida com sucesso."
+
+    r_login_antiga = client.post(
+        "/login",
+        data={"username": dados["email"], "password": dados["senha"]},
+    )
+    assert r_login_antiga.status_code == 401
+
+    r_login_nova = client.post(
+        "/login",
+        data={"username": dados["email"], "password": nova_senha},
+    )
+    assert r_login_nova.status_code == 200
+    assert "access_token" in r_login_nova.json()
+
+
+def test_redefinir_senha_rejeita_cpf_incorreto_e_aplica_rate_limit(
+    client: TestClient,
+) -> None:
+    dados = _dados_cadastro()
+    r_criacao = client.post("/usuarios/", json=dados)
+    assert r_criacao.status_code == 201
+
+    cpf_outro_valido = "11144477735"
+    for tentativa in range(5):
+        r = client.post(
+            "/usuarios/redefinir-senha",
+            json={
+                "email": dados["email"],
+                "cpf": cpf_outro_valido,
+                "nova_senha": "NovaSenhaForte2027@",
+            },
+        )
+        if tentativa < 4:
+            assert r.status_code == 400
+        else:
+            assert r.status_code == 429
+
+    r_bloqueado = client.post(
+        "/usuarios/redefinir-senha",
+        json={
+            "email": dados["email"],
+            "cpf": dados["cpf"],
+            "nova_senha": "NovaSenhaForte2027@",
+        },
+    )
+    assert r_bloqueado.status_code == 429

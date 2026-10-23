@@ -269,6 +269,7 @@ A arquitetura de produção está configurada para deploy contínuo a partir da 
 | **Sistema** | `GET` | `/health` | Healthcheck operacional e ambiente ativo | Pública |
 | **Usuários** | `POST` | `/usuarios/` | Cadastro de usuário com validação de CPF e senha forte | Pública |
 | **Usuários** | `POST` | `/login` | Autenticação OAuth2 (`username` = e-mail, `password` = senha) | Pública |
+| **Usuários** | `POST` | `/usuarios/redefinir-senha` | Redefinição protegida de senha via confirmação de e-mail e CPF | Pública |
 | **Usuários** | `GET` | `/usuarios/me` | Retorna perfil do usuário autenticado | Bearer JWT |
 | **Contas** | `GET` | `/contas-bancarias/` | Lista contas bancárias e saldos consolidados | Bearer JWT |
 | **Contas** | `POST` | `/contas-bancarias/` | Cria conta bancária com lançamento opcional de saldo inicial | Bearer JWT |

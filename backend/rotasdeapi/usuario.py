@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi import Request
@@ -9,7 +10,7 @@ from secrets import token_urlsafe
 
 from database import get_db
 from models import TentativaLogin, Usuario
-from esquema import UsuarioCreate, UsuarioResponse
+from esquema import RedefinirSenhaRequest, UsuarioCreate, UsuarioResponse
 from seguranca.seguranca import gerar_hash_senha, verificar_senha
 from autenticacao import criar_token, obter_usuario_logado
 from dados_sensiveis import (
@@ -51,6 +52,15 @@ def _chave_conta_login(email: str) -> str:
 def _chave_cliente_cadastro(request: Request) -> str:
     endereco = request.client.host if request.client else "desconhecido"
     return _chave_controle("cadastro-ip", endereco)
+
+
+def _chave_cliente_redefinicao(request: Request) -> str:
+    endereco = request.client.host if request.client else "desconhecido"
+    return _chave_controle("redefinir-ip", endereco)
+
+
+def _chave_conta_redefinicao(email: str) -> str:
+    return _chave_controle("redefinir-email", email.strip().lower())
 
 
 def _obter_tentativa(
@@ -272,6 +282,62 @@ def login(
     return {
         "access_token": token,
         "token_type": "bearer"
+    }
+
+
+# =========================================================
+@router.post("/usuarios/redefinir-senha")
+def redefinir_senha(
+    dados: RedefinirSenhaRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    chaves_cliente = (
+        _chave_cliente_redefinicao(request),
+        _chave_conta_redefinicao(dados.email),
+    )
+    _verificar_limites(db, chaves_cliente)
+
+    usuario = (
+        db.query(Usuario)
+        .filter(Usuario.email == dados.email)
+        .first()
+    )
+
+    cpf_hash_informado = indice_cpf(dados.cpf)
+    cpf_valido = (
+        usuario is not None
+        and bool(usuario.cpf_indice)
+        and hmac.compare_digest(usuario.cpf_indice, cpf_hash_informado)
+    )
+
+    if not usuario or not cpf_valido:
+        verificar_senha(dados.nova_senha, _HASH_SENHA_INEXISTENTE)
+        bloqueado = _registrar_tentativa(db, chaves_cliente)
+        if bloqueado:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Muitas tentativas de redefinição. Tente novamente mais tarde.",
+                headers={"Retry-After": str(int(JANELA_TENTATIVAS.total_seconds()))},
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não foi possível redefinir a senha. Verifique o e-mail e o CPF informados."
+        )
+
+    usuario.senha_hash = gerar_hash_senha(dados.nova_senha)
+    db.commit()
+
+    _limpar_tentativas(
+        db,
+        (
+            *chaves_cliente,
+            _chave_conta_login(dados.email),
+        ),
+    )
+
+    return {
+        "mensagem": "Senha redefinida com sucesso."
     }
 
 
