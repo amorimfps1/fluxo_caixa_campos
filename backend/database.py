@@ -1,5 +1,6 @@
 import os
 import urllib.parse
+import ssl
 
 from configuracao import carregar_configuracao
 from sqlalchemy import create_engine
@@ -67,15 +68,10 @@ engine_kwargs = {}
 if DATABASE_URL.startswith("mysql"):
     engine_kwargs.update({"pool_pre_ping": True, "pool_recycle": 3600})
     if "tidbcloud.com" in DATABASE_URL or os.getenv("DB_SSL", "").lower() in ("true", "1"):
-        import certifi
-        ca_candidates = [
-            os.getenv("CA_PATH", ""),
-            "/etc/secrets/tidb_ca.pem",
-            "/etc/ssl/certs/ca-certificates.crt",
-            certifi.where()
-        ]
-        ca_path = next((p for p in ca_candidates if p and os.path.exists(p)), certifi.where())
-        engine_kwargs["connect_args"] = {"ssl": {"ca": ca_path}}
+        # Cria contexto SSL nativo: o PyMySQL aceita instâncias de SSLContext diretamente,
+        # evitando erros de 'NO_CERTIFICATE_OR_CRL_FOUND' ao tentar ler caminhos de arquivo em Linux.
+        ssl_ctx = ssl.create_default_context()
+        engine_kwargs["connect_args"] = {"ssl": ssl_ctx}
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 
