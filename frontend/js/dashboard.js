@@ -231,6 +231,11 @@ function configurarNavegacao() {
         definirTexto("#view-title", info.title);
         definirTexto("#view-subtitle", info.subtitle);
 
+        const metricasTopo = document.querySelector("#topbar-dashboard-metrics");
+        if (metricasTopo) {
+            metricasTopo.hidden = viewName !== "dashboard";
+        }
+
         // Tarefa 1 e Tarefa 2: Visibilidade e ação contextual do botão principal no topo
         const botaoTopo = document.querySelector("#new-movement");
         if (botaoTopo) {
@@ -393,6 +398,7 @@ function configurarDialogos() {
                 outra.classList.toggle("active", ativa);
                 outra.setAttribute("aria-checked", String(ativa));
             });
+            atualizarCamposTipoMovimentacao();
         });
     });
 
@@ -426,11 +432,33 @@ function configurarDialogos() {
 
 function atualizarCamposTipoMovimentacao() {
     const tipo = document.querySelector("#movement-type")?.value || "entrada";
+    const natureza = document.querySelector("#movement-nature")?.value || "fixa";
     const campoDestino = document.querySelector("#movement-destination-field");
+    const grupoSaida = document.querySelector("#movement-expense-classification-group");
+    const campoDiaRepeticao = document.querySelector("#movement-repeat-day-field");
+    const inputDiaRepeticao = document.querySelector("#movement-repeat-day");
     const inputValor = document.querySelector("#movement-amount");
+
+    const ehSaida = tipo === "saida";
+    const ehContaFixa = ehSaida && natureza === "fixa";
 
     if (campoDestino) {
         campoDestino.hidden = tipo !== "transferencia";
+    }
+
+    if (grupoSaida) {
+        grupoSaida.hidden = !ehSaida;
+    }
+
+    if (campoDiaRepeticao) {
+        campoDiaRepeticao.hidden = !ehContaFixa;
+    }
+
+    if (inputDiaRepeticao) {
+        inputDiaRepeticao.required = ehContaFixa;
+        if (ehContaFixa && !inputDiaRepeticao.value) {
+            inputDiaRepeticao.value = String(new Date().getDate());
+        }
     }
 
     if (inputValor) {
@@ -672,7 +700,21 @@ async function salvarMovimentacao(event) {
     const dados = new FormData(formulario);
     const tipo = (dados.get("tipo") || "entrada").toString();
     const naturezaConta = (dados.get("natureza_conta") || "fixa").toString();
+    const categoriaSaida = (dados.get("categoria") || "").toString().trim();
+    const diaRepeticaoRaw = (dados.get("dia_repeticao") || "").toString().trim();
     const observacao = (dados.get("observacao") || "").toString().trim();
+
+    if (tipo === "saida" && naturezaConta === "fixa") {
+        const diaNum = Number(diaRepeticaoRaw);
+        if (!Number.isInteger(diaNum) || diaNum < 1 || diaNum > 31) {
+            definirMensagem(
+                "#movement-message",
+                "Informe o dia do mês (de 1 a 31) para repetição automática da conta fixa.",
+                "error"
+            );
+            return;
+        }
+    }
 
     definirMensagem("#movement-message", "Salvando movimentação...", "info");
     botao.disabled = true;
@@ -681,9 +723,18 @@ async function salvarMovimentacao(event) {
         conta_bancaria_id: Number(dados.get("conta_bancaria_id")),
         valor: dados.get("valor"),
         tipo,
-        natureza_conta: naturezaConta,
         observacao: observacao || null
     };
+
+    if (tipo === "saida") {
+        payload.natureza_conta = naturezaConta;
+        if (categoriaSaida) {
+            payload.categoria = categoriaSaida;
+        }
+        if (naturezaConta === "fixa" && diaRepeticaoRaw) {
+            payload.dia_repeticao = Number(diaRepeticaoRaw);
+        }
+    }
 
     if (tipo === "transferencia") {
         payload.conta_destino_id = Number(dados.get("conta_destino_id"));
@@ -699,6 +750,7 @@ async function salvarMovimentacao(event) {
             aba.classList.toggle("active", fixa);
             aba.setAttribute("aria-checked", String(fixa));
         });
+        atualizarCamposTipoMovimentacao();
         document.querySelector("#movement-dialog").close();
         mostrarToast("Movimentação registrada com sucesso!");
         await carregarDashboard();
@@ -1043,6 +1095,23 @@ function popularSeletoresContas(contas) {
     }
 }
 
+function aplicarClasseCorIndicador(seletor, tipoOuValor) {
+    const el = document.querySelector(seletor);
+    if (!el) return;
+    el.classList.remove("value-positive", "value-negative", "value-expense");
+    if (tipoOuValor === "income") {
+        el.classList.add("value-positive");
+    } else if (tipoOuValor === "expense") {
+        el.classList.add("value-expense");
+    } else if (typeof tipoOuValor === "number") {
+        if (tipoOuValor >= 0) {
+            el.classList.add("value-positive");
+        } else {
+            el.classList.add("value-negative");
+        }
+    }
+}
+
 function atualizarResumo(contas, movimentacoes) {
     const saldo = contas.reduce(
         (total, conta) => total + Number(conta.valor_conta_atual),
@@ -1062,11 +1131,19 @@ function atualizarResumo(contas, movimentacoes) {
                 : total,
         0
     );
+    const resultadoMes = receitas - despesas;
 
     definirTexto("#total-balance", formatarMoeda(saldo));
+    definirTexto("#topbar-total-balance", formatarMoeda(saldo));
     definirTexto("#total-income", formatarMoeda(receitas));
     definirTexto("#total-expenses", formatarMoeda(despesas));
-    definirTexto("#monthly-result", formatarMoeda(receitas - despesas));
+    definirTexto("#monthly-result", formatarMoeda(resultadoMes));
+
+    aplicarClasseCorIndicador("#total-balance", saldo);
+    aplicarClasseCorIndicador("#topbar-total-balance", saldo);
+    aplicarClasseCorIndicador("#total-income", "income");
+    aplicarClasseCorIndicador("#total-expenses", "expense");
+    aplicarClasseCorIndicador("#monthly-result", resultadoMes);
 }
 
 function atualizarEstadoVazio(seletor, titulo, descricao) {
@@ -1100,6 +1177,8 @@ function atualizarContas(contas) {
             );
         }
         definirTexto("#investments-total", "R$ 0,00");
+        definirTexto("#topbar-total-invested", "R$ 0,00");
+        definirTexto("#dashboard-invested-indicator", "R$ 0,00");
         definirTexto("#savings-total", "R$ 0,00");
         return;
     }
@@ -1178,6 +1257,8 @@ function atualizarContas(contas) {
         .reduce((acc, c) => acc + Number(c.valor_conta_atual), 0);
 
     definirTexto("#investments-total", formatarMoeda(totalInvestimentos));
+    definirTexto("#topbar-total-invested", formatarMoeda(totalInvestimentos));
+    definirTexto("#dashboard-invested-indicator", formatarMoeda(totalInvestimentos));
     definirTexto("#savings-total", formatarMoeda(totalPoupanca));
 }
 
@@ -1313,6 +1394,9 @@ function obterRotuloCategoriaMovimento(movimento) {
         return `${baseCat} · ${movimento.tipo_investimento}`;
     }
     if (movimento.natureza_conta === "fixa") {
+        if (movimento.dia_repeticao) {
+            return `${baseCat} · Conta Fixa (Dia ${movimento.dia_repeticao})`;
+        }
         return `${baseCat} · Conta Fixa`;
     }
     if (movimento.natureza_conta === "variavel") {

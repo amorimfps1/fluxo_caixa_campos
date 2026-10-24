@@ -440,6 +440,7 @@ class FluxoDinheiroCreate(InputModel):
     )
 
     natureza_conta: Optional[NaturezaContaInput] = None
+    dia_repeticao: Optional[int] = Field(default=None, ge=1, le=31)
     tipo_investimento: Optional[TipoInvestimentoInput] = None
 
     @field_validator("categoria", mode="before")
@@ -461,8 +462,13 @@ class FluxoDinheiroCreate(InputModel):
 
     @model_validator(mode="after")
     def validar_movimentacao(self):
+        if self.natureza_conta != "fixa":
+            self.dia_repeticao = None
+
         sufixo_natureza = (
-            " (Conta Fixa)"
+            f" (Conta Fixa · Dia {self.dia_repeticao})"
+            if self.natureza_conta == "fixa" and self.dia_repeticao
+            else " (Conta Fixa)"
             if self.natureza_conta == "fixa"
             else " (Conta Variável)"
             if self.natureza_conta == "variavel"
@@ -557,6 +563,7 @@ class FluxoDinheiroUpdate(InputModel):
     data_movimentacao: date
     observacao: Optional[str] = Field(default=None, max_length=255)
     natureza_conta: Optional[NaturezaContaInput] = None
+    dia_repeticao: Optional[int] = Field(default=None, ge=1, le=31)
     tipo_investimento: Optional[TipoInvestimentoInput] = None
 
     @field_validator("categoria", mode="before")
@@ -568,6 +575,8 @@ class FluxoDinheiroUpdate(InputModel):
 
     @model_validator(mode="after")
     def validar_movimentacao(self):
+        if self.natureza_conta != "fixa":
+            self.dia_repeticao = None
         if self.tipo == "ajuste":
             if self.categoria != "ajuste":
                 raise ValueError("Ajustes devem usar a categoria ajuste.")
@@ -602,6 +611,7 @@ class FluxoDinheiroResponse(BaseModel):
     transferencia_direcao: Optional[Literal["origem", "destino"]]
     conta_destino_id: Optional[int]
     natureza_conta: Optional[Literal["fixa", "variavel"]] = None
+    dia_repeticao: Optional[int] = None
     tipo_investimento: Optional[str] = None
 
     model_config = ConfigDict(

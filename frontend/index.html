@@ -11,10 +11,10 @@
 
     <title>Fluxo de Caixa | Dashboard</title>
 
-    <link rel="stylesheet" href="css/style.css?v=9">
+    <link rel="stylesheet" href="css/style.css?v=10">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
-    <script src="js/api.js?v=9" defer></script>
-    <script src="js/dashboard.js?v=9" defer></script>
+    <script src="js/api.js?v=10" defer></script>
+    <script src="js/dashboard.js?v=10" defer></script>
 </head>
 
 <body>
@@ -91,7 +91,17 @@
             <header class="topbar">
                 <div>
                     <p class="eyebrow" id="user-greeting">Olá, bem-vindo(a)</p>
-                    <h2 id="view-title">Dashboard financeiro</h2>
+                    <div class="topbar-title-row">
+                        <h2 id="view-title">Dashboard financeiro</h2>
+                        <div class="topbar-metrics" id="topbar-dashboard-metrics">
+                            <span class="topbar-metric-pill" title="Saldo total nas contas cadastradas">
+                                Saldo: <strong id="topbar-total-balance">—</strong>
+                            </span>
+                            <span class="topbar-metric-pill topbar-metric-invested" title="Total aplicado em investimentos">
+                                Investido: <strong id="topbar-total-invested">—</strong>
+                            </span>
+                        </div>
+                    </div>
                     <p class="subtitle" id="view-subtitle">
                         Acompanhe suas finanças em um só lugar.
                     </p>
@@ -142,7 +152,7 @@
                     </p>
 
                     <p class="card-description">
-                        Saldo das contas cadastradas
+                        Saldo das contas · <span class="invested-inline-badge">Investido: <strong id="dashboard-invested-indicator">R$ 0,00</strong></span>
                     </p>
                 </article>
 
@@ -1087,32 +1097,6 @@
                     </button>
                 </div>
 
-                <!-- Abas de classificação: Conta Fixa vs Conta Variável -->
-                <div class="form-field">
-                    <label id="movement-nature-label">Classificação da conta</label>
-                    <input type="hidden" id="movement-nature" name="natureza_conta" value="fixa">
-                    <div class="nature-tabs" role="radiogroup" aria-labelledby="movement-nature-label">
-                        <button
-                            type="button"
-                            class="nature-tab active"
-                            data-nature-value="fixa"
-                            role="radio"
-                            aria-checked="true"
-                        >
-                            📌 Conta Fixa
-                        </button>
-                        <button
-                            type="button"
-                            class="nature-tab"
-                            data-nature-value="variavel"
-                            role="radio"
-                            aria-checked="false"
-                        >
-                            📊 Conta Variável
-                        </button>
-                    </div>
-                </div>
-
                 <div class="form-field">
                     <label for="movement-type">Tipo</label>
                     <select id="movement-type" name="tipo" required>
@@ -1121,6 +1105,69 @@
                         <option value="transferencia">Transferência entre contas</option>
                         <option value="transferencia_externa">Transferência para fora</option>
                     </select>
+                </div>
+
+                <!-- Exibido estritamente quando Tipo = "Saída" -->
+                <div id="movement-expense-classification-group" hidden>
+                    <div class="form-field">
+                        <label id="movement-nature-label">Classificação da conta</label>
+                        <input type="hidden" id="movement-nature" name="natureza_conta" value="fixa">
+                        <div class="nature-tabs" role="radiogroup" aria-labelledby="movement-nature-label">
+                            <button
+                                type="button"
+                                class="nature-tab active"
+                                data-nature-value="fixa"
+                                role="radio"
+                                aria-checked="true"
+                            >
+                                📌 Conta Fixa
+                            </button>
+                            <button
+                                type="button"
+                                class="nature-tab"
+                                data-nature-value="variavel"
+                                role="radio"
+                                aria-checked="false"
+                            >
+                                📊 Conta Variável
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-field" id="movement-repeat-day-field">
+                        <label for="movement-repeat-day">Dia do mês para repetição automática</label>
+                        <input
+                            id="movement-repeat-day"
+                            name="dia_repeticao"
+                            type="number"
+                            min="1"
+                            max="31"
+                            step="1"
+                            inputmode="numeric"
+                            placeholder="Ex.: 10 (de 1 a 31)"
+                        >
+                        <span class="field-help">Dia do mês (1 a 31) em que esta conta fixa se repetirá automaticamente.</span>
+                    </div>
+
+                    <div class="form-field" id="movement-category-field">
+                        <label for="movement-category">Categoria</label>
+                        <select id="movement-category" name="categoria">
+                            <option value="contas">Contas (água, luz, internet)</option>
+                            <option value="moradia">Moradia (aluguel, condomínio)</option>
+                            <option value="alimentacao">Alimentação</option>
+                            <option value="transporte">Transporte</option>
+                            <option value="saude">Saúde</option>
+                            <option value="educacao">Educação</option>
+                            <option value="lazer">Lazer</option>
+                            <option value="compras">Compras</option>
+                            <option value="impostos">Impostos</option>
+                            <option value="investimento">Investimento</option>
+                            <option value="salario">Salário</option>
+                            <option value="freelance">Freelance</option>
+                            <option value="vendas">Vendas</option>
+                            <option value="outros">Outros</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-field">

@@ -119,6 +119,10 @@ def garantir_esquema_banco() -> None:
                     conn.execute(
                         text("ALTER TABLE fluxo_dinheiro ADD COLUMN natureza_conta ENUM('fixa', 'variavel') NULL")
                     )
+                if "dia_repeticao" not in cols_f:
+                    conn.execute(
+                        text("ALTER TABLE fluxo_dinheiro ADD COLUMN dia_repeticao INT NULL")
+                    )
                 if "tipo_investimento" not in cols_f:
                     conn.execute(
                         text("ALTER TABLE fluxo_dinheiro ADD COLUMN tipo_investimento VARCHAR(60) NULL")

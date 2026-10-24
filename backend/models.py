@@ -279,6 +279,11 @@ class FluxoDinheiro(Base):
         nullable=True,
     )
 
+    dia_repeticao = Column(
+        Integer,
+        nullable=True,
+    )
+
     tipo_investimento = Column(
         String(60),
         nullable=True,

@@ -125,6 +125,7 @@ def criar_movimentacao(
             transferencia_id=id_transferencia,
             transferencia_direcao="origem",
             natureza_conta=dados.natureza_conta,
+            dia_repeticao=dados.dia_repeticao,
             tipo_investimento=dados.tipo_investimento,
         )
         destino = FluxoDinheiro(
@@ -139,6 +140,7 @@ def criar_movimentacao(
             transferencia_id=id_transferencia,
             transferencia_direcao="destino",
             natureza_conta=dados.natureza_conta,
+            dia_repeticao=dados.dia_repeticao,
             tipo_investimento=dados.tipo_investimento,
         )
         db.add_all([origem, destino])
@@ -161,6 +163,7 @@ def criar_movimentacao(
         data_movimentacao=dados.data_movimentacao,
         observacao=dados.observacao,
         natureza_conta=dados.natureza_conta,
+        dia_repeticao=dados.dia_repeticao,
         tipo_investimento=dados.tipo_investimento,
     )
     db.add(movimentacao)
@@ -415,6 +418,7 @@ def atualizar_movimentacao(
     movimentacao.observacao = dados.observacao
     if dados.natureza_conta is not None:
         movimentacao.natureza_conta = dados.natureza_conta
+        movimentacao.dia_repeticao = dados.dia_repeticao
     if dados.tipo_investimento is not None:
         movimentacao.tipo_investimento = dados.tipo_investimento
     db.commit()

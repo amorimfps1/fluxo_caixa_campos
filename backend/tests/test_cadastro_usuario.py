@@ -505,7 +505,28 @@ def test_movimentacao_simplificada_conta_fixa_variavel_e_transferencia_externa(
     assert r_entrada.status_code == 201, r_entrada.text
     assert r_entrada.json()["natureza_conta"] == "fixa"
 
-    # 2. Transferência para fora (Conta Variável)
+    # 2. Saída como Conta Fixa com dia de repetição automática (dia 10) e categoria
+    r_saida_fixa = client.post(
+        "/fluxo-dinheiro/",
+        headers=headers,
+        json={
+            "conta_bancaria_id": conta_1["id"],
+            "tipo": "saida",
+            "valor": "200.00",
+            "natureza_conta": "fixa",
+            "dia_repeticao": 10,
+            "categoria": "moradia",
+            "observacao": "Condomínio mensal",
+        },
+    )
+    assert r_saida_fixa.status_code == 201, r_saida_fixa.text
+    corpo_fixa = r_saida_fixa.json()
+    assert corpo_fixa["natureza_conta"] == "fixa"
+    assert corpo_fixa["dia_repeticao"] == 10
+    assert corpo_fixa["categoria"] == "moradia"
+    assert "Dia 10" in corpo_fixa["descricao"]
+
+    # 3. Transferência para fora (Conta Variável)
     r_externa = client.post(
         "/fluxo-dinheiro/",
         headers=headers,
@@ -520,8 +541,9 @@ def test_movimentacao_simplificada_conta_fixa_variavel_e_transferencia_externa(
     assert r_externa.status_code == 201, r_externa.text
     assert r_externa.json()["tipo"] == "saida"
     assert r_externa.json()["natureza_conta"] == "variavel"
+    assert r_externa.json()["dia_repeticao"] is None
     assert "Transferência para fora" in r_externa.json()["descricao"]
 
-    # Saldo esperado: 1000 + 500 - 150 = 1350.00
+    # Saldo esperado: 1000 + 500 - 200 - 150 = 1150.00
     r_saldo = client.get(f"/contas-bancarias/{conta_1['id']}", headers=headers)
-    assert Decimal(r_saldo.json()["valor_conta_atual"]) == Decimal("1350.00")
+    assert Decimal(r_saldo.json()["valor_conta_atual"]) == Decimal("1150.00")
