@@ -323,12 +323,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function configurarBotaoSair() {
     const botao = document.querySelector("#logout");
+    const dialogoSair = document.querySelector("#logout-confirm-dialog");
+    const botaoConfirmarSair = document.querySelector("#logout-confirm-btn");
     if (!botao) return;
 
-    botao.addEventListener("click", () => {
+    const executarLogout = () => {
         api.clearToken();
+        sessionStorage.removeItem("fluxo_caixa_nome_usuario");
         window.location.replace("login.html");
+    };
+
+    botao.addEventListener("click", () => {
+        if (dialogoSair instanceof HTMLDialogElement) {
+            dialogoSair.showModal();
+        } else if (window.confirm("Deseja realmente sair da sua conta?")) {
+            executarLogout();
+        }
     });
+
+    botaoConfirmarSair?.addEventListener("click", executarLogout);
 }
 
 function atualizarData() {
@@ -744,7 +757,7 @@ async function salvarConta(event) {
                 valor_conta_atual: dados.get("valor_conta_atual"),
                 ativa: true
             });
-            mostrarToast("Conta bancária cadastrada com sucesso!");
+            mostrarToast("Conta bancária cadastrada! Enviamos uma confirmação para o seu e-mail.");
         }
 
         formulario.reset();

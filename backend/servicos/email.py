@@ -120,6 +120,44 @@ def enviar_email_confirmacao_cadastro(
     )
 
 
+def enviar_email_confirmacao_nova_conta_bancaria(
+    destinatario: str,
+    nome_usuario: str,
+    nome_banco: str,
+    tipo_conta: str,
+    saldo_inicial: str,
+) -> bool:
+    """Dispara e-mail de confirmação sempre que uma nova conta bancária é criada."""
+    assunto = f"Fluxo de Caixa — Nova conta cadastrada ({nome_banco})"
+    corpo_texto = (
+        f"Olá, {nome_usuario}!\n\n"
+        f"Confirmamos o cadastro de uma nova conta bancária no seu Fluxo de Caixa:\n"
+        f"- Instituição/Nome: {nome_banco}\n"
+        f"- Tipo de conta: {tipo_conta}\n"
+        f"- Saldo inicial: R$ {saldo_inicial}\n\n"
+        f"Caso você não reconheça esta operação, acesse suas configurações imediatamente."
+    )
+    corpo_html = f"""
+    <div style="font-family: Inter, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e8edf4; border-radius: 12px; color: #172033;">
+        <h2 style="color: #16a34a; margin-top: 0;">Nova Conta Cadastrada</h2>
+        <p>Olá, <strong>{nome_usuario}</strong>! Uma nova conta bancária foi adicionada com sucesso ao seu painel do Fluxo de Caixa:</p>
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0; margin: 18px 0;">
+            <p style="margin: 4px 0;"><strong>Conta / Instituição:</strong> {nome_banco}</p>
+            <p style="margin: 4px 0;"><strong>Tipo:</strong> {tipo_conta}</p>
+            <p style="margin: 4px 0;"><strong>Saldo inicial:</strong> R$ {saldo_inicial}</p>
+        </div>
+        <p style="font-size: 12px; color: #64748b;">Esta é uma mensagem automática de confirmação de segurança do Fluxo de Caixa.</p>
+    </div>
+    """
+    return enviar_email(
+        destinatario=destinatario,
+        assunto=assunto,
+        corpo_html=corpo_html,
+        corpo_texto=corpo_texto,
+    )
+
+
+
 def enviar_email_codigo_recuperacao(
     destinatario: str,
     nome: str,
@@ -149,3 +187,5 @@ def enviar_email_codigo_recuperacao(
         corpo_html=corpo_html,
         corpo_texto=corpo_texto,
     )
+
+

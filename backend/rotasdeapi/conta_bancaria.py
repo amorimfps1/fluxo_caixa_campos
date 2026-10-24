@@ -11,6 +11,7 @@ from esquema import (
     ContaBancariaUpdate
 )
 from autenticacao import obter_usuario_logado
+from servicos.email import enviar_email_confirmacao_nova_conta_bancaria
 
 
 router = APIRouter(
@@ -45,6 +46,14 @@ def criar_conta(
     db.add(nova_conta)
     db.commit()
     db.refresh(nova_conta)
+
+    enviar_email_confirmacao_nova_conta_bancaria(
+        destinatario=usuario_logado.email,
+        nome_usuario=usuario_logado.nome_completo,
+        nome_banco=nova_conta.nome_banco,
+        tipo_conta=nova_conta.tipo_conta,
+        saldo_inicial=f"{Decimal(str(nova_conta.valor_conta_atual)):.2f}",
+    )
 
     return nova_conta
 

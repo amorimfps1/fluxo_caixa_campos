@@ -569,3 +569,48 @@ def test_movimentacao_simplificada_conta_fixa_variavel_e_transferencia_externa(
     # Saldo esperado: 1000 + 500 + 300 - 200 - 150 = 1450.00
     r_saldo = client.get(f"/contas-bancarias/{conta_1['id']}", headers=headers)
     assert Decimal(r_saldo.json()["valor_conta_atual"]) == Decimal("1450.00")
+
+
+def test_criar_conta_bancaria_envia_email_confirmacao(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    import rotasdeapi.conta_bancaria as modulo_conta
+
+    enviados: list[dict] = []
+
+    def _mock_enviar_email(**kwargs) -> bool:
+        enviados.append(kwargs)
+        return True
+
+    monkeypatch.setattr(
+        modulo_conta,
+        "enviar_email_confirmacao_nova_conta_bancaria",
+        _mock_enviar_email,
+    )
+
+    dados = _dados_cadastro()
+    assert client.post("/usuarios/", json=dados).status_code == 201
+    token = client.post(
+        "/login",
+        data={"username": dados["email"], "password": dados["senha"]},
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r_conta = client.post(
+        "/contas-bancarias/",
+        headers=headers,
+        json={
+            "nome_banco": "Banco Inter",
+            "tipo_conta": "corrente",
+            "valor_conta_atual": "2500.00",
+            "ativa": True,
+        },
+    )
+    assert r_conta.status_code == 201, r_conta.text
+    assert len(enviados) == 1
+    assert enviados[0]["destinatario"] == dados["email"]
+    assert enviados[0]["nome_banco"] == "Banco Inter"
+    assert enviados[0]["tipo_conta"] == "corrente"
+    assert enviados[0]["saldo_inicial"] == "2500.00"
+
