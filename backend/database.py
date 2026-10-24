@@ -91,3 +91,38 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def garantir_esquema_banco() -> None:
+    """Garante de forma idempotente que colunas de migrações recentes existam no MySQL."""
+    if not DATABASE_URL.startswith("mysql"):
+        return
+    try:
+        from sqlalchemy import inspect, text
+
+        insp = inspect(engine)
+        tabelas = set(insp.get_table_names())
+        with engine.begin() as conn:
+            if "usuarios" in tabelas:
+                cols_u = {c["name"] for c in insp.get_columns("usuarios")}
+                if "email_verificado" not in cols_u:
+                    conn.execute(
+                        text("ALTER TABLE usuarios ADD COLUMN email_verificado BOOLEAN NOT NULL DEFAULT 0")
+                    )
+                if "codigo_otp" not in cols_u:
+                    conn.execute(text("ALTER TABLE usuarios ADD COLUMN codigo_otp VARCHAR(64) NULL"))
+                if "otp_expiracao" not in cols_u:
+                    conn.execute(text("ALTER TABLE usuarios ADD COLUMN otp_expiracao DATETIME NULL"))
+            if "fluxo_dinheiro" in tabelas:
+                cols_f = {c["name"] for c in insp.get_columns("fluxo_dinheiro")}
+                if "natureza_conta" not in cols_f:
+                    conn.execute(
+                        text("ALTER TABLE fluxo_dinheiro ADD COLUMN natureza_conta ENUM('fixa', 'variavel') NULL")
+                    )
+                if "tipo_investimento" not in cols_f:
+                    conn.execute(
+                        text("ALTER TABLE fluxo_dinheiro ADD COLUMN tipo_investimento VARCHAR(60) NULL")
+                    )
+    except Exception:
+        pass
+

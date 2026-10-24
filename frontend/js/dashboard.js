@@ -1307,6 +1307,20 @@ function atualizarTabelaVazia(seletorTabela, mensagem, colunas = 5) {
     tabela.replaceChildren(linha);
 }
 
+function obterRotuloCategoriaMovimento(movimento) {
+    const baseCat = formatarCategoria(movimento.categoria);
+    if (movimento.tipo_investimento) {
+        return `${baseCat} · ${movimento.tipo_investimento}`;
+    }
+    if (movimento.natureza_conta === "fixa") {
+        return `${baseCat} · Conta Fixa`;
+    }
+    if (movimento.natureza_conta === "variavel") {
+        return `${baseCat} · Conta Variável`;
+    }
+    return baseCat;
+}
+
 function renderizarTabelaCompacta(seletorTabela, lista) {
     const tabela = document.querySelector(seletorTabela);
     if (!tabela) return;
@@ -1321,7 +1335,7 @@ function renderizarTabelaCompacta(seletorTabela, lista) {
     lista.forEach((movimento) => {
         const linha = document.createElement("tr");
         const celulaDesc = criarElemento("td", movimento.descricao);
-        const celulaCat = criarElemento("td", formatarCategoria(movimento.categoria));
+        const celulaCat = criarElemento("td", obterRotuloCategoriaMovimento(movimento));
         const celulaData = criarElemento("td", formatarData(movimento.data_movimentacao));
 
         const celulaTipo = document.createElement("td");
@@ -1367,7 +1381,7 @@ function renderizarTabelaDetalhada(seletorTabela, lista) {
         const linha = document.createElement("tr");
         const celulaDesc = criarElemento("td", movimento.descricao);
         const celulaConta = criarElemento("td", obterNomeConta(movimento.conta_bancaria_id));
-        const celulaCat = criarElemento("td", formatarCategoria(movimento.categoria));
+        const celulaCat = criarElemento("td", obterRotuloCategoriaMovimento(movimento));
         const celulaData = criarElemento("td", formatarData(movimento.data_movimentacao));
 
         const celulaTipo = document.createElement("td");
@@ -1417,12 +1431,68 @@ function renderizarTabelaDetalhada(seletorTabela, lista) {
     tabela.replaceChildren(fragmento);
 }
 
-function atualizarMovimentacoes(movimentacoesRecentes, todasMovimentacoes = null) {
-    renderizarTabelaCompacta("#transactions-list", movimentacoesRecentes);
-    renderizarTabelaDetalhada(
-        "#view-transactions-list",
-        todasMovimentacoes || movimentacoesRecentes
+function renderizarTabelaInvestimentos(seletorTabela, lista) {
+    const tabela = document.querySelector(seletorTabela);
+    if (!tabela) return;
+
+    const investimentos = (lista || []).filter(
+        (m) => m.categoria === "investimento" || Boolean(m.tipo_investimento)
     );
+
+    if (investimentos.length === 0) {
+        atualizarTabelaVazia(
+            seletorTabela,
+            'Nenhum investimento registrado ainda. Clique em "+ Novo investimento" para aplicar.',
+            6
+        );
+        return;
+    }
+
+    const fragmento = document.createDocumentFragment();
+
+    investimentos.forEach((movimento) => {
+        const linha = document.createElement("tr");
+        const ativoNome = movimento.tipo_investimento || "Investimento";
+        const celulaAtivo = criarElemento("td", ativoNome);
+        const celulaConta = criarElemento("td", obterNomeConta(movimento.conta_bancaria_id));
+        const celulaObs = criarElemento("td", movimento.descricao || "—");
+        const celulaData = criarElemento("td", formatarData(movimento.data_movimentacao));
+        const celulaValor = criarElemento(
+            "td",
+            formatarMoeda(movimento.valor),
+            "align-right transaction-income"
+        );
+
+        const celulaAcoes = document.createElement("td");
+        celulaAcoes.className = "align-right";
+        const btnExcluir = criarElemento(
+            "button",
+            "Excluir",
+            "button-small button-danger"
+        );
+        btnExcluir.type = "button";
+        btnExcluir.addEventListener("click", () => excluirMovimentacao(movimento));
+        celulaAcoes.append(btnExcluir);
+
+        linha.append(
+            celulaAtivo,
+            celulaConta,
+            celulaObs,
+            celulaData,
+            celulaValor,
+            celulaAcoes
+        );
+        fragmento.append(linha);
+    });
+
+    tabela.replaceChildren(fragmento);
+}
+
+function atualizarMovimentacoes(movimentacoesRecentes, todasMovimentacoes = null) {
+    const baseCompleta = todasMovimentacoes || movimentacoesRecentes;
+    renderizarTabelaCompacta("#transactions-list", movimentacoesRecentes);
+    renderizarTabelaDetalhada("#view-transactions-list", baseCompleta);
+    renderizarTabelaInvestimentos("#investments-assets-list", baseCompleta);
 }
 
 /* =========================================================
@@ -1676,13 +1746,19 @@ function renderizarGraficoCategorias(movimentacoes) {
 }
 
 function renderizarGraficoInvestimentos(contas, movimentacoes, metas) {
+    const investimentosAtivos = (movimentacoes || []).filter(
+        (m) => m.categoria === "investimento" || Boolean(m.tipo_investimento)
+    );
     const contasPatrimonio = contas.filter(
         (c) =>
             c.tipo_conta === "investimento" ||
             c.tipo_conta === "poupanca" ||
             Number(c.valor_conta_atual) > 0
     );
-    const possuiDados = contasPatrimonio.length > 0 || metas.length > 0;
+    const possuiDados =
+        contasPatrimonio.length > 0 ||
+        metas.length > 0 ||
+        investimentosAtivos.length > 0;
 
     alternarVisibilidadeGrafico(
         "#investments-chart-container",
@@ -1702,43 +1778,47 @@ function renderizarGraficoInvestimentos(contas, movimentacoes, metas) {
     const saldoInvestimento = contas
         .filter((c) => c.tipo_conta === "investimento")
         .reduce((acc, c) => acc + Number(c.valor_conta_atual), 0);
-    const aportesPeriodo = movimentacoes
-        .filter((m) => m.categoria === "investimento")
-        .reduce((acc, m) => acc + Math.abs(Number(m.valor || 0)), 0);
     const acumuladoMetas = metas.reduce(
         (acc, m) => acc + Number(m.valor_atual || 0),
         0
     );
+
+    const labels = [
+        "Conta Corrente",
+        "Reserva em Poupança",
+        "Contas de Investimento",
+        "Acumulado em Metas"
+    ];
+    const valores = [
+        Number(saldoCorrente.toFixed(2)),
+        Number(saldoPoupanca.toFixed(2)),
+        Number(saldoInvestimento.toFixed(2)),
+        Number(acumuladoMetas.toFixed(2))
+    ];
+    const cores = ["#0ea5e9", "#f59e0b", "#16a34a", "#14b8a6"];
+
+    const porAtivo = {};
+    investimentosAtivos.forEach((m) => {
+        const chave = m.tipo_investimento || "Outros Investimentos";
+        porAtivo[chave] = (porAtivo[chave] || 0) + Math.abs(Number(m.valor || 0));
+    });
+    Object.entries(porAtivo).forEach(([ativo, total], idx) => {
+        labels.push(ativo);
+        valores.push(Number(total.toFixed(2)));
+        cores.push(CORES_GRAFICOS[(idx + 4) % CORES_GRAFICOS.length]);
+    });
 
     const canvas = document.querySelector("#chart-investments-evolution");
     if (canvas) {
         graficosAtivos.investimentosEvolucao = new window.Chart(canvas, {
             type: "bar",
             data: {
-                labels: [
-                    "Conta Corrente",
-                    "Reserva em Poupança",
-                    "Contas de Investimento",
-                    "Aportes Registrados",
-                    "Acumulado em Metas"
-                ],
+                labels,
                 datasets: [
                     {
-                        label: "Composição Patrimonial (R$)",
-                        data: [
-                            Number(saldoCorrente.toFixed(2)),
-                            Number(saldoPoupanca.toFixed(2)),
-                            Number(saldoInvestimento.toFixed(2)),
-                            Number(aportesPeriodo.toFixed(2)),
-                            Number(acumuladoMetas.toFixed(2))
-                        ],
-                        backgroundColor: [
-                            "#0ea5e9",
-                            "#f59e0b",
-                            "#16a34a",
-                            "#8b5cf6",
-                            "#14b8a6"
-                        ],
+                        label: "Composição Patrimonial e Ativos (R$)",
+                        data: valores,
+                        backgroundColor: cores,
                         borderRadius: 8
                     }
                 ]

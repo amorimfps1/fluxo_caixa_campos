@@ -11,10 +11,10 @@
 
     <title>Fluxo de Caixa | Dashboard</title>
 
-    <link rel="stylesheet" href="css/style.css?v=8">
+    <link rel="stylesheet" href="css/style.css?v=9">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
-    <script src="js/api.js" defer></script>
-    <script src="js/dashboard.js?v=8" defer></script>
+    <script src="js/api.js?v=9" defer></script>
+    <script src="js/dashboard.js?v=9" defer></script>
 </head>
 
 <body>
@@ -574,6 +574,43 @@
                         </div>
                     </article>
                 </section>
+
+                <article class="panel transactions-panel" style="margin-top: 24px;">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Carteira de ativos e investimentos registrados</h3>
+                            <p>Histórico de aplicações em CDB, LCI / LCA, Tesouro Direto, Fundos, Ações, ETFs, FIIs e Subscrições</p>
+                        </div>
+                        <button
+                            type="button"
+                            class="button-primary btn-abrir-novo-investimento"
+                        >
+                            + Novo investimento
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Ativo</th>
+                                    <th>Conta Debitada</th>
+                                    <th>Observação</th>
+                                    <th>Data</th>
+                                    <th class="align-right">Valor Investido</th>
+                                    <th class="align-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="investments-assets-list">
+                                <tr>
+                                    <td colspan="6" class="table-empty">
+                                        Nenhum investimento registrado ainda. Clique em "+ Novo investimento" para aplicar.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
             </div>
 
             <!-- View: Relatórios -->

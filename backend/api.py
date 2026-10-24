@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import os
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from configuracao import carregar_configuracao
 from dados_sensiveis import validar_chave_cpf
+from database import garantir_esquema_banco
 from rotasdeapi import (
     usuario,
     conta_bancaria,
@@ -17,10 +19,18 @@ from rotasdeapi import (
 carregar_configuracao()
 validar_chave_cpf()
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    garantir_esquema_banco()
+    yield
+
+
 app = FastAPI(
     title="Sistema de Fluxo de Caixa",
     description="API REST para controle e planejamento financeiro pessoal",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 def _validar_app_env() -> str:
     """Valida e retorna o valor de APP_ENV.
