@@ -430,33 +430,116 @@ function configurarDialogos() {
     });
 }
 
+const OPCOES_CATEGORIA_ENTRADA_FIXA = [
+    { value: "salario", label: "Salário (Ganhos Fixos)" },
+    { value: "outros", label: "Outros ganhos fixos" }
+];
+
+const OPCOES_CATEGORIA_ENTRADA_VARIAVEL = [
+    { value: "pix", label: "Pix recebido" },
+    { value: "venda_objeto", label: "Venda de objeto" },
+    { value: "freela", label: "Freela / Serviço extra" },
+    { value: "ganhos_variaveis", label: "Outros ganhos variáveis" }
+];
+
+const OPCOES_CATEGORIA_SAIDA = [
+    { value: "contas", label: "Contas (água, luz, internet)" },
+    { value: "moradia", label: "Moradia (aluguel, condomínio)" },
+    { value: "alimentacao", label: "Alimentação" },
+    { value: "transporte", label: "Transporte" },
+    { value: "saude", label: "Saúde" },
+    { value: "educacao", label: "Educação" },
+    { value: "lazer", label: "Lazer" },
+    { value: "compras", label: "Compras" },
+    { value: "impostos", label: "Impostos" },
+    { value: "investimento", label: "Investimento" },
+    { value: "salario", label: "Salário" },
+    { value: "freelance", label: "Freelance" },
+    { value: "vendas", label: "Vendas" },
+    { value: "outros", label: "Outros" }
+];
+
+function popularSelectOpcoesMovimentacao(selectEl, listaOpcoes) {
+    if (!selectEl) return;
+    const valorAnterior = selectEl.value;
+    selectEl.replaceChildren();
+    listaOpcoes.forEach((item) => {
+        const opt = document.createElement("option");
+        opt.value = item.value;
+        opt.textContent = item.label;
+        selectEl.append(opt);
+    });
+    const existeAnterior = listaOpcoes.some((item) => item.value === valorAnterior);
+    selectEl.value = existeAnterior ? valorAnterior : listaOpcoes[0]?.value || "";
+}
+
 function atualizarCamposTipoMovimentacao() {
     const tipo = document.querySelector("#movement-type")?.value || "entrada";
     const natureza = document.querySelector("#movement-nature")?.value || "fixa";
     const campoDestino = document.querySelector("#movement-destination-field");
-    const grupoSaida = document.querySelector("#movement-expense-classification-group");
+    const grupoClassificacao = document.querySelector("#movement-expense-classification-group");
+    const labelNatureza = document.querySelector("#movement-nature-label");
+    const abaFixa = document.querySelector("#nature-tab-fixa");
+    const abaVariavel = document.querySelector("#nature-tab-variavel");
     const campoDiaRepeticao = document.querySelector("#movement-repeat-day-field");
     const inputDiaRepeticao = document.querySelector("#movement-repeat-day");
+    const helpDiaRepeticao = document.querySelector("#movement-repeat-day-help");
+    const labelCategoria = document.querySelector("#movement-category-label");
+    const selectCategoria = document.querySelector("#movement-category");
     const inputValor = document.querySelector("#movement-amount");
 
+    const ehEntrada = tipo === "entrada";
     const ehSaida = tipo === "saida";
-    const ehContaFixa = ehSaida && natureza === "fixa";
+    const possuiClassificacao = ehEntrada || ehSaida;
+    const ehFixa = possuiClassificacao && natureza === "fixa";
 
     if (campoDestino) {
         campoDestino.hidden = tipo !== "transferencia";
     }
 
-    if (grupoSaida) {
-        grupoSaida.hidden = !ehSaida;
+    if (grupoClassificacao) {
+        grupoClassificacao.hidden = !possuiClassificacao;
+    }
+
+    if (ehEntrada) {
+        if (labelNatureza) labelNatureza.textContent = "Classificação da entrada";
+        if (abaFixa) abaFixa.textContent = "Ganhos Fixos";
+        if (abaVariavel) abaVariavel.textContent = "Ganhos Variáveis";
+        if (labelCategoria) {
+            labelCategoria.textContent =
+                natureza === "fixa"
+                    ? "Origem do ganho fixo"
+                    : "Origem do ganho variável";
+        }
+        if (helpDiaRepeticao) {
+            helpDiaRepeticao.textContent =
+                "Dia do mês (1 a 31) em que este ganho fixo se repetirá automaticamente.";
+        }
+        popularSelectOpcoesMovimentacao(
+            selectCategoria,
+            natureza === "fixa"
+                ? OPCOES_CATEGORIA_ENTRADA_FIXA
+                : OPCOES_CATEGORIA_ENTRADA_VARIAVEL
+        );
+    } else if (ehSaida) {
+        if (labelNatureza) labelNatureza.textContent = "Classificação da conta";
+        if (abaFixa) abaFixa.textContent = "Conta Fixa";
+        if (abaVariavel) abaVariavel.textContent = "Conta Variável";
+        if (labelCategoria) labelCategoria.textContent = "Categoria";
+        if (helpDiaRepeticao) {
+            helpDiaRepeticao.textContent =
+                "Dia do mês (1 a 31) em que esta conta fixa se repetirá automaticamente.";
+        }
+        popularSelectOpcoesMovimentacao(selectCategoria, OPCOES_CATEGORIA_SAIDA);
     }
 
     if (campoDiaRepeticao) {
-        campoDiaRepeticao.hidden = !ehContaFixa;
+        campoDiaRepeticao.hidden = !ehFixa;
     }
 
     if (inputDiaRepeticao) {
-        inputDiaRepeticao.required = ehContaFixa;
-        if (ehContaFixa && !inputDiaRepeticao.value) {
+        inputDiaRepeticao.required = ehFixa;
+        if (ehFixa && !inputDiaRepeticao.value) {
             inputDiaRepeticao.value = String(new Date().getDate());
         }
     }
@@ -700,16 +783,18 @@ async function salvarMovimentacao(event) {
     const dados = new FormData(formulario);
     const tipo = (dados.get("tipo") || "entrada").toString();
     const naturezaConta = (dados.get("natureza_conta") || "fixa").toString();
-    const categoriaSaida = (dados.get("categoria") || "").toString().trim();
+    const categoriaSelecionada = (dados.get("categoria") || "").toString().trim();
     const diaRepeticaoRaw = (dados.get("dia_repeticao") || "").toString().trim();
     const observacao = (dados.get("observacao") || "").toString().trim();
 
-    if (tipo === "saida" && naturezaConta === "fixa") {
+    const possuiClassificacao = tipo === "entrada" || tipo === "saida";
+
+    if (possuiClassificacao && naturezaConta === "fixa") {
         const diaNum = Number(diaRepeticaoRaw);
         if (!Number.isInteger(diaNum) || diaNum < 1 || diaNum > 31) {
             definirMensagem(
                 "#movement-message",
-                "Informe o dia do mês (de 1 a 31) para repetição automática da conta fixa.",
+                "Informe o dia do mês (de 1 a 31) para repetição automática.",
                 "error"
             );
             return;
@@ -726,13 +811,25 @@ async function salvarMovimentacao(event) {
         observacao: observacao || null
     };
 
-    if (tipo === "saida") {
+    if (possuiClassificacao) {
         payload.natureza_conta = naturezaConta;
-        if (categoriaSaida) {
-            payload.categoria = categoriaSaida;
+        if (categoriaSelecionada) {
+            payload.categoria = categoriaSelecionada;
         }
         if (naturezaConta === "fixa" && diaRepeticaoRaw) {
             payload.dia_repeticao = Number(diaRepeticaoRaw);
+        }
+        if (tipo === "entrada") {
+            const descricoesEntrada = {
+                salario: `Entrada - Salário (Ganhos Fixos${diaRepeticaoRaw ? ` · Dia ${diaRepeticaoRaw}` : ""})`,
+                pix: "Entrada - Pix recebido (Ganhos Variáveis)",
+                venda_objeto: "Entrada - Venda de objeto (Ganhos Variáveis)",
+                freela: "Entrada - Freela (Ganhos Variáveis)",
+                ganhos_variaveis: "Entrada - Outros ganhos variáveis (Ganhos Variáveis)"
+            };
+            if (descricoesEntrada[categoriaSelecionada]) {
+                payload.descricao = descricoesEntrada[categoriaSelecionada];
+            }
         }
     }
 
@@ -1393,14 +1490,17 @@ function obterRotuloCategoriaMovimento(movimento) {
     if (movimento.tipo_investimento) {
         return `${baseCat} · ${movimento.tipo_investimento}`;
     }
+    const ehEntrada = movimento.tipo === "entrada";
     if (movimento.natureza_conta === "fixa") {
+        const rotuloFixo = ehEntrada ? "Ganhos Fixos" : "Conta Fixa";
         if (movimento.dia_repeticao) {
-            return `${baseCat} · Conta Fixa (Dia ${movimento.dia_repeticao})`;
+            return `${baseCat} · ${rotuloFixo} (Dia ${movimento.dia_repeticao})`;
         }
-        return `${baseCat} · Conta Fixa`;
+        return `${baseCat} · ${rotuloFixo}`;
     }
     if (movimento.natureza_conta === "variavel") {
-        return `${baseCat} · Conta Variável`;
+        const rotuloVariavel = ehEntrada ? "Ganhos Variáveis" : "Conta Variável";
+        return `${baseCat} · ${rotuloVariavel}`;
     }
     return baseCat;
 }

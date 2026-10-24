@@ -490,7 +490,7 @@ def test_movimentacao_simplificada_conta_fixa_variavel_e_transferencia_externa(
         },
     ).json()
 
-    # 1. Entrada simplificada (Conta Fixa) sem precisar enviar descricao/categoria/data
+    # 1. Entrada simplificada como Ganhos Fixos (Salário) com dia de repetição
     r_entrada = client.post(
         "/fluxo-dinheiro/",
         headers=headers,
@@ -499,11 +499,33 @@ def test_movimentacao_simplificada_conta_fixa_variavel_e_transferencia_externa(
             "tipo": "entrada",
             "valor": "500.00",
             "natureza_conta": "fixa",
+            "dia_repeticao": 5,
             "observacao": "Recebimento mensal",
         },
     )
     assert r_entrada.status_code == 201, r_entrada.text
     assert r_entrada.json()["natureza_conta"] == "fixa"
+    assert r_entrada.json()["categoria"] == "salario"
+    assert r_entrada.json()["dia_repeticao"] == 5
+    assert "Ganhos Fixos" in r_entrada.json()["descricao"]
+
+    # 1b. Entrada como Ganhos Variáveis (freela / venda_objeto / pix)
+    r_freela = client.post(
+        "/fluxo-dinheiro/",
+        headers=headers,
+        json={
+            "conta_bancaria_id": conta_1["id"],
+            "tipo": "entrada",
+            "valor": "300.00",
+            "natureza_conta": "variavel",
+            "categoria": "freela",
+            "observacao": "Projeto extra",
+        },
+    )
+    assert r_freela.status_code == 201, r_freela.text
+    assert r_freela.json()["natureza_conta"] == "variavel"
+    assert r_freela.json()["categoria"] == "freelance"
+    assert "Ganhos Variáveis" in r_freela.json()["descricao"]
 
     # 2. Saída como Conta Fixa com dia de repetição automática (dia 10) e categoria
     r_saida_fixa = client.post(
@@ -544,6 +566,6 @@ def test_movimentacao_simplificada_conta_fixa_variavel_e_transferencia_externa(
     assert r_externa.json()["dia_repeticao"] is None
     assert "Transferência para fora" in r_externa.json()["descricao"]
 
-    # Saldo esperado: 1000 + 500 - 200 - 150 = 1150.00
+    # Saldo esperado: 1000 + 500 + 300 - 200 - 150 = 1450.00
     r_saldo = client.get(f"/contas-bancarias/{conta_1['id']}", headers=headers)
-    assert Decimal(r_saldo.json()["valor_conta_atual"]) == Decimal("1150.00")
+    assert Decimal(r_saldo.json()["valor_conta_atual"]) == Decimal("1450.00")

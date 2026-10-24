@@ -67,7 +67,18 @@ def _normalizar_categoria(valor: str) -> str:
         for caractere in decomposicao
         if not unicodedata.combining(caractere)
     )
-    return "investimento" if sem_acentos == "investimentos" else sem_acentos
+    mapa_apelidos = {
+        "investimentos": "investimento",
+        "ganhos_fixos": "salario",
+        "ganho_fixo": "salario",
+        "pix": "outros",
+        "venda_objeto": "vendas",
+        "venda de objeto": "vendas",
+        "freela": "freelance",
+        "ganhos_variaveis": "outros",
+        "ganho_variavel": "outros",
+    }
+    return mapa_apelidos.get(sem_acentos, sem_acentos)
 
 
 class UsuarioCreate(InputModel):
@@ -465,15 +476,26 @@ class FluxoDinheiroCreate(InputModel):
         if self.natureza_conta != "fixa":
             self.dia_repeticao = None
 
-        sufixo_natureza = (
-            f" (Conta Fixa · Dia {self.dia_repeticao})"
-            if self.natureza_conta == "fixa" and self.dia_repeticao
-            else " (Conta Fixa)"
-            if self.natureza_conta == "fixa"
-            else " (Conta Variável)"
-            if self.natureza_conta == "variavel"
-            else ""
-        )
+        if self.tipo == "entrada":
+            sufixo_natureza = (
+                f" (Ganhos Fixos · Dia {self.dia_repeticao})"
+                if self.natureza_conta == "fixa" and self.dia_repeticao
+                else " (Ganhos Fixos)"
+                if self.natureza_conta == "fixa"
+                else " (Ganhos Variáveis)"
+                if self.natureza_conta == "variavel"
+                else ""
+            )
+        else:
+            sufixo_natureza = (
+                f" (Conta Fixa · Dia {self.dia_repeticao})"
+                if self.natureza_conta == "fixa" and self.dia_repeticao
+                else " (Conta Fixa)"
+                if self.natureza_conta == "fixa"
+                else " (Conta Variável)"
+                if self.natureza_conta == "variavel"
+                else ""
+            )
 
         if self.tipo_investimento:
             if self.categoria is None:
@@ -538,7 +560,11 @@ class FluxoDinheiroCreate(InputModel):
             raise ValueError("A categoria ajuste é reservada para ajustes.")
 
         if self.categoria is None:
-            if self.natureza_conta == "fixa":
+            if self.tipo == "entrada":
+                self.categoria = (
+                    "salario" if self.natureza_conta == "fixa" else "outros"
+                )
+            elif self.natureza_conta == "fixa":
                 self.categoria = "contas"
             else:
                 self.categoria = "outros"

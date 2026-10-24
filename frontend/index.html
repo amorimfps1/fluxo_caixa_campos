@@ -11,10 +11,10 @@
 
     <title>Fluxo de Caixa | Dashboard</title>
 
-    <link rel="stylesheet" href="css/style.css?v=10">
+    <link rel="stylesheet" href="css/style.css?v=11">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
-    <script src="js/api.js?v=10" defer></script>
-    <script src="js/dashboard.js?v=10" defer></script>
+    <script src="js/api.js?v=11" defer></script>
+    <script src="js/dashboard.js?v=11" defer></script>
 </head>
 
 <body>
@@ -1107,35 +1107,37 @@
                     </select>
                 </div>
 
-                <!-- Exibido estritamente quando Tipo = "Saída" -->
-                <div id="movement-expense-classification-group" hidden>
+                <!-- Exibido para Entrada (Ganhos Fixos / Ganhos Variáveis) e Saída (Conta Fixa / Conta Variável) -->
+                <div id="movement-expense-classification-group">
                     <div class="form-field">
-                        <label id="movement-nature-label">Classificação da conta</label>
+                        <label id="movement-nature-label">Classificação da entrada</label>
                         <input type="hidden" id="movement-nature" name="natureza_conta" value="fixa">
                         <div class="nature-tabs" role="radiogroup" aria-labelledby="movement-nature-label">
                             <button
                                 type="button"
                                 class="nature-tab active"
+                                id="nature-tab-fixa"
                                 data-nature-value="fixa"
                                 role="radio"
                                 aria-checked="true"
                             >
-                                📌 Conta Fixa
+                                Ganhos Fixos
                             </button>
                             <button
                                 type="button"
                                 class="nature-tab"
+                                id="nature-tab-variavel"
                                 data-nature-value="variavel"
                                 role="radio"
                                 aria-checked="false"
                             >
-                                📊 Conta Variável
+                                Ganhos Variáveis
                             </button>
                         </div>
                     </div>
 
                     <div class="form-field" id="movement-repeat-day-field">
-                        <label for="movement-repeat-day">Dia do mês para repetição automática</label>
+                        <label for="movement-repeat-day" id="movement-repeat-day-label">Dia do mês para repetição automática</label>
                         <input
                             id="movement-repeat-day"
                             name="dia_repeticao"
@@ -1144,28 +1146,19 @@
                             max="31"
                             step="1"
                             inputmode="numeric"
-                            placeholder="Ex.: 10 (de 1 a 31)"
+                            placeholder="Ex.: 5 (de 1 a 31)"
                         >
-                        <span class="field-help">Dia do mês (1 a 31) em que esta conta fixa se repetirá automaticamente.</span>
+                        <span class="field-help" id="movement-repeat-day-help">Dia do mês (1 a 31) em que este valor fixo se repetirá automaticamente.</span>
                     </div>
 
                     <div class="form-field" id="movement-category-field">
-                        <label for="movement-category">Categoria</label>
+                        <label for="movement-category" id="movement-category-label">Categoria / Origem do ganho</label>
                         <select id="movement-category" name="categoria">
-                            <option value="contas">Contas (água, luz, internet)</option>
-                            <option value="moradia">Moradia (aluguel, condomínio)</option>
-                            <option value="alimentacao">Alimentação</option>
-                            <option value="transporte">Transporte</option>
-                            <option value="saude">Saúde</option>
-                            <option value="educacao">Educação</option>
-                            <option value="lazer">Lazer</option>
-                            <option value="compras">Compras</option>
-                            <option value="impostos">Impostos</option>
-                            <option value="investimento">Investimento</option>
-                            <option value="salario">Salário</option>
-                            <option value="freelance">Freelance</option>
-                            <option value="vendas">Vendas</option>
-                            <option value="outros">Outros</option>
+                            <option value="salario">Salário (Ganhos Fixos)</option>
+                            <option value="pix">Pix recebido (Ganhos Variáveis)</option>
+                            <option value="venda_objeto">Venda de objeto (Ganhos Variáveis)</option>
+                            <option value="freela">Freela / Serviço extra (Ganhos Variáveis)</option>
+                            <option value="outros">Outros ganhos</option>
                         </select>
                     </div>
                 </div>
