@@ -334,3 +334,9 @@ Para detalhes completos da cobertura de testes e testes de concorrência MySQL, 
 <div align="center">
 Desenvolvido com foco em segurança, precisão contábil e arquitetura em nuvem.
 </div>
+
+## Orçamentos e alertas
+
+O projeto mantém duas linhagens independentes de migração. Para um banco já na linhagem tradicional, execute `python -m alembic -c "banco de dados/alembic.ini" upgrade orcamentos_alertas_legacy`; para um banco da linhagem Supabase, execute `python -m alembic -c "banco de dados/alembic.ini" upgrade orcamentos_alertas_supabase`. Não execute ambas no mesmo banco. Consulte `current` antes de escolher a linhagem.
+
+Os orçamentos somam saídas e investimentos até a data atual do servidor, excluindo transferências internas e ajustes. Saídas futuras já afetam o saldo no sistema existente; seus alertas não indicam pagamento pendente e não geram recorrências. As preferências e o estado de leitura são individuais.

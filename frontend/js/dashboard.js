@@ -1,4 +1,4 @@
-/*
+﻿/*
  * FLUXO DE CAIXA
  * Inicialização, navegação SPA, gráficos Chart.js, metas, relatórios e exportação CSV.
  */
@@ -319,6 +319,7 @@ document.addEventListener("DOMContentLoaded", () => {
     inicializarSelectsArredondados();
     configurarBotaoSair();
     carregarDashboard();
+    inicializarOrcamentosAlertas();
 });
 
 function configurarBotaoSair() {
@@ -1080,6 +1081,7 @@ async function buscarTodasAsPaginas(path, parametros = {}) {
 }
 
 async function carregarDashboard() {
+    if (document.querySelector("#orcamento-mes")?.value) atualizarOrcamentosAlertas();
     const statusElement = document.querySelector(".status-text");
     const statusDot = document.querySelector(".status-dot");
     const ids = [
@@ -2881,4 +2883,104 @@ function inicializarSelectsArredondados(root = document) {
             fecharTodosMenus();
         }
     });
+}
+
+
+function inicializarOrcamentosAlertas() {
+    const mes = document.querySelector('#orcamento-mes');
+    const agora = new Date();
+    mes.value = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
+    const select = document.querySelector('#orcamento-categoria');
+    document.querySelectorAll('#categories-cards-grid [data-category]').forEach(card => {
+        const option = document.createElement('option');
+        option.value = card.dataset.category;
+        option.textContent = card.querySelector('strong').textContent;
+        select.append(option);
+    });
+    mes.addEventListener('change', atualizarOrcamentos);
+    document.querySelector('#orcamento-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const msg = document.querySelector('#orcamento-mensagem');
+        try {
+            const lista = await api.get(`/orcamentos?mes=${mes.value}-01`);
+            const existente = lista.find(o => o.categoria === select.value);
+            const dados = {mes: `${mes.value}-01`, categoria: select.value, limite: document.querySelector('#orcamento-limite').value};
+            if (existente) await api.put(`/orcamentos/${existente.id}`, dados);
+            else await api.post('/orcamentos', dados);
+            msg.textContent = 'Orçamento salvo.';
+            await atualizarOrcamentosAlertas();
+        } catch (e) { msg.textContent = e.message; }
+    });
+    ['orcamento', 'vencimento'].forEach(tipo => document.querySelector(`#alerta-${tipo}`).addEventListener('change', async () => {
+        try {
+            await api.put('/alertas/preferencias', {orcamento: document.querySelector('#alerta-orcamento').checked, vencimento: document.querySelector('#alerta-vencimento').checked});
+            await atualizarAlertas();
+        } catch (e) { document.querySelector('#alertas-mensagem').textContent = e.message; }
+    }));
+    atualizarOrcamentosAlertas();
+}
+
+async function atualizarOrcamentosAlertas() {
+    await Promise.all([atualizarOrcamentos(), atualizarAlertas()]);
+}
+
+async function atualizarOrcamentos() {
+    const msg = document.querySelector('#orcamento-mensagem');
+    const lista = document.querySelector('#orcamento-lista');
+    try {
+        const mes = document.querySelector('#orcamento-mes').value;
+        if (!mes) return;
+        const dados = await api.get(`/orcamentos?mes=${mes}-01`);
+        lista.replaceChildren();
+        dados.forEach(o => {
+            const li = document.createElement('li');
+            const texto = document.createElement('span');
+            texto.textContent = `${formatarCategoria(o.categoria)}: gasto ${formatarMoeda(Number(o.gasto))} / ${formatarMoeda(Number(o.limite))} · restante ${formatarMoeda(Number(o.restante))} `;
+            const editar = document.createElement('button');
+            editar.type = 'button'; editar.textContent = 'Editar';
+            editar.addEventListener('click', () => {
+                document.querySelector('#orcamento-categoria').value = o.categoria;
+                document.querySelector('#orcamento-limite').value = o.limite;
+                document.querySelector('#orcamento-limite').focus();
+            });
+            const excluir = document.createElement('button');
+            excluir.type = 'button'; excluir.textContent = 'Excluir';
+            excluir.addEventListener('click', async () => {
+                if (!window.confirm('Excluir este orçamento?')) return;
+                try { await api.delete(`/orcamentos/${o.id}`); await atualizarOrcamentosAlertas(); }
+                catch (e) { msg.textContent = e.message; }
+            });
+            li.append(texto, editar, excluir); lista.append(li);
+        });
+        if (!dados.length) msg.textContent = 'Nenhum orçamento neste mês.';
+        else msg.textContent = '';
+    } catch (e) { msg.textContent = e.message; }
+}
+
+async function atualizarAlertas() {
+    const msg = document.querySelector('#alertas-mensagem');
+    const lista = document.querySelector('#alertas-lista');
+    try {
+        const [prefs, dados] = await Promise.all([api.get('/alertas/preferencias'), api.get('/alertas')]);
+        document.querySelector('#alerta-orcamento').checked = prefs.orcamento;
+        document.querySelector('#alerta-vencimento').checked = prefs.vencimento;
+        lista.replaceChildren();
+        dados.forEach(a => {
+            const li = document.createElement('li');
+            const texto = document.createElement('span');
+            texto.textContent = `${a.mensagem} ${a.lido ? '(lido)' : ''} `;
+            li.append(texto);
+            if (!a.lido) {
+                const botao = document.createElement('button');
+                botao.type = 'button'; botao.textContent = 'Marcar como lido';
+                botao.addEventListener('click', async () => {
+                    try { await api.put(`/alertas/lido?chave=${encodeURIComponent(a.chave)}`, {}); await atualizarAlertas(); }
+                    catch (e) { msg.textContent = e.message; }
+                });
+                li.append(botao);
+            }
+            lista.append(li);
+        });
+        msg.textContent = dados.length ? '' : 'Nenhum alerta no momento.';
+    } catch (e) { msg.textContent = e.message; }
 }
