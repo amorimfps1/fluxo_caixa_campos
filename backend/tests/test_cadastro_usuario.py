@@ -446,7 +446,7 @@ def test_criar_investimento_debita_conta_e_reflete_em_relatorios(
         )
         assert r_inv.status_code == 201, r_inv.text
         corpo_inv = r_inv.json()
-        assert corpo_inv["tipo"] == "saida"
+        assert corpo_inv["tipo"] == "investimento"
         assert corpo_inv["categoria"] == "investimento"
         assert corpo_inv["tipo_investimento"] == ativo
 
@@ -614,3 +614,90 @@ def test_criar_conta_bancaria_envia_email_confirmacao(
     assert enviados[0]["tipo_conta"] == "corrente"
     assert enviados[0]["saldo_inicial"] == "2500.00"
 
+
+
+def test_gestao_usuarios_listagem_e_exclusao(client: TestClient) -> None:
+    dados1 = _dados_cadastro()
+    assert client.post("/usuarios/", json=dados1).status_code == 201
+    token1 = client.post(
+        "/login",
+        data={"username": dados1["email"], "password": dados1["senha"]},
+    ).json()["access_token"]
+    headers1 = {"Authorization": f"Bearer {token1}"}
+
+    # Listagem de usuários
+    r_list = client.get("/usuarios/?todos=true", headers=headers1)
+    assert r_list.status_code == 200, r_list.text
+    usuarios = r_list.json()
+    assert isinstance(usuarios, list)
+    assert any(u["email"] == dados1["email"] for u in usuarios)
+
+    # Exclusão segura por ID do próprio usuário
+    me = client.get("/usuarios/me", headers=headers1).json()
+    r_del = client.delete(f"/usuarios/{me['id']}", headers=headers1)
+    assert r_del.status_code == 200, r_del.text
+
+
+def test_movimentacao_tipo_investimento_poupanca_e_cdb(
+    client: TestClient,
+) -> None:
+    from decimal import Decimal
+
+    dados = _dados_cadastro()
+    assert client.post("/usuarios/", json=dados).status_code == 201
+    token = client.post(
+        "/login",
+        data={"username": dados["email"], "password": dados["senha"]},
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    conta = client.post(
+        "/contas-bancarias/",
+        headers=headers,
+        json={
+            "nome_banco": "Conta Investimentos",
+            "tipo_conta": "investimento",
+            "valor_conta_atual": "5000.00",
+            "ativa": True,
+        },
+    ).json()
+
+    # Criação de investimento com tipo="investimento" e ativo="Poupança"
+    r_poupanca = client.post(
+        "/fluxo-dinheiro/",
+        headers=headers,
+        json={
+            "conta_bancaria_id": conta["id"],
+            "tipo": "investimento",
+            "tipo_investimento": "Poupança",
+            "valor": "1200.00",
+            "observacao": "Reserva garantida",
+        },
+    )
+    assert r_poupanca.status_code == 201, r_poupanca.text
+    corpo_poupanca = r_poupanca.json()
+    assert corpo_poupanca["tipo"] == "investimento"
+    assert corpo_poupanca["categoria"] == "investimento"
+    assert corpo_poupanca["tipo_investimento"] == "Poupança"
+
+    # Saldo deve ter sido debitado de 5000 para 3800
+    r_saldo = client.get(f"/contas-bancarias/{conta['id']}", headers=headers)
+    assert Decimal(r_saldo.json()["valor_conta_atual"]) == Decimal("3800.00")
+
+
+def test_logica_agendamento_inteligente_contas_fixas(client: TestClient) -> None:
+    from datetime import date
+    from decimal import Decimal
+    from esquema import calcular_data_recorrencia
+
+    hoje = date(2026, 10, 27)
+    # Se dia informado for anterior a hoje (ex: dia 5 < 27) -> próximo mês (novembro)
+    data_proximo_mes = calcular_data_recorrencia(5, hoje)
+    assert data_proximo_mes == date(2026, 11, 5)
+
+    # Se dia informado for hoje ou futuro no mês (ex: 27 ou 29) -> mês atual (outubro)
+    data_mes_atual = calcular_data_recorrencia(29, hoje)
+    assert data_mes_atual == date(2026, 10, 29)
+
+    data_hoje = calcular_data_recorrencia(27, hoje)
+    assert data_hoje == date(2026, 10, 27)

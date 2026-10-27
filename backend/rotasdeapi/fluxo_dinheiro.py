@@ -186,7 +186,7 @@ def criar_investimento(
         conta_bancaria_id=dados.conta_bancaria_id,
         descricao=f"Investimento - {dados.tipo_investimento}",
         valor=dados.valor,
-        tipo="saida",
+        tipo="investimento",
         categoria="investimento",
         data_movimentacao=dados.data_movimentacao,
         observacao=dados.observacao,

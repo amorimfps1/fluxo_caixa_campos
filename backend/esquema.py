@@ -44,6 +44,7 @@ CategoriaMovimentacaoInput = Literal[
 ]
 
 TipoInvestimentoInput = Literal[
+    "Poupança",
     "CDB",
     "LCI / LCA",
     "Tesouro Direto",
@@ -58,6 +59,58 @@ NaturezaContaInput = Literal[
     "fixa",
     "variavel",
 ]
+
+
+def calcular_data_recorrencia(
+    dia_informado: int,
+    data_referencia: date | None = None,
+) -> date:
+    """Calcula a data inteligente de agendamento/primeiro lançamento para contas e ganhos fixos.
+
+    - Se dia_informado < dia_atual: inicia a partir do próximo mês.
+    - Se dia_informado >= dia_atual: processado no mês atual e repetido nos seguintes.
+    """
+    hoje = data_referencia or date.today()
+    if dia_informado < hoje.day:
+        ano = hoje.year + 1 if hoje.month == 12 else hoje.year
+        mes = 1 if hoje.month == 12 else hoje.month + 1
+    else:
+        ano = hoje.year
+        mes = hoje.month
+
+    ultimo_dia = calendar.monthrange(ano, mes)[1]
+    dia_efetivo = min(max(1, dia_informado), ultimo_dia)
+    return date(ano, mes, dia_efetivo)
+
+
+def _normalizar_tipo_investimento(valor: str | None) -> str | None:
+    if not valor or not isinstance(valor, str):
+        return valor
+    v = valor.strip()
+    mapa = {
+        "poupanca": "Poupança",
+        "poupança": "Poupança",
+        "cdb": "CDB",
+        "lci / lca": "LCI / LCA",
+        "lci/lca": "LCI / LCA",
+        "tesouro direto": "Tesouro Direto",
+        "fundos de investimento": "Fundos de Investimento",
+        "fundos": "Fundos de Investimento",
+        "acao": "Ação",
+        "ação": "Ação",
+        "acoes": "Ação",
+        "ações": "Ação",
+        "fundos de indice (etfs)": "Fundos de Índice (ETFs)",
+        "etfs": "Fundos de Índice (ETFs)",
+        "etf": "Fundos de Índice (ETFs)",
+        "fundos imobiliarios (fiis)": "Fundos Imobiliários (FIIs)",
+        "fundos imobiliários (fiis)": "Fundos Imobiliários (FIIs)",
+        "fiis": "Fundos Imobiliários (FIIs)",
+        "fii": "Fundos Imobiliários (FIIs)",
+        "subscricao": "Subscrição",
+        "subscrição": "Subscrição",
+    }
+    return mapa.get(v.casefold(), v)
 
 
 def _normalizar_categoria(valor: str) -> str:
@@ -420,6 +473,11 @@ class InvestimentoCreate(InputModel):
     data_movimentacao: date = Field(default_factory=date.today)
     observacao: Optional[str] = Field(default=None, max_length=255)
 
+    @field_validator("tipo_investimento", mode="before")
+    @classmethod
+    def validar_tipo_investimento(cls, valor: str | None) -> str | None:
+        return _normalizar_tipo_investimento(valor)
+
 
 class FluxoDinheiroCreate(InputModel):
     conta_bancaria_id: int
@@ -436,6 +494,7 @@ class FluxoDinheiroCreate(InputModel):
     tipo: Literal[
         "entrada",
         "saida",
+        "investimento",
         "transferencia",
         "transferencia_externa",
         "ajuste",
@@ -453,6 +512,11 @@ class FluxoDinheiroCreate(InputModel):
     natureza_conta: Optional[NaturezaContaInput] = None
     dia_repeticao: Optional[int] = Field(default=None, ge=1, le=31)
     tipo_investimento: Optional[TipoInvestimentoInput] = None
+
+    @field_validator("tipo_investimento", mode="before")
+    @classmethod
+    def normalizar_tipo_investimento_fluxo(cls, valor: str | None) -> str | None:
+        return _normalizar_tipo_investimento(valor)
 
     @field_validator("categoria", mode="before")
     @classmethod
@@ -473,8 +537,16 @@ class FluxoDinheiroCreate(InputModel):
 
     @model_validator(mode="after")
     def validar_movimentacao(self):
+        hoje = date.today()
         if self.natureza_conta != "fixa":
             self.dia_repeticao = None
+        elif self.dia_repeticao is not None:
+            # Lógica inteligente de agendamento temporal:
+            # Se dia_informado < dia_atual: inicia a partir do próximo mês.
+            # Se dia_informado >= dia_atual: processado no mês atual e repetido nos seguintes.
+            data_calculada = calcular_data_recorrencia(self.dia_repeticao, hoje)
+            if self.data_movimentacao == hoje and data_calculada != hoje:
+                self.data_movimentacao = data_calculada
 
         if self.tipo == "entrada":
             sufixo_natureza = (
@@ -497,7 +569,13 @@ class FluxoDinheiroCreate(InputModel):
                 else ""
             )
 
-        if self.tipo_investimento:
+        if self.tipo == "investimento":
+            if self.tipo_investimento is None:
+                raise ValueError("tipo_investimento é obrigatório para o tipo investimento.")
+            self.categoria = "investimento"
+            if self.descricao is None:
+                self.descricao = f"Investimento - {self.tipo_investimento}"
+        elif self.tipo_investimento:
             if self.categoria is None:
                 self.categoria = "investimento"
             if self.descricao is None:
@@ -627,6 +705,7 @@ class FluxoDinheiroResponse(BaseModel):
     tipo: Literal[
         "entrada",
         "saida",
+        "investimento",
         "transferencia",
         "ajuste",
     ]

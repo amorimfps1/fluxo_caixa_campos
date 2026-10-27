@@ -373,6 +373,17 @@ function inicializarDatasPadraoRelatorio() {
    MODAIS E FORMULÁRIOS (CONTAS, MOVIMENTAÇÕES E METAS)
 ========================================================= */
 
+function aplicarScrollLock(ativo) {
+    if (ativo) {
+        document.body.classList.add("modal-open");
+    } else {
+        const abertos = document.querySelectorAll("dialog[open]");
+        if (abertos.length === 0) {
+            document.body.classList.remove("modal-open");
+        }
+    }
+}
+
 function configurarDialogos() {
     const formularioConta = document.querySelector("#account-form");
     const formularioMovimentacao = document.querySelector("#movement-form");
@@ -431,15 +442,19 @@ function configurarDialogos() {
 
     document.querySelector("#account-dialog")?.addEventListener("close", () => {
         limparMensagem("#account-message");
+        aplicarScrollLock(false);
     });
     document.querySelector("#movement-dialog")?.addEventListener("close", () => {
         limparMensagem("#movement-message");
+        aplicarScrollLock(false);
     });
     document.querySelector("#investment-dialog")?.addEventListener("close", () => {
         limparMensagem("#investment-message");
+        aplicarScrollLock(false);
     });
     document.querySelector("#goal-dialog")?.addEventListener("close", () => {
         limparMensagem("#goal-message");
+        aplicarScrollLock(false);
     });
 }
 
@@ -503,6 +518,7 @@ function atualizarCamposTipoMovimentacao() {
 
     const ehEntrada = tipo === "entrada";
     const ehSaida = tipo === "saida";
+    const ehInvestimento = tipo === "investimento";
     const possuiClassificacao = ehEntrada || ehSaida;
     const ehFixa = possuiClassificacao && natureza === "fixa";
 
@@ -510,8 +526,15 @@ function atualizarCamposTipoMovimentacao() {
         campoDestino.hidden = tipo !== "transferencia";
     }
 
+    // O grupo de classificação (fixa/variável) aparece apenas para Entrada e Saída
     if (grupoClassificacao) {
         grupoClassificacao.hidden = !possuiClassificacao;
+    }
+
+    // Os campos de tipo de ativo de investimento aparecem apenas para Investimento
+    const campoInvestimento = document.querySelector("#movement-investment-fields");
+    if (campoInvestimento) {
+        campoInvestimento.hidden = !ehInvestimento;
     }
 
     if (ehEntrada) {
@@ -591,7 +614,10 @@ function abrirDialogoConta(contaParaEditar = null) {
         if (campoAtiva) campoAtiva.hidden = true;
     }
 
-    if (dialogo instanceof HTMLDialogElement) dialogo.showModal();
+    if (dialogo instanceof HTMLDialogElement) {
+        aplicarScrollLock(true);
+        dialogo.showModal();
+    }
 }
 
 function abrirDialogoMovimentacao() {
@@ -654,7 +680,10 @@ function abrirDialogoMovimentacao() {
     atualizarCamposTipoMovimentacao();
 
     const dialogo = document.querySelector("#movement-dialog");
-    if (dialogo instanceof HTMLDialogElement) dialogo.showModal();
+    if (dialogo instanceof HTMLDialogElement) {
+        aplicarScrollLock(true);
+        dialogo.showModal();
+    }
 }
 
 function abrirDialogoInvestimento() {
@@ -696,7 +725,10 @@ function abrirDialogoInvestimento() {
     }
 
     const dialogo = document.querySelector("#investment-dialog");
-    if (dialogo instanceof HTMLDialogElement) dialogo.showModal();
+    if (dialogo instanceof HTMLDialogElement) {
+        aplicarScrollLock(true);
+        dialogo.showModal();
+    }
 }
 
 function abrirDialogoMeta(metaParaEditar = null) {
@@ -729,7 +761,10 @@ function abrirDialogoMeta(metaParaEditar = null) {
         if (inputInicio) inputInicio.value = formatarIso(new Date());
     }
 
-    if (dialogo instanceof HTMLDialogElement) dialogo.showModal();
+    if (dialogo instanceof HTMLDialogElement) {
+        aplicarScrollLock(true);
+        dialogo.showModal();
+    }
 }
 
 async function salvarConta(event) {
@@ -800,6 +835,7 @@ async function salvarMovimentacao(event) {
     const diaRepeticaoRaw = (dados.get("dia_repeticao") || "").toString().trim();
     const observacao = (dados.get("observacao") || "").toString().trim();
 
+    const ehInvestimento = tipo === "investimento";
     const possuiClassificacao = tipo === "entrada" || tipo === "saida";
 
     if (possuiClassificacao && naturezaConta === "fixa") {
@@ -808,6 +844,18 @@ async function salvarMovimentacao(event) {
             definirMensagem(
                 "#movement-message",
                 "Informe o dia do mês (de 1 a 31) para repetição automática.",
+                "error"
+            );
+            return;
+        }
+    }
+
+    if (ehInvestimento) {
+        const tipoInvestimento = (dados.get("tipo_investimento") || "").toString().trim();
+        if (!tipoInvestimento) {
+            definirMensagem(
+                "#movement-message",
+                "Selecione o tipo de ativo para o investimento.",
                 "error"
             );
             return;
@@ -823,6 +871,11 @@ async function salvarMovimentacao(event) {
         tipo,
         observacao: observacao || null
     };
+
+    if (ehInvestimento) {
+        payload.tipo_investimento = (dados.get("tipo_investimento") || "").toString().trim();
+        payload.categoria = "investimento";
+    }
 
     if (possuiClassificacao) {
         payload.natureza_conta = naturezaConta;
@@ -885,13 +938,15 @@ async function salvarInvestimento(event) {
 
     const payload = {
         conta_bancaria_id: Number(dados.get("conta_bancaria_id")),
+        tipo: "investimento",
         tipo_investimento: tipoInvestimento,
+        categoria: "investimento",
         valor: dados.get("valor"),
         observacao: observacao || null
     };
 
     try {
-        await api.post("/fluxo-dinheiro/investimentos", payload);
+        await api.post("/fluxo-dinheiro/", payload);
         formulario.reset();
         document.querySelector("#investment-dialog")?.close();
         mostrarToast(`Investimento em ${tipoInvestimento} registrado com sucesso!`);
@@ -2554,12 +2609,14 @@ function configurarConfiguracoes() {
         formExclusao?.reset();
         limparMensagem("#delete-account-message");
         if (dialogoExclusao instanceof HTMLDialogElement) {
+            aplicarScrollLock(true);
             dialogoExclusao.showModal();
         }
     });
 
     dialogoExclusao?.addEventListener("close", () => {
         limparMensagem("#delete-account-message");
+        aplicarScrollLock(false);
     });
 
     formExclusao?.addEventListener("submit", confirmarExclusaoConta);

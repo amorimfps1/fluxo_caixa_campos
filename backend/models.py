@@ -67,7 +67,7 @@ class Usuario(Base):
         Boolean,
         nullable=False,
         default=False,
-        server_default=text("0"),
+        server_default=text("false"),
     )
 
     codigo_verificacao_hash = Column(
@@ -240,6 +240,7 @@ class FluxoDinheiro(Base):
             "saida",
             "transferencia",
             "ajuste",
+            "investimento",
         ),
         nullable=False
     )

@@ -7,7 +7,8 @@
 
 [![Live Demo](https://img.shields.io/badge/Demo_Online-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://fluxo-caixa-coral-two.vercel.app)
 [![API Status](https://img.shields.io/badge/API_Backend-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://fluxo-caixa-cuq1.onrender.com/health)
-[![Database](https://img.shields.io/badge/Database-TiDB_Cloud_MySQL-FF3E00?style=for-the-badge&logo=mysql&logoColor=white)](https://tidbcloud.com)
+[![Database](https://img.shields.io/badge/Database-Supabase_PostgreSQL-005555?style=for-the-badge&logo=postgresql&logoColor=white)](https://supabase.com)
+[![Database](https://img.shields.io/badge/MySQL_Compatível-FF3E00?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-1.0.0-009688?logo=fastapi&logoColor=white)
@@ -16,7 +17,7 @@
 ![Pytest](https://img.shields.io/badge/Pytest-65%20passing-brightgreen?logo=pytest&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
-**Plataforma Full-Stack de gestão e planejamento financeiro pessoal em nuvem, com API REST em FastAPI, banco de dados relacional distribuído (MySQL / TiDB Cloud Serverless), criptografia em repouso (LGPD), interface web responsiva na Vercel e 65 testes automatizados.**
+**Plataforma Full-Stack de gestão e planejamento financeiro pessoal em nuvem, com API REST em FastAPI, banco de dados relacional (Supabase / PostgreSQL com compatibilidade MySQL via TiDB Cloud Serverless), criptografia em repouso (LGPD), interface web responsiva na Vercel e 78 testes automatizados.**
 
 </div>
 
@@ -31,7 +32,7 @@
 - [Stack Tecnológica](#-stack-tecnológica)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Execução Local (Desenvolvimento)](#-execução-local-desenvolvimento)
-- [Deploy em Nuvem (Vercel + Render + TiDB Cloud)](#-deploy-em-nuvem-vercel--render--tidb-cloud)
+- [Deploy em Nuvem (Vercel + Render + Supabase/TiDB Cloud)](#-deploy-em-nuvem-vercel--render--supabase--tidb-cloud)
 - [Resumo das Rotas da API](#-resumo-das-rotas-da-api)
 - [Segurança e Proteção de Dados](#-segurança-e-proteção-de-dados)
 - [Testes Automatizados](#-testes-automatizados)
@@ -133,9 +134,9 @@ flowchart TD
 | **Backend Hosting** | Render | Contêiner Python gerenciado com deploy contínuo integrado ao GitHub |
 | **Framework API** | FastAPI + Uvicorn | API REST assíncrona com validação Pydantic v2 e OpenAPI 3.1 |
 | **ORM & Migrações** | SQLAlchemy 2.x + Alembic | Persistência relacional, controle transacional e versionamento de schema |
-| **Banco em Nuvem** | TiDB Cloud Serverless (MySQL) | Cluster MySQL distribuído na nuvem com conexão TLS/SSL |
+| **Banco em Nuvem** | Supabase PostgreSQL / TiDB Cloud | PostgreSQL com SSL automático ou MySQL distribuído com TLS/SSL |
 | **Segurança** | Cryptography (Fernet) + pwdlib (Argon2) + PyJWT | Cifragem de PII, hashing de senhas de última geração e tokens JWT |
-| **Qualidade & Testes** | Pytest + HTTPX | 65 testes unitários e de integração automatizados + 5 testes de concorrência MySQL |
+| **Qualidade & Testes** | Pytest + HTTPX | 78 testes unitários e de integração automatizados passando |
 
 ---
 
@@ -245,7 +246,7 @@ A API responderá localmente em `http://127.0.0.1:8000` (Swagger em `http://127.
 
 ---
 
-## ☁️ Deploy em Nuvem (Vercel + Render + TiDB Cloud)
+## ☁️ Deploy em Nuvem (Vercel + Render + Supabase / TiDB Cloud)
 
 A arquitetura de produção está configurada para deploy contínuo a partir da branch `main`:
 

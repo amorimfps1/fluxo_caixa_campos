@@ -40,7 +40,7 @@ def _filtro_entradas():
 
 
 def _filtro_saidas():
-    return FluxoDinheiro.tipo == "saida"
+    return FluxoDinheiro.tipo.in_(["saida", "investimento"])
 
 
 def _filtro_transferencias(direcao: str):
@@ -71,7 +71,7 @@ def calcular_movimentacoes_apos_data(
         FluxoDinheiro.data_movimentacao >= data_inicio,
     )
     entradas = _soma_movimentacoes(db, *filtros, _filtro_entradas())
-    saidas = _soma_movimentacoes(db, *filtros, _filtro_saidas())
+    saidas = _soma_movimentacoes(db, *filtros, FluxoDinheiro.tipo.in_(["saida", "investimento"]))
     recebidas = _soma_movimentacoes(
         db, *filtros, _filtro_transferencias("destino")
     )
@@ -137,8 +137,8 @@ def calcular_investimentos(
     return _soma_movimentacoes(
         db,
         FluxoDinheiro.conta_bancaria_id == conta_bancaria_id,
-        FluxoDinheiro.tipo == "saida",
-        FluxoDinheiro.categoria == "investimento",
+        FluxoDinheiro.tipo.in_(["saida", "investimento"]),
+        (FluxoDinheiro.categoria == "investimento") | (FluxoDinheiro.tipo_investimento.isnot(None)),
         FluxoDinheiro.data_movimentacao >= data_inicio,
         FluxoDinheiro.data_movimentacao <= data_fim,
     )

@@ -607,14 +607,18 @@ def excluir_minha_conta(
     response_model=list[UsuarioResponse]
 )
 def listar_usuarios(
+    todos: bool = Query(default=False, description="Listar todos os usuários do banco"),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(obter_usuario_logado)
 ):
+    consulta = db.query(Usuario)
+    if not todos:
+        consulta = consulta.filter(Usuario.id == usuario.id)
     return (
-        db.query(Usuario)
-        .filter(Usuario.id == usuario.id)
+        consulta
+        .order_by(Usuario.id)
         .offset(offset)
         .limit(limit)
         .all()

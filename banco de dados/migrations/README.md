@@ -1,6 +1,6 @@
 # 🔄 Migrações de Banco de Dados — Alembic
 
-Esta pasta contém a infraestrutura oficial de migrações do **Alembic**, responsável por versionar e evoluir o esquema do banco de dados do **Sistema de Fluxo de Caixa** tanto localmente quanto no deploy automatizado em nuvem (Render + TiDB Cloud).
+Esta pasta contém a infraestrutura oficial de migrações do **Alembic**, responsável por versionar e evoluir o esquema do banco de dados do **Sistema de Fluxo de Caixa** tanto localmente quanto no deploy automatizado em nuvem (Render + Supabase PostgreSQL / TiDB Cloud).
 
 ---
 
@@ -10,7 +10,7 @@ Esta pasta contém a infraestrutura oficial de migrações do **Alembic**, respo
 migrations/
 ├── env.py                  # Configuração do contexto Alembic (injeta backend/ no sys.path)
 ├── script.py.mako          # Template padrão para geração de novas revisões
-├── versions/               # 8 revisões sequenciais do esquema
+├── versions/               # 9 revisões sequenciais do esquema (incluindo schema_unificado_supabase)
 │   └── README.md           # Árvore de dependências e detalhamento de cada revisão
 └── README.md               # Este guia operacional
 ```

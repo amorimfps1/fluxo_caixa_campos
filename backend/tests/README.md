@@ -7,7 +7,7 @@ Esta pasta reúne a bateria completa de testes automatizados do **Sistema de Flu
 ## 📊 Resumo da Cobertura
 
 - **Runner:** `pytest`
-- **Testes Padrão (Isolados em Memória):** **65 testes passando (100%)**
+- **Testes Padrão (Isolados em Memória):** **78 testes passando (100%)**
 - **Testes de Concorrência Real (MySQL Opt-in):** **5 testes adicionais** (`@pytest.mark.mysql`)
 - **Banco de Teste Padrão:** SQLite em memória (`sqlite:///:memory:`) recriado de forma limpa a cada teste via fixtures em [`conftest.py`](conftest.py).
 

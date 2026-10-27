@@ -6,19 +6,19 @@
 
 /* 1. Variáveis de cores e configurações */
 :root {
-    --color-primary: #16a34a;
-    --color-primary-dark: #15803d;
-    --color-primary-light: #dcfce7;
+    --color-primary: #059669;
+    --color-primary-dark: #047857;
+    --color-primary-light: #ecfdf5;
 
-    --color-background: #f5f7fb;
+    --color-background: #f8fafc;
     --color-surface: #ffffff;
 
-    --color-text: #172033;
-    --color-text-secondary: #64748b;
-    --color-border: #e8edf4;
+    --color-text: #0f172a;
+    --color-text-secondary: #475569;
+    --color-border: #e2e8f0;
 
-    --color-income: #16a34a;
-    --color-expense: #dc2626;
+    --color-income: #059669;
+    --color-expense: #be123c;
 
     --sidebar-width: 260px;
     --radius-card: 16px;
@@ -44,6 +44,10 @@ body {
     font-family: Inter, "Segoe UI", Arial, sans-serif;
     font-size: 14px;
     line-height: 1.5;
+}
+
+body.modal-open {
+    overflow: hidden !important;
 }
 
 button,
@@ -1219,6 +1223,16 @@ tbody tr:hover {
     color: #b45309;
 }
 
+.badge-investimento {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.transaction-investimento {
+    color: #4f46e5;
+    font-weight: 600;
+}
+
 /* Metas financeiras */
 .goals-list {
     display: flex;
@@ -1583,18 +1597,30 @@ button.button-small.button-danger:hover {
 /* Tema Escuro (Dark Mode) */
 html[data-theme="dark"],
 body.dark-theme {
-    --color-primary: #22c55e;
-    --color-primary-dark: #4ade80;
-    --color-primary-light: rgba(34, 197, 94, 0.16);
+    --color-primary: #10b981;
+    --color-primary-dark: #34d399;
+    --color-primary-light: rgba(16, 185, 129, 0.16);
 
-    --color-background: #0f172a;
-    --color-surface: #1e293b;
+    --color-background: #0b1120;
+    --color-surface: #131d31;
 
-    --color-text: #f1f5f9;
+    --color-text: #f8fafc;
     --color-text-secondary: #94a3b8;
-    --color-border: #334155;
+    --color-border: #1e293b;
+
+    --color-income: #10b981;
+    --color-expense: #f43f5e;
 
     --shadow-card: 0 8px 24px rgba(2, 6, 23, 0.35);
+}
+
+body.dark-theme .badge-investimento {
+    background: rgba(139, 92, 246, 0.22);
+    color: #c4b5fd;
+}
+
+body.dark-theme .transaction-investimento {
+    color: #a5b4fc;
 }
 
 body.dark-theme .button-secondary,
@@ -2063,4 +2089,37 @@ body.dark-theme .nature-tab.active {
     background: #1e293b;
     border-color: var(--color-primary);
     color: var(--color-primary-dark);
+}
+
+/* Estilos auxiliares para ícones SVG */
+.nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.category-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.card-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+.button-icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
 }
