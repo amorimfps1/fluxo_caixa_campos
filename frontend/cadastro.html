@@ -5,156 +5,190 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta
         name="description"
-        content="Crie uma conta no Fluxo de Caixa."
+        content="Abra sua conta no Fluxo de Caixa. Controle financeiro institucional com precisão e segurança."
     >
-    <title>Fluxo de Caixa | Criar conta</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="js/api.js" defer></script>
-    <script src="js/cadastro.js" defer></script>
+    <title>Fluxo de Caixa | Nova Conta</title>
+    <link rel="stylesheet" href="css/style.css?v=13">
+    <script src="js/api.js?v=13" defer></script>
+    <script src="js/cadastro.js?v=13" defer></script>
 </head>
 <body class="login-page">
-    <main class="login-shell">
+    <main class="login-shell register-shell">
         <section class="login-card register-card" aria-labelledby="register-title">
-            <div class="brand login-brand">
-                <div class="brand-icon" aria-hidden="true">FC</div>
-                <div>
-                    <h1>Fluxo de Caixa</h1>
-                    <span>Controle financeiro</span>
+            <div class="login-card-header">
+                <div class="brand center-brand">
+                    <div class="brand-icon" aria-hidden="true">FC</div>
+                    <div>
+                        <span class="brand-title">Fluxo de Caixa</span>
+                        <span class="brand-subtitle">Gestão Patrimonial & Financeira</span>
+                    </div>
+                </div>
+
+                <div class="register-header-meta">
+                    <h1 id="register-title">Crie sua conta institucional</h1>
+                    <p class="login-description">
+                        Inicie o gerenciamento profissional do seu patrimônio com máxima privacidade e precisão.
+                    </p>
                 </div>
             </div>
 
-            <h2 id="register-title">Crie sua conta</h2>
-            <p class="login-description">
-                Cadastre-se com seu e-mail. Enviaremos uma confirmação de boas-vindas assim que sua conta for criada.
-            </p>
-
-            <form id="register-form" class="login-form">
+            <form id="register-form" class="login-form register-form" novalidate>
                 <div class="form-field">
                     <label for="register-name">Nome completo</label>
-                    <input
-                        id="register-name"
-                        name="nome_completo"
-                        type="text"
-                        autocomplete="name"
-                        minlength="3"
-                        maxlength="150"
-                        required
-                    >
-                </div>
-
-                <div class="form-field">
-                    <label for="register-cpf">CPF</label>
-                    <input
-                        id="register-cpf"
-                        name="cpf"
-                        type="text"
-                        inputmode="numeric"
-                        autocomplete="off"
-                        maxlength="14"
-                        aria-describedby="cpf-help"
-                        required
-                    >
-                    <span class="field-help" id="cpf-help">
-                        Necessário para criar a conta. Será armazenado cifrado.
-                    </span>
-                </div>
-
-                <div class="form-field">
-                    <label for="register-email">E-mail</label>
-                    <input
-                        id="register-email"
-                        name="email"
-                        type="email"
-                        autocomplete="email"
-                        maxlength="100"
-                        required
-                    >
-                </div>
-
-                <div class="form-field">
-                    <label for="register-phone">
-                        Telefone <span class="field-optional">(opcional)</span>
-                    </label>
-                    <input
-                        id="register-phone"
-                        name="telefone"
-                        type="tel"
-                        inputmode="tel"
-                        autocomplete="tel"
-                        maxlength="32"
-                        placeholder="+55 (11) 98765-4321"
-                    >
-                    <span class="field-help">
-                        Se informado, use entre 10 e 15 dígitos.
-                    </span>
-                </div>
-
-                <div class="form-field">
-                    <label for="register-password">Senha</label>
-                    <div class="password-input-wrapper">
+                    <div class="input-icon-wrapper">
+                        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
                         <input
-                            id="register-password"
-                            name="senha"
-                            type="password"
-                            autocomplete="new-password"
-                            minlength="8"
-                            maxlength="100"
+                            id="register-name"
+                            name="nome_completo"
+                            type="text"
+                            autocomplete="name"
+                            placeholder="Seu nome completo"
+                            minlength="3"
+                            maxlength="150"
                             required
                         >
-                        <button
-                            type="button"
-                            class="password-toggle-btn"
-                            data-toggle-password="register-password"
-                            aria-label="Mostrar senha"
-                            aria-pressed="false"
-                            title="Mostrar ou ocultar senha"
-                        >
-                            <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                            <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                <line x1="1" y1="1" x2="23" y2="23"></line>
-                            </svg>
-                        </button>
                     </div>
-                    <span class="field-help">
-                        Use letras maiúsculas, minúsculas, números e símbolo.
-                    </span>
+                </div>
+
+                <div class="form-row-2col">
+                    <div class="form-field">
+                        <label for="register-cpf">CPF</label>
+                        <div class="input-icon-wrapper">
+                            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                                <line x1="2" y1="10" x2="22" y2="10"></line>
+                            </svg>
+                            <input
+                                id="register-cpf"
+                                name="cpf"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                maxlength="14"
+                                placeholder="000.000.000-00"
+                                required
+                            >
+                        </div>
+                        <span class="field-help">Armazenamento cifrado com AES-256.</span>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="register-phone">
+                            Telefone <span class="field-optional">(opcional)</span>
+                        </label>
+                        <div class="input-icon-wrapper">
+                            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            </svg>
+                            <input
+                                id="register-phone"
+                                name="telefone"
+                                type="tel"
+                                inputmode="tel"
+                                autocomplete="tel"
+                                maxlength="32"
+                                placeholder="(11) 98765-4321"
+                            >
+                        </div>
+                        <span class="field-help">Para autenticação em duas etapas.</span>
+                    </div>
                 </div>
 
                 <div class="form-field">
-                    <label for="register-password-confirm">
-                        Confirme a senha
-                    </label>
-                    <div class="password-input-wrapper">
+                    <label for="register-email">E-mail corporativo ou pessoal</label>
+                    <div class="input-icon-wrapper">
+                        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
                         <input
-                            id="register-password-confirm"
-                            name="confirmar-senha"
-                            type="password"
-                            autocomplete="new-password"
-                            minlength="8"
+                            id="register-email"
+                            name="email"
+                            type="email"
+                            autocomplete="email"
                             maxlength="100"
+                            placeholder="seu-email@exemplo.com"
                             required
                         >
-                        <button
-                            type="button"
-                            class="password-toggle-btn"
-                            data-toggle-password="register-password-confirm"
-                            aria-label="Mostrar senha"
-                            aria-pressed="false"
-                            title="Mostrar ou ocultar senha"
-                        >
-                            <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
+                    </div>
+                </div>
+
+                <div class="form-row-2col">
+                    <div class="form-field">
+                        <label for="register-password">Senha de acesso</label>
+                        <div class="password-input-wrapper">
+                            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                             </svg>
-                            <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            <input
+                                id="register-password"
+                                name="senha"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="8"
+                                maxlength="100"
+                                placeholder="Mínimo 8 dígitos"
+                                required
+                            >
+                            <button
+                                type="button"
+                                class="password-toggle-btn"
+                                data-toggle-password="register-password"
+                                aria-label="Mostrar senha"
+                                aria-pressed="false"
+                                title="Mostrar ou ocultar senha"
+                            >
+                                <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="register-password-confirm">Confirme a senha</label>
+                        <div class="password-input-wrapper">
+                            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                             </svg>
-                        </button>
+                            <input
+                                id="register-password-confirm"
+                                name="confirmar-senha"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="8"
+                                maxlength="100"
+                                placeholder="Repita a senha"
+                                required
+                            >
+                            <button
+                                type="button"
+                                class="password-toggle-btn"
+                                data-toggle-password="register-password-confirm"
+                                aria-label="Mostrar senha"
+                                aria-pressed="false"
+                                title="Mostrar ou ocultar senha"
+                            >
+                                <svg class="icon-eye icon-eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="icon-eye icon-eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -166,14 +200,18 @@
                 ></p>
 
                 <button class="button-primary login-submit" type="submit">
-                    Criar conta
+                    <span>Criar conta institucional</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
                 </button>
             </form>
 
-            <p class="login-footer">
-                Já tem cadastro?
-                <a href="login.html">Entrar</a>
-            </p>
+            <footer class="login-footer">
+                <span>Já possui cadastro?</span>
+                <a href="login.html" class="link-cadastro">Acessar minha conta</a>
+            </footer>
         </section>
     </main>
 </body>

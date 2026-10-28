@@ -182,3 +182,40 @@ function inicializarTemaSalvo() {
 
 inicializarTemaSalvo();
 document.addEventListener("DOMContentLoaded", inicializarTemaSalvo);
+
+// ====================================================================
+// HOOK GLOBAL DE SCROLL LOCK PARA MODAIS (<dialog>)
+// ====================================================================
+if (typeof HTMLDialogElement !== "undefined" && !HTMLDialogElement.prototype.__scrollLockHooked) {
+    HTMLDialogElement.prototype.__scrollLockHooked = true;
+    const showModalOriginal = HTMLDialogElement.prototype.showModal;
+    HTMLDialogElement.prototype.showModal = function(...args) {
+        document.body.classList.add("modal-open");
+        return showModalOriginal.apply(this, args);
+    };
+    const closeOriginal = HTMLDialogElement.prototype.close;
+    HTMLDialogElement.prototype.close = function(...args) {
+        const res = closeOriginal.apply(this, args);
+        setTimeout(() => {
+            const abertos = document.querySelectorAll("dialog[open]");
+            if (abertos.length === 0) {
+                document.body.classList.remove("modal-open");
+            }
+        }, 0);
+        return res;
+    };
+    window.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll("dialog").forEach((dlg) => {
+            const removerScroll = () => {
+                setTimeout(() => {
+                    const abertos = document.querySelectorAll("dialog[open]");
+                    if (abertos.length === 0) {
+                        document.body.classList.remove("modal-open");
+                    }
+                }, 0);
+            };
+            dlg.addEventListener("cancel", removerScroll);
+            dlg.addEventListener("close", removerScroll);
+        });
+    });
+}

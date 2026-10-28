@@ -6,24 +6,36 @@
 
 /* 1. Variáveis de cores e configurações */
 :root {
-    --color-primary: #059669;
+    /* Psicologia das Cores Financeiras */
+    --color-primary: #059669;            /* Verde institucional / Prosperidade */
     --color-primary-dark: #047857;
     --color-primary-light: #ecfdf5;
 
+    --color-blue: #3b82f6;               /* Azul Confiança / Neutro Estrutural */
+    --color-blue-dark: #1e40af;
+    --color-blue-light: rgba(59, 130, 246, 0.1);
+
     --color-background: #f8fafc;
     --color-surface: #ffffff;
+    --color-surface-hover: #f1f5f9;
 
-    --color-text: #0f172a;
+    --color-text: #0f172a;               /* Alto contraste WCAG */
     --color-text-secondary: #475569;
+    --color-text-muted: #64748b;
     --color-border: #e2e8f0;
+    --color-border-focus: #059669;
 
-    --color-income: #059669;
-    --color-expense: #be123c;
+    --color-income: #059669;             /* Entradas / Ganhos */
+    --color-expense: #be123c;            /* Despesas / Saídas discretas */
 
     --sidebar-width: 260px;
-    --radius-card: 16px;
+    --radius-sm: 6px;
+    --radius-md: 10px;                   /* Padrão consistente de 10px */
+    --radius-card: 14px;
+    --radius-lg: 16px;
 
-    --shadow-card: 0 4px 18px rgba(15, 23, 42, 0.04);
+    --shadow-card: 0 4px 18px rgba(15, 23, 42, 0.05);
+    --shadow-elevated: 0 16px 40px rgba(15, 23, 42, 0.12);
 }
 
 /* 2. Reset e configurações globais */
@@ -46,6 +58,7 @@ body {
     line-height: 1.5;
 }
 
+html.modal-open,
 body.modal-open {
     overflow: hidden !important;
 }
@@ -309,7 +322,7 @@ button {
     min-height: 40px;
     padding: 0 13px;
     border: 1px solid var(--color-border);
-    border-radius: 9px;
+    border-radius: 10px;
     background: #ffffff;
     color: var(--color-text);
     font-size: 12px;
@@ -451,7 +464,7 @@ button {
     padding: 7px 10px;
 
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: 10px;
 
     color: var(--color-text-secondary);
     font-size: 11px;
@@ -641,51 +654,344 @@ tbody tr:hover {
     white-space: normal;
 }
 
-/* Tela de autenticação */
+/* ====================================================================
+   PÁGINAS DE AUTENTICAÇÃO E CADASTRO (DESIGN INSTITUCIONAL / SPLIT-SCREEN)
+   ==================================================================== */
+
 .login-page {
-    background:
-        radial-gradient(circle at top left, #dcfce7, transparent 38%),
-        var(--color-background);
+    background: #0b0f19;
+    color: #f3f4f6;
+    min-height: 100vh;
 }
 
-.login-shell {
+/* Layout Split-Screen de 2 Colunas */
+.login-split-layout {
     display: grid;
+    grid-template-columns: 1.15fr 1fr;
     min-height: 100vh;
-    place-items: center;
-    padding: 24px;
+    background: #0b0f19;
+}
+
+/* Lado Esquerdo: Storytelling Institucional */
+.login-hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 56px 48px;
+    background: linear-gradient(145deg, #0b0f19 0%, #0d1527 45%, #062319 100%);
+    border-right: 1px solid #1e293b;
+    overflow: hidden;
+}
+
+.login-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.12), transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.1), transparent 50%);
+    pointer-events: none;
+}
+
+.login-hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+}
+
+.login-hero-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.hero-brand {
+    padding: 0;
+}
+
+.hero-brand .brand-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f9fafb;
+    letter-spacing: -0.3px;
+}
+
+.hero-brand .brand-subtitle {
+    font-size: 11px;
+    color: #9ca3af;
+    display: block;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 9999px;
+    color: #34d399;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.login-hero-body {
+    margin: 40px 0;
+}
+
+.hero-headline {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.8px;
+    color: #f9fafb;
+    margin-bottom: 14px;
+}
+
+.hero-description {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #9ca3af;
+    margin-bottom: 32px;
+}
+
+.hero-highlights {
+    display: grid;
+    gap: 14px;
+}
+
+.hero-highlight-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+    background: rgba(17, 24, 39, 0.7);
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.hero-highlight-card:hover {
+    border-color: rgba(16, 185, 129, 0.35);
+    transform: translateY(-1px);
+}
+
+.highlight-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.highlight-icon.green {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.highlight-icon.blue {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.highlight-icon.purple {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+}
+
+.hero-highlight-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f3f4f6;
+    margin-bottom: 3px;
+}
+
+.hero-highlight-card p {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #9ca3af;
+}
+
+.login-hero-footer {
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.security-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Lado Direito: Formulário */
+.login-form-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 32px;
+    background: #0b0f19;
 }
 
 .login-card {
     width: min(100%, 420px);
-    padding: 32px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
-    background: var(--color-surface);
-    box-shadow: var(--shadow-card);
+    padding: 40px 36px;
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 }
 
-.register-card {
-    width: min(100%, 480px);
+.login-card-header {
+    margin-bottom: 24px;
 }
 
-.login-brand {
-    padding: 0 0 28px;
-}
-
-.login-card h2 {
-    font-size: 22px;
+.login-card-header h2 {
+    font-size: 24px;
+    font-weight: 700;
     letter-spacing: -0.5px;
+    color: #f9fafb;
+    margin-bottom: 6px;
 }
 
 .login-description {
-    margin-top: 7px;
-    color: var(--color-text-secondary);
+    font-size: 13px;
+    color: #9ca3af;
+    line-height: 1.5;
+}
+
+.mobile-brand {
+    display: none;
+    margin-bottom: 24px;
 }
 
 .login-form {
     display: grid;
     gap: 18px;
-    margin-top: 26px;
+    margin-top: 20px;
+}
+
+/* Tela de Cadastro Centralizada */
+.register-shell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 48px 24px;
+    background:
+        radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.06), transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.06), transparent 45%),
+        #0b0f19;
+}
+
+.register-card {
+    width: min(100%, 540px);
+    padding: 42px 38px;
+    background: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.center-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.register-header-meta {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.register-header-meta h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #f9fafb;
+    margin-bottom: 6px;
+}
+
+.form-row-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* Inputs, Ícones e Botões com 10px de raio */
+.input-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.field-icon {
+    position: absolute;
+    left: 13px;
+    width: 18px;
+    height: 18px;
+    color: #64748b;
+    pointer-events: none;
+    transition: color 0.2s ease;
+    z-index: 2;
+}
+
+.input-icon-wrapper input {
+    padding-left: 40px !important;
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.password-input-wrapper .field-icon {
+    position: absolute;
+    left: 13px;
+    z-index: 2;
+}
+
+.password-input-wrapper input {
+    padding-left: 40px !important;
+    padding-right: 42px !important;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: #64748b;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+    color: #f3f4f6;
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .form-field {
@@ -695,18 +1001,37 @@ tbody tr:hover {
 
 .form-field label {
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
+    color: #e2e8f0;
 }
 
-.field-optional,
-.field-help {
-    color: var(--color-text-secondary);
+.field-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.forgot-password-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #3b82f6;
+    font-size: 12px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.forgot-password-link:hover {
+    color: #60a5fa;
+    text-decoration: underline;
+}
+
+.field-help,
+.field-optional {
+    color: #64748b;
     font-size: 11px;
-    font-weight: 400;
-}
-
-.field-help {
-    margin-top: -3px;
+    line-height: 1.4;
 }
 
 .form-field input,
@@ -714,46 +1039,159 @@ tbody tr:hover {
 .form-field textarea {
     width: 100%;
     min-height: 44px;
-    padding: 10px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 9px;
-    background: #ffffff;
-    color: var(--color-text);
+    padding: 10px 14px;
+    border: 1px solid #1e293b;
+    border-radius: 10px !important;
+    background: #0f172a;
+    color: #f3f4f6;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.form-field textarea {
-    min-height: 88px;
-    resize: vertical;
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    outline: none;
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+    background: #111e38;
 }
 
-.form-field input:focus-visible,
-.form-field select:focus-visible,
-.form-field textarea:focus-visible {
-    outline: 3px solid rgba(22, 163, 74, 0.2);
-    border-color: var(--color-primary);
+.form-field input:focus + .field-icon,
+.input-icon-wrapper:focus-within .field-icon,
+.password-input-wrapper:focus-within .field-icon {
+    color: #10b981;
 }
 
+button,
+.button-primary,
+.button-secondary {
+    border-radius: 10px !important;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.button-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 11px 20px;
+    background: #059669;
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+}
+
+.button-primary:hover {
+    background: #10b981;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+}
+
+.button-primary:active {
+    transform: translateY(0);
+}
+
+.button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 18px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    border: 1px solid #1e293b;
+}
+
+.button-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #334155;
+    color: #ffffff;
+}
+
+.login-submit {
+    width: 100%;
+    margin-top: 6px;
+}
+
+.login-submit:disabled {
+    cursor: wait;
+    opacity: 0.65;
+    transform: none !important;
+}
+
+.login-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #1e293b;
+    color: #9ca3af;
+    font-size: 13px;
+    text-align: center;
+}
+
+.login-footer a {
+    color: #3b82f6;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.login-footer a:hover {
+    color: #60a5fa;
+    text-decoration: underline;
+}
+
+.form-message {
+    min-height: 20px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.form-message.error {
+    color: #f43f5e;
+    background: rgba(244, 63, 94, 0.1);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+    padding: 10px 14px;
+    border-radius: 10px;
+}
+
+.form-message.info {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    padding: 10px 14px;
+    border-radius: 10px;
+}
+
+/* Modais de Autenticação */
 .form-dialog {
     width: min(100% - 32px, 520px);
     max-height: min(90vh, 820px);
     margin: auto;
     padding: 0;
     overflow-y: auto;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
-    background: var(--color-surface);
-    color: var(--color-text);
-    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    background: #111827;
+    color: #f3f4f6;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65);
 }
 
 .form-dialog::backdrop {
-    background: rgba(15, 23, 42, 0.48);
+    background: rgba(3, 7, 18, 0.75);
+    backdrop-filter: blur(4px);
 }
 
 .dialog-form {
     display: grid;
     gap: 18px;
-    padding: 28px;
+    padding: 30px;
 }
 
 .dialog-header {
@@ -761,18 +1199,20 @@ tbody tr:hover {
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .dialog-header h2 {
     font-size: 20px;
+    font-weight: 700;
     letter-spacing: -0.4px;
+    color: #f9fafb;
 }
 
 .dialog-header p {
     margin-top: 5px;
-    color: var(--color-text-secondary);
-    font-size: 12px;
+    color: #9ca3af;
+    font-size: 13px;
 }
 
 .dialog-close {
@@ -781,64 +1221,69 @@ tbody tr:hover {
     place-items: center;
     width: 36px;
     height: 36px;
-    border: 0;
-    border-radius: 9px;
-    background: #f1f5f9;
-    color: var(--color-text-secondary);
-    font-size: 24px;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+    font-size: 20px;
     line-height: 1;
+    transition: all 0.2s ease;
 }
 
 .dialog-close:hover {
-    background: #e2e8f0;
-    color: var(--color-text);
+    background: rgba(255, 255, 255, 0.1);
+    color: #f3f4f6;
 }
 
 .dialog-actions {
     display: flex;
     justify-content: flex-end;
     flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.otp-email-row {
+    display: flex;
     gap: 10px;
 }
 
-.form-message {
-    min-height: 20px;
-    color: var(--color-text-secondary);
-    font-size: 12px;
+.otp-send-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
-.form-message.error {
-    color: var(--color-expense);
+/* Responsividade Mobile e Tablet */
+@media (max-width: 960px) {
+    .login-split-layout {
+        grid-template-columns: 1fr;
+    }
+    .login-hero {
+        display: none;
+    }
+    .mobile-brand {
+        display: flex;
+    }
+    .login-card {
+        padding: 32px 24px;
+    }
 }
 
-.form-message.info {
-    color: var(--color-primary-dark);
+@media (max-width: 600px) {
+    .form-row-2col {
+        grid-template-columns: 1fr;
+    }
+    .register-card {
+        padding: 30px 20px;
+    }
+    .otp-email-row {
+        flex-direction: column;
+    }
+    .otp-send-btn {
+        width: 100%;
+    }
 }
 
-.login-submit {
-    width: 100%;
-}
-
-.login-submit:disabled {
-    cursor: wait;
-    opacity: 0.7;
-}
-
-.login-footer {
-    margin-top: 20px;
-    color: var(--color-text-secondary);
-    font-size: 12px;
-    text-align: center;
-}
-
-.login-footer a {
-    color: var(--color-primary-dark);
-    font-weight: 700;
-}
-
-.login-footer a:hover {
-    text-decoration: underline;
-}
 
 /* Classes disponíveis para movimentações futuras */
 .transaction-income {
@@ -1594,24 +2039,32 @@ button.button-small.button-danger:hover {
     border-color: #fca5a5;
 }
 
-/* Tema Escuro (Dark Mode) */
+/* Tema Escuro (Dark Mode) - Base Corporativa #0B0F19 / #111827 */
 html[data-theme="dark"],
 body.dark-theme {
-    --color-primary: #10b981;
-    --color-primary-dark: #34d399;
-    --color-primary-light: rgba(16, 185, 129, 0.16);
+    --color-primary: #10b981;            /* Verde crescimento refinado */
+    --color-primary-dark: #059669;
+    --color-primary-light: rgba(16, 185, 129, 0.14);
 
-    --color-background: #0b1120;
-    --color-surface: #131d31;
+    --color-blue: #3b82f6;               /* Azul solidez */
+    --color-blue-dark: #1e40af;
+    --color-blue-light: rgba(59, 130, 246, 0.14);
 
-    --color-text: #f8fafc;
-    --color-text-secondary: #94a3b8;
-    --color-border: #1e293b;
+    --color-background: #0b0f19;         /* Cinza escuro/azulado profundo */
+    --color-surface: #111827;            /* Cards e painéis */
+    --color-surface-hover: #1f2937;
+
+    --color-text: #f3f4f6;               /* Branco suave alto contraste */
+    --color-text-secondary: #9ca3af;     /* Cinza claro legível */
+    --color-text-muted: #64748b;
+    --color-border: #1e293b;             /* Divisórias elegantes */
+    --color-border-focus: #10b981;
 
     --color-income: #10b981;
-    --color-expense: #f43f5e;
+    --color-expense: #be123c;            /* Vermelho institucional sóbrio */
 
-    --shadow-card: 0 8px 24px rgba(2, 6, 23, 0.35);
+    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-elevated: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
 body.dark-theme .badge-investimento {
@@ -1884,7 +2337,7 @@ body.dark-theme select option {
     justify-content: space-between;
     gap: 8px;
     padding: 9px 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--color-text);
     font-size: 13px;
     font-weight: 500;
@@ -2056,7 +2509,7 @@ body.dark-theme .card-value.value-expense {
     min-height: 38px;
     padding: 8px 12px;
     border: 1px solid transparent;
-    border-radius: 9px;
+    border-radius: 10px;
     background: transparent;
     color: var(--color-text-secondary);
     font-size: 13px;
@@ -2197,7 +2650,7 @@ body.dark-theme .nature-tab.active {
     cursor: pointer;
     user-select: none;
     padding: 6px 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--color-background);
     border: 1px solid var(--color-border);
     transition: all 0.2s ease;
@@ -2260,7 +2713,7 @@ body.dark-theme .nature-tab.active {
 .alert-card-icon {
     width: 28px;
     height: 28px;
-    border-radius: 8px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
