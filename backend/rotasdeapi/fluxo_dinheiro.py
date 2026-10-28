@@ -151,15 +151,23 @@ def criar_movimentacao(
     tipo_persistido = (
         "saida" if dados.tipo == "transferencia_externa" else dados.tipo
     )
+    categoria_persistida = dados.categoria
+    descricao_persistida = dados.descricao
+    if dados.tipo == "investimento":
+        categoria_persistida = categoria_persistida or "investimento"
+        descricao_persistida = (
+            descricao_persistida
+            or f"Aporte em {dados.tipo_investimento or 'Investimento'}"
+        )
     conta = contas[dados.conta_bancaria_id]
     variacao = _variacao(tipo_persistido, valor)
     _validar_e_aplicar_saldos(contas, {conta.id: variacao})
     movimentacao = FluxoDinheiro(
         conta_bancaria_id=conta.id,
-        descricao=dados.descricao,
+        descricao=descricao_persistida,
         valor=valor,
         tipo=tipo_persistido,
-        categoria=dados.categoria,
+        categoria=categoria_persistida,
         data_movimentacao=dados.data_movimentacao,
         observacao=dados.observacao,
         natureza_conta=dados.natureza_conta,

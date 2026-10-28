@@ -385,6 +385,27 @@ function aplicarScrollLock(ativo) {
     }
 }
 
+// Interceptador global para garantir scroll lock em todos os modais (<dialog>)
+if (typeof HTMLDialogElement !== "undefined" && !HTMLDialogElement.prototype.__scrollLockHooked) {
+    HTMLDialogElement.prototype.__scrollLockHooked = true;
+    const showModalOriginal = HTMLDialogElement.prototype.showModal;
+    HTMLDialogElement.prototype.showModal = function(...args) {
+        document.body.classList.add("modal-open");
+        return showModalOriginal.apply(this, args);
+    };
+    const closeOriginal = HTMLDialogElement.prototype.close;
+    HTMLDialogElement.prototype.close = function(...args) {
+        const res = closeOriginal.apply(this, args);
+        setTimeout(() => {
+            const abertos = document.querySelectorAll("dialog[open]");
+            if (abertos.length === 0) {
+                document.body.classList.remove("modal-open");
+            }
+        }, 0);
+        return res;
+    };
+}
+
 function configurarDialogos() {
     const formularioConta = document.querySelector("#account-form");
     const formularioMovimentacao = document.querySelector("#movement-form");
@@ -435,6 +456,10 @@ function configurarDialogos() {
     });
 
     seletorTipoMovimento?.addEventListener("change", atualizarCamposTipoMovimentacao);
+
+    const inputDiaRepeticao = document.querySelector("#movement-repeat-day");
+    inputDiaRepeticao?.addEventListener("input", atualizarAjudaDiaRepeticao);
+    inputDiaRepeticao?.addEventListener("change", atualizarAjudaDiaRepeticao);
 
     formularioConta?.addEventListener("submit", salvarConta);
     formularioMovimentacao?.addEventListener("submit", salvarMovimentacao);
@@ -500,6 +525,35 @@ function popularSelectOpcoesMovimentacao(selectEl, listaOpcoes) {
     });
     const existeAnterior = listaOpcoes.some((item) => item.value === valorAnterior);
     selectEl.value = existeAnterior ? valorAnterior : listaOpcoes[0]?.value || "";
+}
+
+function atualizarAjudaDiaRepeticao() {
+    const input = document.querySelector("#movement-repeat-day");
+    const help = document.querySelector("#movement-repeat-day-help");
+    const tipo = document.querySelector("#movement-type")?.value || "entrada";
+    if (!input || !help) return;
+    const dia = parseInt(input.value, 10);
+    const termo = tipo === "entrada" ? "este ganho fixo" : "esta conta fixa";
+    if (isNaN(dia) || dia < 1 || dia > 31) {
+        help.textContent = `Dia do mês (1 a 31) em que ${termo} se repetirá automaticamente.`;
+        return;
+    }
+    const hoje = new Date();
+    const diaAtual = hoje.getDate();
+    const meses = [
+        "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+    ];
+    if (dia < diaAtual) {
+        const prox = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+        const mesNome = meses[prox.getMonth()];
+        const ano = prox.getFullYear();
+        help.textContent = `Como o dia ${dia} já passou no mês atual (hoje é dia ${diaAtual}), a recorrência iniciará no próximo mês em ${dia} de ${mesNome} de ${ano}.`;
+    } else {
+        const mesNome = meses[hoje.getMonth()];
+        const ano = hoje.getFullYear();
+        help.textContent = `Como o dia ${dia} é hoje ou posterior (hoje é dia ${diaAtual}), a movimentação será processada neste mês em ${dia} de ${mesNome} de ${ano} e repetirá nos meses seguintes.`;
+    }
 }
 
 function atualizarCamposTipoMovimentacao() {
@@ -583,6 +637,20 @@ function atualizarCamposTipoMovimentacao() {
 
     if (inputValor) {
         inputValor.setAttribute("min", "0.01");
+    }
+
+    const labelConta = document.querySelector("#movement-account-label");
+    const btnSubmit = document.querySelector("#movement-form button[type='submit']");
+    if (ehInvestimento) {
+        if (labelConta) labelConta.textContent = "Conta bancária para débito do aporte";
+        if (btnSubmit) btnSubmit.textContent = "Registrar investimento";
+    } else {
+        if (labelConta) labelConta.textContent = tipo === "transferencia" ? "Conta de origem" : "Conta bancária";
+        if (btnSubmit) btnSubmit.textContent = "Salvar movimentação";
+    }
+
+    if (ehFixa) {
+        atualizarAjudaDiaRepeticao();
     }
 }
 
@@ -916,7 +984,7 @@ async function salvarMovimentacao(event) {
         });
         atualizarCamposTipoMovimentacao();
         document.querySelector("#movement-dialog").close();
-        mostrarToast("Movimentação registrada com sucesso!");
+        mostrarToast(ehInvestimento ? `Investimento em ${payload.tipo_investimento} registrado com sucesso!` : "Movimentação registrada com sucesso!");
         await carregarDashboard();
     } catch (error) {
         definirMensagem("#movement-message", error.message, "error");
@@ -1556,6 +1624,9 @@ function atualizarTabelaVazia(seletorTabela, mensagem, colunas = 5) {
 }
 
 function obterRotuloCategoriaMovimento(movimento) {
+    if (movimento.tipo === "investimento" || movimento.categoria === "investimento") {
+        return movimento.tipo_investimento ? `Investimento · ${movimento.tipo_investimento}` : "Investimento";
+    }
     const baseCat = formatarCategoria(movimento.categoria);
     if (movimento.tipo_investimento) {
         return `${baseCat} · ${movimento.tipo_investimento}`;
@@ -1606,6 +1677,8 @@ function renderizarTabelaCompacta(seletorTabela, lista) {
                 ? "align-right transaction-income"
                 : movimento.tipo === "saida"
                 ? "align-right transaction-expense"
+                : movimento.tipo === "investimento"
+                ? "align-right transaction-investimento"
                 : "align-right";
         const celulaValor = criarElemento(
             "td",
@@ -1652,6 +1725,8 @@ function renderizarTabelaDetalhada(seletorTabela, lista) {
                 ? "align-right transaction-income"
                 : movimento.tipo === "saida"
                 ? "align-right transaction-expense"
+                : movimento.tipo === "investimento"
+                ? "align-right transaction-investimento"
                 : "align-right";
         const celulaValor = criarElemento(
             "td",
@@ -2568,7 +2643,11 @@ function atualizarInterfaceTema(tema) {
         botao.setAttribute("aria-pressed", String(escuro));
     }
     if (icone) {
-        icone.textContent = escuro ? "☀️" : "🌙";
+        if (escuro) {
+            icone.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+        } else {
+            icone.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+        }
     }
     if (rotulo) {
         rotulo.textContent = escuro ? "Ativar tema claro" : "Ativar tema escuro";
