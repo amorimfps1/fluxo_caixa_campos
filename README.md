@@ -14,13 +14,14 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-1.0.0-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.x_ORM-D71F00?logo=databricks&logoColor=white)](https://www.sqlalchemy.org/)
 [![Alembic](https://img.shields.io/badge/Alembic-16_Revisões-F59E0B?logo=alembic&logoColor=white)](https://alembic.sqlalchemy.org/)
-[![Pytest](https://img.shields.io/badge/Pytest-109%20Passing-brightgreen?logo=pytest&logoColor=white)](https://pytest.org/)
+[![Pytest](https://img.shields.io/badge/Pytest-110%20Passing-brightgreen?logo=pytest&logoColor=white)](https://pytest.org/)
 [![Security](https://img.shields.io/badge/Security-LGPD_Fernet_AES128_%2B_Argon2id_%2B_OAuth2-blueviolet)](https://www.gov.br/cidadania/pt-br/acesso-a-informacao/lgpd)
+[![WCAG](https://img.shields.io/badge/Accessibility-WCAG_AA_Light_%26_Dark-10B981)](frontend/css/style.css)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
 
 <br/>
 
-**Plataforma Full-Stack de gestão patrimonial e fluxo de caixa corporativo/pessoal em nuvem. Construída com API REST assíncrona em FastAPI, banco de dados relacional (Supabase PostgreSQL / TiDB Cloud MySQL), precisão contábil exata (`Decimal 12,2`), conformidade LGPD em repouso (Fernet AES-128 + Blind Index HMAC), Login Social Google OAuth 2.0, verificação anti-bot via OTP por e-mail, Landing Page de alta conversão, interface SPA responsiva (Tema Claro e Escuro) e 109 testes automatizados.**
+**Plataforma Full-Stack de gestão patrimonial e fluxo de caixa corporativo/pessoal em nuvem. Construída com API REST assíncrona em FastAPI, banco de dados relacional (Supabase PostgreSQL / TiDB Cloud MySQL), precisão contábil exata (`Decimal 12,2`), conformidade LGPD em repouso (Fernet AES-128 + Blind Index HMAC), Login Social Google OAuth 2.0, verificação anti-bot via OTP por e-mail, Landing Page de alta conversão, Design System WCAG AA (Tema Claro e Tema Escuro) e 110 testes automatizados.**
 
 </div>
 
@@ -47,9 +48,11 @@
 
 | Recurso / Serviço | Plataforma | URL Pública | Finalidade |
 |---|---|---|---|
-| **Aplicação Web (SPA)** | Vercel Edge | [https://fluxo-caixa-coral-two.vercel.app](https://fluxo-caixa-coral-two.vercel.app) | Painel financeiro autenticado |
-| **Página de Login** | Vercel Edge | [https://fluxo-caixa-coral-two.vercel.app/login.html](https://fluxo-caixa-coral-two.vercel.app/login.html) | Acesso seguro com rate limiting |
-| **Página de Cadastro** | Vercel Edge | [https://fluxo-caixa-coral-two.vercel.app/cadastro.html](https://fluxo-caixa-coral-two.vercel.app/cadastro.html) | Criação de conta com validação de CPF |
+| **Landing Page Institucional** | Vercel Edge | [https://fluxo-caixa-coral-two.vercel.app](https://fluxo-caixa-coral-two.vercel.app) | Apresentação de recursos, segurança LGPD e CTAs (`/inicio.html`) |
+| **Aplicação Web (SPA)** | Vercel Edge | [https://fluxo-caixa-coral-two.vercel.app/index.html](https://fluxo-caixa-coral-two.vercel.app/index.html) | Painel financeiro autenticado (Modo Claro e Escuro) |
+| **Página de Login** | Vercel Edge | [https://fluxo-caixa-coral-two.vercel.app/login.html](https://fluxo-caixa-coral-two.vercel.app/login.html) | Acesso seguro com Google OAuth 2.0, OTP e rate limiting |
+| **Página de Cadastro** | Vercel Edge | [https://fluxo-caixa-coral-two.vercel.app/cadastro.html](https://fluxo-caixa-coral-two.vercel.app/cadastro.html) | Abertura de conta com CPF em tempo real, checklist 5 regras e LGPD |
+| **Termos & Privacidade LGPD** | Vercel Edge | [https://fluxo-caixa-coral-two.vercel.app/privacidade.html](https://fluxo-caixa-coral-two.vercel.app/privacidade.html) | Conformidade com a Lei nº 13.709/2018 e Termos de Serviço |
 | **API REST (Backend)** | Render Web Service | [https://fluxo-caixa-cuq1.onrender.com](https://fluxo-caixa-cuq1.onrender.com) | Núcleo de serviços e regras contábeis |
 | **Documentação Interativa** | Swagger UI | [https://fluxo-caixa-cuq1.onrender.com/docs](https://fluxo-caixa-cuq1.onrender.com/docs) | Teste e inspeção direta de endpoints |
 | **Healthcheck Operacional** | Render Monitor | [https://fluxo-caixa-cuq1.onrender.com/health](https://fluxo-caixa-cuq1.onrender.com/health) | Diagnóstico de integridade da API |
@@ -130,15 +133,18 @@ flowchart TD
 - **Transferências Atômicas Vinculadas:** Operações entre contas geram pares vinculados por `transferencia_id` (UUIDv4) com trava pessimista (`SELECT ... FOR UPDATE`), garantindo que a exclusão de qualquer ponta reverta os saldos das duas contas de forma indivisível.
 - **Orçamentos Mensais & Alertas Proativos:** Estabeleça tetos de gastos por categoria no mês, com barras de progresso dinâmicas e avisos de saídas nos próximos 7 dias.
 
-### 🎨 Experiência do Usuário (UI/UX) de Alta Fidelidade
-- **Psicologia das Cores Financeiras:** Paleta profissional com fundo escuro profundo (`#0B0F19`), verde crescimento institucional (`#059669` / `#10B981`), azul confiança estrutural (`#3B82F6`) e vermelho sóbrio (`#BE123C`).
-- **100% Vetorial (Zero Emojis):** Elementos visuais construídos com SVG inline de alta definição.
-- **Microinterações Refinadas:**
-  - Fechamento de modais ao clicar no backdrop externo (*click outside*).
-  - Layout calibrado sem barras de rolagem lateral (`overflow-x: hidden`).
-  - Botão de acesso rápido a **Nova Movimentação** no topo do Dashboard.
-  - Atalhos corporativos no rodapé da barra lateral: link direto para o **Gmail** e **Configurações**.
-  - Confirmação visual defensiva ao realizar *logout*.
+### 🎨 Experiência do Usuário (UI/UX) & Design System WCAG AA
+- **Design System Dual-Theme (Modo Claro & Modo Escuro):**
+  - *Modo Claro:* Fundo `#F8FAFC`, cartões `#FFFFFF`, texto `#0F172A` e botões primários verdes `#10B981` com **texto preto `#0B0F19` (peso 700)** para máximo contraste.
+  - *Modo Escuro:* Fundo `#0B0F19`, cartões/modais `#111827`, inputs `#0F172A`, texto `#F8FAFC` e botões primários verdes `#10B981` com **texto branco `#FFFFFF` (peso 600)**.
+- **Hierarquia Estrita de Botões:** Ações principais, exportações CSV e limpeza de filtros padronizadas em `.button-primary` (`min-height: 42px`, `border-radius: 10px`), e botão **Sair da conta** (`.btn-logout` / `#logout`) **sempre vermelho** (`#DC2626`, hover `#991B1B`) em ambos os temas.
+- **100% Vetorial (Zero Emojis na Interface):** Logotipo oficial (`#10B981` -> `#047857`) e ícones construídos com SVG local/inline de alta definição.
+- **Validações Reativas em Tempo Real & Proteção Autofill:**
+  - Validação matemática **Módulo 11 de CPF**, formato estrito de e-mail e **checklist interativo de 5 regras de senha forte + confirmação** com `<small class="field-error" role="alert">` e limpeza instantânea ao corrigir.
+  - Sobrescrita `input:-webkit-autofill` no login para evitar caixas amarelas/azuis do navegador e tradução automática de erros `400/409/422` para português.
+- **Microinterações & Sidebar Unificada:**
+  - Cartão de perfil do usuário (`#user-profile-badge`) sempre visível no rodapé da barra lateral e integrado diretamente à seção `#configuracoes`.
+  - Fechamento de modais ao clicar no backdrop externo (*click outside*), trava de rolagem (`modal-open`) e confirmação defensiva ao realizar *logout*.
 
 ### 🔒 Segurança & Privacidade LGPD
 - **Criptografia Simétrica em Repouso:** CPF e telefone armazenados cifrados com **Fernet (AES-128-CBC + HMAC-SHA256)**.
@@ -160,7 +166,7 @@ flowchart TD
 | **Banco em Nuvem** | Supabase PostgreSQL / TiDB Cloud | PostgreSQL 15+ com Pooler PgBouncer porta 6543 e MySQL 8 Serverless com TLS |
 | **Segurança & Crypto** | Cryptography (Fernet) + pwdlib (Argon2id) + PyJWT | Cifragem de PII, hashing resistente a GPU e autenticação por tokens assinados |
 | **Serviço de E-mail** | Python smtplib com STARTTLS | Envio de códigos OTP e e-mails de confirmação com fallback resiliente |
-| **Suíte de Testes** | Pytest + HTTPX TestClient | 109 testes automatizados cobrindo fluxos E2E, integridade contábil, OAuth 2.0, OTP anti-bot e LGPD |
+| **Suíte de Testes** | Pytest + HTTPX TestClient | 110 testes automatizados cobrindo fluxos E2E, integridade contábil, Design System WCAG AA, OAuth 2.0, OTP anti-bot e LGPD |
 
 ---
 
@@ -183,7 +189,7 @@ fluxo_caixas/
 │   ├── servicos/                       # Serviços utilitários
 │   │   ├── email.py                    # Envio defensivo de e-mails transacionais via SMTP
 │   │   └── google_oauth.py             # Validação de ID Token Google OAuth 2.0 (iss, aud, exp, email_verified)
-│   ├── tests/                          # Suíte de 109 testes automatizados
+│   ├── tests/                          # Suíte de 110 testes automatizados
 │   │   ├── conftest.py                 # Fixtures globais e banco em memória SQLite
 │   │   ├── test_*.py                   # Módulos de testes por especialidade (incluindo OAuth 2.0 e LGPD)
 │   │   └── README.md                   # Guia detalhado da suíte de testes
@@ -323,7 +329,7 @@ flowchart LR
    - **Start Command:** `python -m alembic -c "banco de dados/alembic.ini" upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT`
    - **Environment Variables:** `APP_ENV=production`, `CORS_ORIGINS=https://fluxo-caixa-coral-two.vercel.app`, `DATABASE_URL`, `JWT_SECRET_KEY`, `CPF_ENCRYPTION_KEY`.
 3. **Frontend (Vercel):**
-   - Publicação configurada em [`vercel.json`](vercel.json) (`outputDirectory: "frontend"`), redirecionando a raiz para `/login.html`.
+   - Publicação configurada em [`vercel.json`](vercel.json) (`outputDirectory: "frontend"`), redirecionando a raiz `/` para a Landing Page `/inicio.html`, com rewrites amigáveis (`/inicio`, `/login`, `/cadastro`, `/dashboard`, `/termos`, `/privacidade`) e cabeçalhos HTTP de segurança.
 
 ---
 
@@ -384,7 +390,7 @@ flowchart LR
 
 ## 🧪 Qualidade & Testes Automatizados
 
-A aplicação conta com **109 testes automatizados** executados via Pytest com banco de dados SQLite em memória totalmente isolado:
+A aplicação conta com **110 testes automatizados** executados via Pytest com banco de dados SQLite em memória totalmente isolado:
 
 ```powershell
 python -m pytest -q
@@ -392,7 +398,7 @@ python -m pytest -q
 
 Saída esperada:
 ```text
-109 passed, 5 deselected
+110 passed, 5 deselected
 ```
 
 Os 5 testes marcados como `deselected` correspondem a testes de alta concorrência com bloqueio pessimista (`SELECT ... FOR UPDATE`) que exigem um cluster MySQL ativo.

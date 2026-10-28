@@ -62,16 +62,15 @@ flowchart TD
 
 ## 🧩 Camadas da Aplicação e Padrões de Projeto
 
-### 1. Camada de Apresentação (Frontend SPA)
-- **Tecnologia:** HTML5 Semântico, CSS3 Moderno (Custom Properties, Flexbox e CSS Grid), Vanilla JavaScript (ES6+).
-- **Psicologia das Cores Financeiras:**
-  - *Fundo e Superfícies:* `#0B0F19` e `#111827` (transmitem solidez, sobriedade e tecnologia).
-  - *Verde Institucional / Crescimento:* `#059669` / `#10B981` (entradas, ganhos fixos, saldos positivos e botões CTA primários).
-  - *Azul Confiança / Neutro Estrutural:* `#3B82F6` (contas bancárias, links e elementos estruturais).
-  - *Vermelho/Coral Sutil:* `#BE123C` (saídas, despesas e alertas).
-  - *Padronização de Bordas:* `border-radius: 10px` em inputs, botões e selects.
-- **Zero Emojis:** Interface 100% composta por vetores SVG nativos para acabamento institucional de nível bancário.
-- **Microinterações:** Fechamento automático de modais ao clicar no backdrop externo (*click outside*), controle de overflow para eliminar scroll horizontal indesejado e confirmação segura para encerramento de sessão (*logout*).
+### 1. Camada de Apresentação (Frontend SPA & Landing Page)
+- **Tecnologia:** HTML5 Semântico, CSS3 Design System (Custom Properties, Flexbox e CSS Grid), Vanilla JavaScript (ES6+) e Chart.js.
+- **Design System Dual-Theme (WCAG AA) & Hierarquia de Botões:**
+  - *Modo Claro:* Fundo `#F8FAFC`, superfícies `#FFFFFF`, texto `#0F172A` e botões primários `#10B981` com **texto preto (`#0B0F19`, peso 700)**.
+  - *Modo Escuro:* Fundo `#0B0F19`, superfícies `#111827`, inputs `#0F172A`, texto `#F8FAFC` e botões primários `#10B981` com **texto branco (`#FFFFFF`, peso 600)**.
+  - *Ações Destrutivas / Logout:* Botão `#logout` / `.btn-logout` **sempre vermelho** (`#DC2626`, hover `#991B1B`) em ambos os temas.
+  - *Padronização:* `min-height: 42px` e `border-radius: 10px` em inputs, botões e selects, além de sobrescrita `input:-webkit-autofill` no login.
+- **Zero Emojis na Interface:** Identidade visual 100% composta por vetores SVG nativos (`#10B981` -> `#047857`).
+- **Validações Reativas & Sidebar Unificada:** Validação Módulo 11 de CPF, formato de e-mail e checklist interativo de 5 regras de senha em tempo real (`<small class="field-error">`), além de cartão `#user-profile-badge` unificado com `#configuracoes` no rodapé da Sidebar.
 
 ### 2. Camada de Segurança e Autenticação
 - **Autenticação:** Tokens JWT assinados com algoritmo HS256 e tempo de vida configurável via variável de ambiente.
@@ -93,7 +92,7 @@ flowchart TD
 - **Multi-Driver Suportado:** Engine SQLAlchemy 2.x com detecção automática e normalização de `DATABASE_URL`:
   - PostgreSQL / Supabase: `postgresql+psycopg2://...` com pooler PgBouncer e `sslmode=require`.
   - MySQL / TiDB Cloud: `mysql+pymysql://...` com TLS 1.3 nativo (`ssl.create_default_context()`).
-  - SQLite: `sqlite:///:memory:` para execução instantânea dos 80 testes automatizados.
+  - SQLite: `sqlite:///:memory:` para execução instantânea dos 110 testes automatizados.
 - **Versionamento com Alembic:** 16 revisões históricas incrementais gerenciadas em `banco de dados/migrations/versions/`.
 
 ---
@@ -118,7 +117,7 @@ fluxo_caixas/
 │   │   ├── email.py                    # Envio defensivo de e-mails via SMTP com STARTTLS
 │   │   ├── google_oauth.py             # Verificação criptográfica de ID Token Google OAuth 2.0
 │   │   └── __init__.py                 # Exportador de serviços
-│   ├── tests/                          # Suíte de testes automatizados (109 testes passing)
+│   ├── tests/                          # Suíte de testes automatizados (110 testes passing)
 │   │   ├── conftest.py                 # Fixtures globais, banco em memória e TestClient FastAPI
 │   │   ├── test_cadastro_usuario.py    # Validação de CPF, complexidade de senha e integridade
 │   │   ├── test_seguranca_oauth_lgpd.py# Testes de CPF estrito, senha forte, LGPD, OTP anti-bot e Google OAuth

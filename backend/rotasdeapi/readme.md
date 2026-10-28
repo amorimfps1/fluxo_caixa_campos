@@ -38,9 +38,15 @@ Registra um novo usuário com validação algorítmica de CPF, complexidade de s
   - `telefone`: Opcional (10 ou 11 dígitos), cifrado com Fernet.
 - **Resposta (`201 Created`):** Retorna `id`, `nome_completo`, `email`, `telefone`, `email_confirmado` e `criado_em`.
 
-### `POST /usuarios/confirmar-email`
-Valida o código OTP de 6 dígitos enviado por e-mail para ativar a confirmação cadastral.
-- **Body (`application/json`):** `{"email": "arthur@exemplo.com", "codigo": "123456"}`
+### `POST /usuarios/verificar-email` (e rota compatível `POST /usuarios/confirmar-email`)
+Valida o código OTP anti-bot de 6 dígitos enviado por e-mail (uso único, válido por 15 minutos), marca o e-mail como verificado e retorna token JWT de sessão.
+- **Body (`application/json`):** `{"email": "arthur@exemplo.com", "codigo_otp": "123456"}`
+
+### `POST /usuarios/reenviar-verificacao`
+Reenvia um novo código OTP temporário de 6 dígitos para verificação de cadastro (protegido por rate limit).
+
+### `GET /usuarios/auth/google/config` & `POST /usuarios/auth/google`
+Consulta a disponibilidade/Client ID público do Google Identity Services e autentica o ID Token Google OAuth 2.0, criando ou vinculando a conta automaticamente e emitindo token JWT.
 
 ### `POST /login`
 Autentica o usuário e emite o token JWT com controle anti-força bruta.
