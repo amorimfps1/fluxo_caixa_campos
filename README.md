@@ -14,13 +14,13 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-1.0.0-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.x_ORM-D71F00?logo=databricks&logoColor=white)](https://www.sqlalchemy.org/)
 [![Alembic](https://img.shields.io/badge/Alembic-16_Revisões-F59E0B?logo=alembic&logoColor=white)](https://alembic.sqlalchemy.org/)
-[![Pytest](https://img.shields.io/badge/Pytest-80%20Passing-brightgreen?logo=pytest&logoColor=white)](https://pytest.org/)
-[![Security](https://img.shields.io/badge/Security-LGPD_Fernet_AES128_%2B_Argon2id-blueviolet)](https://www.gov.br/cidadania/pt-br/acesso-a-informacao/lgpd)
+[![Pytest](https://img.shields.io/badge/Pytest-109%20Passing-brightgreen?logo=pytest&logoColor=white)](https://pytest.org/)
+[![Security](https://img.shields.io/badge/Security-LGPD_Fernet_AES128_%2B_Argon2id_%2B_OAuth2-blueviolet)](https://www.gov.br/cidadania/pt-br/acesso-a-informacao/lgpd)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
 
 <br/>
 
-**Plataforma Full-Stack de gestão patrimonial e fluxo de caixa corporativo/pessoal em nuvem. Construída com API REST assíncrona em FastAPI, banco de dados relacional (Supabase PostgreSQL / TiDB Cloud MySQL), precisão contábil exata (`Decimal 12,2`), conformidade LGPD em repouso (Fernet AES-128 + Blind Index HMAC), interface SPA responsiva orientada pela Psicologia das Cores Financeiras e 80 testes automatizados.**
+**Plataforma Full-Stack de gestão patrimonial e fluxo de caixa corporativo/pessoal em nuvem. Construída com API REST assíncrona em FastAPI, banco de dados relacional (Supabase PostgreSQL / TiDB Cloud MySQL), precisão contábil exata (`Decimal 12,2`), conformidade LGPD em repouso (Fernet AES-128 + Blind Index HMAC), Login Social Google OAuth 2.0, verificação anti-bot via OTP por e-mail, Landing Page de alta conversão, interface SPA responsiva (Tema Claro e Escuro) e 109 testes automatizados.**
 
 </div>
 
@@ -160,7 +160,7 @@ flowchart TD
 | **Banco em Nuvem** | Supabase PostgreSQL / TiDB Cloud | PostgreSQL 15+ com Pooler PgBouncer porta 6543 e MySQL 8 Serverless com TLS |
 | **Segurança & Crypto** | Cryptography (Fernet) + pwdlib (Argon2id) + PyJWT | Cifragem de PII, hashing resistente a GPU e autenticação por tokens assinados |
 | **Serviço de E-mail** | Python smtplib com STARTTLS | Envio de códigos OTP e e-mails de confirmação com fallback resiliente |
-| **Suíte de Testes** | Pytest + HTTPX TestClient | 80 testes automatizados cobrindo fluxos E2E, integridade contábil e segurança |
+| **Suíte de Testes** | Pytest + HTTPX TestClient | 109 testes automatizados cobrindo fluxos E2E, integridade contábil, OAuth 2.0, OTP anti-bot e LGPD |
 
 ---
 
@@ -170,7 +170,7 @@ flowchart TD
 fluxo_caixas/
 ├── backend/                            # Núcleo da API REST e regras de negócio
 │   ├── rotasdeapi/                     # Controladores REST modulares por domínio
-│   │   ├── usuario.py                  # Cadastro, login OAuth2, OTP por e-mail, perfil e exclusão
+│   │   ├── usuario.py                  # Cadastro LGPD, Google OAuth 2.0, OTP anti-bot, login, perfil e exclusão
 │   │   ├── conta_bancaria.py           # Gestão de contas correntes, poupanças e investimentos
 │   │   ├── fluxo_dinheiro.py           # Lançamentos, transferências vinculadas e aportes de investimentos
 │   │   ├── calculo_financeiro.py       # Relatórios e balanços consolidados periódicos
@@ -181,17 +181,18 @@ fluxo_caixas/
 │   │   ├── seguranca.py                # Hashing e validação de senhas com Argon2id
 │   │   └── readme.md                   # Diretrizes de proteção de senhas
 │   ├── servicos/                       # Serviços utilitários
-│   │   └── email.py                    # Envio defensivo de e-mails transacionais via SMTP
-│   ├── tests/                          # Suíte de 80 testes automatizados
+│   │   ├── email.py                    # Envio defensivo de e-mails transacionais via SMTP
+│   │   └── google_oauth.py             # Validação de ID Token Google OAuth 2.0 (iss, aud, exp, email_verified)
+│   ├── tests/                          # Suíte de 109 testes automatizados
 │   │   ├── conftest.py                 # Fixtures globais e banco em memória SQLite
-│   │   ├── test_*.py                   # Módulos de testes por especialidade
+│   │   ├── test_*.py                   # Módulos de testes por especialidade (incluindo OAuth 2.0 e LGPD)
 │   │   └── README.md                   # Guia detalhado da suíte de testes
-│   ├── api.py                          # Configuração do FastAPI, CORS e healthcheck
+│   ├── api.py                          # Configuração do FastAPI, CORS, tradução PT-BR e healthcheck
 │   ├── autenticacao.py                 # Emissão e validação de tokens JWT
 │   ├── configuracao.py                 # Carregamento seguro de configurações (.env)
-│   ├── dados_sensiveis.py              # Cifragem Fernet AES-128 e Blind Index HMAC
+│   ├── dados_sensiveis.py              # Cifragem Fernet AES-128 e Blind Index HMAC (CPF, telefone e OAuth)
 │   ├── database.py                     # Conexão SQLAlchemy normalizada (PostgreSQL/Supabase/MySQL)
-│   ├── esquema.py                      # Schemas Pydantic v2 (validação de entrada/saída)
+│   ├── esquema.py                      # Schemas Pydantic v2 (CPF estrito, senha forte e consentimento LGPD)
 │   ├── financeiro.py                   # Motor contábil e cálculos com precisão Decimal
 │   ├── models.py                       # Entidades ORM (10 tabelas mapeadas)
 │   └── readme.md                       # Documentação técnica do backend
@@ -203,12 +204,16 @@ fluxo_caixas/
 │   ├── alembic.ini                     # Arquivo de configuração Alembic
 │   └── readme.md                       # Diagrama ERD e dicionário de dados
 │
-├── frontend/                           # Aplicação Web SPA (Vercel)
-│   ├── css/style.css                   # Design system financeiro corporativo responsivo
-│   ├── js/                             # Módulos JavaScript (api.js, dashboard.js, login.js, cadastro.js)
-│   ├── index.html                      # Dashboard financeiro principal
-│   ├── login.html                      # Tela de login
-│   ├── cadastro.html                   # Tela de criação de conta
+├── frontend/                           # Aplicação Web SPA & Landing Page (Vercel)
+│   ├── assets/logo.svg                 # Logotipo vetorial corporativo oficial em SVG
+│   ├── css/style.css                   # Design system financeiro responsivo (Modo Claro e Modo Escuro)
+│   ├── js/                             # Módulos JS (api.js, legal.js, dashboard.js, login.js, cadastro.js)
+│   ├── inicio.html                     # Landing Page de alta conversão com CTAs estratégicos
+│   ├── index.html                      # Painel financeiro principal autenticado (SPA)
+│   ├── login.html                      # Tela de login com Google OAuth 2.0 e recuperação segura
+│   ├── cadastro.html                   # Cadastro com CPF em tempo real, checklist de senha, LGPD e modal OTP
+│   ├── termos.html                     # Página dedicada dos Termos de Serviço
+│   ├── privacidade.html                # Página dedicada da Política de Privacidade e LGPD
 │   └── README.md                       # Guia do frontend e publicação
 │
 ├── scripts/                            # Scripts utilitários administrativos
@@ -328,8 +333,12 @@ flowchart LR
 |---|---|---|---|---|
 | **Sistema** | `GET` | `/` | Confirmação de status da API | Pública |
 | **Sistema** | `GET` | `/health` | Healthcheck operacional e ambiente ativo | Pública |
-| **Usuários** | `POST` | `/usuarios/` | Cadastro de usuário com validação algorítmica de CPF | Pública |
-| **Usuários** | `POST` | `/usuarios/confirmar-email` | Confirmação de e-mail via código OTP de 6 dígitos | Pública |
+| **Usuários** | `POST` | `/usuarios/` | Cadastro com validação estrita de CPF, senha forte, aceite LGPD e disparo de OTP | Pública |
+| **Usuários** | `POST` | `/usuarios/verificar-email` | Confirmação anti-bot de e-mail via código OTP de 6 dígitos (uso único) + emissão de JWT | Pública |
+| **Usuários** | `POST` | `/usuarios/confirmar-email` | Rota compatível de confirmação de e-mail via código OTP de 6 dígitos | Pública |
+| **Usuários** | `POST` | `/usuarios/reenviar-verificacao` | Reenvio de código OTP temporário de verificação de cadastro | Pública (Rate Limited) |
+| **Usuários** | `GET` | `/usuarios/auth/google/config` | Consulta disponibilidade e `client_id` público do Google OAuth 2.0 | Pública |
+| **Usuários** | `POST` | `/usuarios/auth/google` | Login Social Google OAuth 2.0 (cria/vincula conta e retorna JWT) | Pública (Rate Limited) |
 | **Usuários** | `POST` | `/login` | Autenticação OAuth2 (`username` = e-mail, `password` = senha) | Pública (Rate Limited) |
 | **Usuários** | `POST` | `/usuarios/esqueci-senha` | Solicitação de código de recuperação por e-mail | Pública |
 | **Usuários** | `POST` | `/usuarios/redefinir-senha` | Redefinição de senha com validação de código OTP | Pública |
@@ -375,7 +384,7 @@ flowchart LR
 
 ## 🧪 Qualidade & Testes Automatizados
 
-A aplicação conta com **80 testes automatizados** executados via Pytest com banco de dados SQLite em memória totalmente isolado:
+A aplicação conta com **109 testes automatizados** executados via Pytest com banco de dados SQLite em memória totalmente isolado:
 
 ```powershell
 python -m pytest -q
@@ -383,7 +392,7 @@ python -m pytest -q
 
 Saída esperada:
 ```text
-80 passed, 5 deselected, 2 warnings in ~15s
+109 passed, 5 deselected
 ```
 
 Os 5 testes marcados como `deselected` correspondem a testes de alta concorrência com bloqueio pessimista (`SELECT ... FOR UPDATE`) que exigem um cluster MySQL ativo.

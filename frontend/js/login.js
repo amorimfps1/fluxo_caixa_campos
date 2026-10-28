@@ -1,6 +1,6 @@
 /*
  * FLUXO DE CAIXA
- * Login, alternância de visibilidade de senha (olhinho) e recuperação de senha via OTP/CPF.
+ * Login, Google OAuth 2.0, alternância de visibilidade de senha e recuperação segura via OTP/CPF.
  */
 
 function inicializarBotoesVerSenha(root = document) {
@@ -23,34 +23,21 @@ function inicializarBotoesVerSenha(root = document) {
     });
 }
 
-function aplicarMascaraCpf(input) {
-    if (!input) return;
-    input.addEventListener("input", () => {
-        const digitos = input.value.replace(/\D/g, "").slice(0, 11);
-        let formatado = digitos;
-        if (digitos.length > 9) {
-            formatado = `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9, 11)}`;
-        } else if (digitos.length > 6) {
-            formatado = `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6)}`;
-        } else if (digitos.length > 3) {
-            formatado = `${digitos.slice(0, 3)}.${digitos.slice(3)}`;
-        }
-        input.value = formatado;
-    });
-}
-
 document.addEventListener("DOMContentLoaded", () => {
     inicializarBotoesVerSenha();
 
+    const params = new URLSearchParams(window.location.search);
     const message = document.querySelector("#login-message");
-    if (
-        message &&
-        new URLSearchParams(window.location.search).get("cadastro") ===
-            "sucesso"
-    ) {
-        message.textContent =
-            "Cadastro criado! Enviamos um e-mail de confirmação. Entre com seu e-mail e senha.";
-        message.className = "form-message info";
+    if (message) {
+        if (params.get("verificado") === "sucesso") {
+            message.textContent =
+                "E-mail verificado com sucesso! Entre com suas credenciais para acessar o painel.";
+            message.className = "form-message info";
+        } else if (params.get("cadastro") === "sucesso") {
+            message.textContent =
+                "Cadastro criado! Enviamos um código de confirmação ao seu e-mail. Entre com seu e-mail e senha.";
+            message.className = "form-message info";
+        }
     }
 
     const form = document.querySelector("#login-form");
@@ -59,6 +46,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (api.getToken()) {
         window.location.replace("index.html");
         return;
+    }
+
+    if (typeof inicializarBotaoGoogleOAuth === "function") {
+        inicializarBotaoGoogleOAuth({
+            buttonSelector: "#google-oauth-btn",
+            gsiContainerSelector: "#google-gsi-button",
+            messageSelector: "#login-message"
+        });
     }
 
     const emailInput = document.querySelector("#email");
@@ -97,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
             submitButton.disabled = true;
         }
 
-        message.textContent = "Entrando...";
+        message.textContent = "Autenticando com segurança...";
         message.classList.add("info");
 
         try {
@@ -128,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // =========================================================
-    // MODAL: ESQUECEU A SENHA? (OTP POR E-MAIL OU CPF)
+    // MODAL: ESQUECEU A SENHA? (OTP POR E-MAIL OU CPF VALIDADO)
     // =========================================================
     const forgotTrigger = document.querySelector("#forgot-password-trigger");
     const forgotDialog = document.querySelector("#forgot-password-dialog");
@@ -141,11 +136,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const resetEmailInput = document.querySelector("#reset-email");
     const resetOtpInput = document.querySelector("#reset-otp");
     const resetCpfInput = document.querySelector("#reset-cpf");
+    const resetCpfFeedback = document.querySelector("#reset-cpf-feedback");
     const resetPasswordInput = document.querySelector("#reset-password");
+    const resetPasswordChecklist = document.querySelector("#reset-password-checklist");
     const resetConfirmInput = document.querySelector("#reset-password-confirm");
+    const resetConfirmFeedback = document.querySelector("#reset-confirm-feedback");
     const resetMessage = document.querySelector("#reset-message");
 
-    aplicarMascaraCpf(resetCpfInput);
+    if (typeof vincularValidacaoCpfTempoReal === "function") {
+        vincularValidacaoCpfTempoReal(resetCpfInput, resetCpfFeedback);
+    }
+
+    if (typeof vincularChecklistSenha === "function") {
+        vincularChecklistSenha({
+            inputSenha: resetPasswordInput,
+            containerChecklist: resetPasswordChecklist,
+            inputConfirmacao: resetConfirmInput,
+            feedbackConfirmacao: resetConfirmFeedback
+        });
+    }
 
     if (resetOtpInput) {
         resetOtpInput.addEventListener("input", () => {
@@ -162,6 +171,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (resetEmailInput && emailInput.value.trim()) {
             resetEmailInput.value = emailInput.value.trim();
+        }
+        if (resetPasswordInput) {
+            resetPasswordInput.dispatchEvent(new Event("input"));
         }
         if (typeof forgotDialog.showModal === "function") {
             forgotDialog.showModal();
@@ -247,6 +259,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
+            if (!codigoOtp && cpf && typeof validarCpfMatematico === "function") {
+                const validacaoCpf = validarCpfMatematico(cpf);
+                if (!validacaoCpf.valido) {
+                    resetMessage.textContent = validacaoCpf.mensagem;
+                    resetMessage.classList.add("error");
+                    resetCpfInput?.focus();
+                    return;
+                }
+            }
+
+            if (typeof obterMensagemErroSenha === "function") {
+                const erroSenha = obterMensagemErroSenha(novaSenha);
+                if (erroSenha) {
+                    resetMessage.textContent = erroSenha;
+                    resetMessage.classList.add("error");
+                    resetPasswordInput.focus();
+                    return;
+                }
+            }
+
             if (novaSenha !== confirmarSenha) {
                 resetMessage.textContent = "As senhas informadas não conferem.";
                 resetMessage.classList.add("error");
@@ -255,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (forgotSubmit) forgotSubmit.disabled = true;
-            resetMessage.textContent = "Validando código e redefinindo senha...";
+            resetMessage.textContent = "Validando credencial e redefinindo senha...";
             resetMessage.classList.add("info");
 
             try {

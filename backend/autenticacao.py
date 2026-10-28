@@ -21,7 +21,8 @@ carregar_configuracao()
 
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/login"
+    tokenUrl="/login",
+    auto_error=False,
 )
 
 
@@ -84,9 +85,15 @@ def criar_token(usuario_id: int):
 # =========================================================
 
 def obter_usuario_logado(
-    token: str = Depends(oauth2_scheme),
+    token: str | None = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Não autenticado. Faça login para continuar.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     credenciais_invalidas = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

@@ -83,3 +83,32 @@ def descriptografar_telefone(telefone_cifrado: str) -> str:
         raise ValueError(
             "Não foi possível descriptografar o telefone."
         ) from erro
+
+
+def criptografar_identificador_oauth(provedor: str, sub: str) -> str:
+    """Criptografa um identificador externo OAuth (ex.: Google `sub`) com Fernet."""
+    provedor_limpo = (provedor or "").strip().lower()
+    sub_limpo = (sub or "").strip()
+    if not provedor_limpo or not sub_limpo:
+        raise ValueError("Identificador OAuth inválido.")
+    marcador = f"oauth:{provedor_limpo}:{sub_limpo}"
+    return _fernet(_chave_cpf()).encrypt(marcador.encode("utf-8")).decode("ascii")
+
+
+def indice_identificador_oauth(provedor: str, sub: str) -> str:
+    """Gera blind index HMAC-SHA256 com separação de domínio para contas OAuth."""
+    provedor_limpo = (provedor or "").strip().lower()
+    sub_limpo = (sub or "").strip()
+    if not provedor_limpo or not sub_limpo:
+        raise ValueError("Identificador OAuth inválido.")
+    chave_mestra = base64.urlsafe_b64decode(_chave_cpf())
+    chave_indice = hmac.digest(
+        chave_mestra,
+        b"fluxo_caixa:oauth:index:v1",
+        hashlib.sha256,
+    )
+    return hmac.new(
+        chave_indice,
+        f"{provedor_limpo}:{sub_limpo}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()

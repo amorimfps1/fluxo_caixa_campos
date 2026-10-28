@@ -13,21 +13,30 @@ from esquema import (
     ConfirmarEmailRequest,
     EsqueciSenhaRequest,
     ExcluirContaRequest,
+    GoogleAuthRequest,
     RedefinirSenhaRequest,
+    ReenviarVerificacaoRequest,
     UsuarioCreate,
     UsuarioResponse,
     UsuarioUpdateMe,
+    validar_cpf_brasileiro,
 )
 from seguranca.seguranca import gerar_hash_senha, verificar_senha
 from autenticacao import criar_token, obter_usuario_logado
 from dados_sensiveis import (
     criptografar_cpf,
+    criptografar_identificador_oauth,
     criptografar_telefone,
     indice_cpf,
+    indice_identificador_oauth,
 )
 from servicos.email import (
     enviar_email_codigo_recuperacao,
     enviar_email_confirmacao_cadastro,
+)
+from servicos.google_oauth import (
+    obter_google_client_id,
+    verificar_token_google,
 )
 
 
@@ -81,6 +90,11 @@ def _chave_cliente_redefinicao(request: Request) -> str:
 
 def _chave_conta_redefinicao(email: str) -> str:
     return _chave_controle("redefinir-email", email.strip().lower())
+
+
+def _chave_cliente_oauth(request: Request) -> str:
+    endereco = request.client.host if request.client else "desconhecido"
+    return _chave_controle("google-oauth-ip", endereco)
 
 
 def _obter_tentativa(
@@ -195,11 +209,22 @@ def criar_usuario(
     _verificar_limites(db, (chave_cliente,))
     _registrar_tentativa(db, (chave_cliente,))
 
+    # Defesa em profundidade: valida novamente o CPF antes da persistência
+    try:
+        cpf_validado = validar_cpf_brasileiro(usuario.cpf)
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(erro),
+        ) from erro
+
+    cpf_hash = indice_cpf(cpf_validado)
+
     usuario_existente = (
         db.query(Usuario)
         .filter(
             (Usuario.email == usuario.email) |
-            (Usuario.cpf_indice == indice_cpf(usuario.cpf))
+            (Usuario.cpf_indice == cpf_hash)
         )
         .first()
     )
@@ -215,8 +240,8 @@ def criar_usuario(
 
     novo_usuario = Usuario(
         nome_completo=usuario.nome_completo,
-        cpf=criptografar_cpf(usuario.cpf),
-        cpf_indice=indice_cpf(usuario.cpf),
+        cpf=criptografar_cpf(cpf_validado),
+        cpf_indice=cpf_hash,
         email=usuario.email,
         telefone=(
             criptografar_telefone(usuario.telefone)
@@ -250,15 +275,14 @@ def criar_usuario(
 
 
 # =========================================================
-# CONFIRMAR E-MAIL DE CADASTRO
+# VERIFICAR / CONFIRMAR E-MAIL DE CADASTRO (ANTI-BOT OTP)
 # =========================================================
 
-@router.post("/usuarios/confirmar-email")
-def confirmar_email(
+def _processar_verificacao_email(
     dados: ConfirmarEmailRequest,
     request: Request,
-    db: Session = Depends(get_db),
-):
+    db: Session,
+) -> dict:
     chaves_cliente = (
         _chave_cliente_redefinicao(request),
         _chave_conta_redefinicao(dados.email),
@@ -302,7 +326,175 @@ def confirmar_email(
     _limpar_tentativas(db, chaves_cliente)
 
     return {
-        "mensagem": "E-mail confirmado com sucesso."
+        "mensagem": "E-mail confirmado com sucesso.",
+        "email_verificado": True,
+        "access_token": criar_token(usuario.id),
+        "token_type": "bearer",
+    }
+
+
+@router.post("/usuarios/confirmar-email")
+def confirmar_email(
+    dados: ConfirmarEmailRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return _processar_verificacao_email(dados, request, db)
+
+
+@router.post("/usuarios/verificar-email")
+def verificar_email(
+    dados: ConfirmarEmailRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return _processar_verificacao_email(dados, request, db)
+
+
+@router.post("/usuarios/reenviar-verificacao")
+def reenviar_verificacao_email(
+    dados: ReenviarVerificacaoRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    chaves_cliente = (
+        _chave_cliente_redefinicao(request),
+        _chave_conta_redefinicao(dados.email),
+    )
+    _verificar_limites(db, chaves_cliente)
+    _registrar_tentativa(db, (chaves_cliente[0],))
+
+    usuario = (
+        db.query(Usuario)
+        .filter(Usuario.email == dados.email)
+        .first()
+    )
+
+    if usuario and not usuario.email_verificado:
+        novo_codigo = _gerar_codigo_otp()
+        usuario.codigo_verificacao_hash = _hash_codigo_otp(novo_codigo)
+        usuario.codigo_expira_em = _agora_utc_sem_fuso() + EXPIRACAO_CODIGO_OTP
+        db.commit()
+
+        enviar_email_confirmacao_cadastro(
+            destinatario=usuario.email,
+            nome=usuario.nome_completo,
+            codigo_confirmacao=novo_codigo,
+        )
+
+    return {
+        "mensagem": (
+            "Se houver um cadastro pendente para o e-mail informado, "
+            "um novo código de verificação (válido por 15 minutos) foi enviado."
+        )
+    }
+
+
+# =========================================================
+# LOGIN SOCIAL COM GOOGLE (OAUTH 2.0)
+# =========================================================
+
+@router.get("/usuarios/auth/google/config")
+def configuracao_google_oauth():
+    client_id = obter_google_client_id()
+    return {
+        "client_id": client_id,
+        "habilitado": bool(client_id),
+    }
+
+
+@router.post("/usuarios/auth/google")
+def autenticar_com_google(
+    dados: GoogleAuthRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    chave_ip = _chave_cliente_oauth(request)
+    _verificar_limites(db, (chave_ip,))
+
+    try:
+        perfil_google = verificar_token_google(dados.credential)
+    except RuntimeError as erro_config:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(erro_config),
+        ) from erro_config
+    except ValueError as erro_token:
+        bloqueado = _registrar_tentativa(db, (chave_ip,))
+        if bloqueado:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Muitas tentativas de autenticação. Tente novamente mais tarde.",
+                headers={"Retry-After": str(int(JANELA_TENTATIVAS.total_seconds()))},
+            ) from erro_token
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(erro_token),
+        ) from erro_token
+
+    sub = perfil_google["sub"]
+    email = perfil_google["email"]
+    nome = perfil_google.get("nome") or perfil_google.get("nome_completo") or "Usuário Google"
+    oauth_indice = indice_identificador_oauth("google", sub)
+
+    usuario = (
+        db.query(Usuario)
+        .filter(
+            (Usuario.cpf_indice == oauth_indice) |
+            (Usuario.email == email)
+        )
+        .first()
+    )
+
+    novo_usuario = False
+    if usuario is not None:
+        if not usuario.email_verificado:
+            usuario.email_verificado = True
+            usuario.codigo_verificacao_hash = None
+            usuario.codigo_expira_em = None
+            db.commit()
+            db.refresh(usuario)
+    else:
+        usuario = Usuario(
+            nome_completo=nome,
+            cpf=criptografar_identificador_oauth("google", sub),
+            cpf_indice=oauth_indice,
+            email=email,
+            telefone=None,
+            senha_hash=gerar_hash_senha(token_urlsafe(32)),
+            email_verificado=True,
+            codigo_verificacao_hash=None,
+            codigo_expira_em=None,
+        )
+        db.add(usuario)
+        try:
+            db.commit()
+            db.refresh(usuario)
+            novo_usuario = True
+        except IntegrityError:
+            db.rollback()
+            usuario = (
+                db.query(Usuario)
+                .filter(
+                    (Usuario.cpf_indice == oauth_indice) |
+                    (Usuario.email == email)
+                )
+                .first()
+            )
+            if usuario is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Não foi possível concluir a autenticação com o Google.",
+                ) from None
+
+    _limpar_tentativas(db, (chave_ip, _chave_conta_login(email)))
+    token = criar_token(usuario.id)
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "novo_usuario": novo_usuario,
+        "usuario": UsuarioResponse.model_validate(usuario).model_dump(mode="json"),
     }
 
 

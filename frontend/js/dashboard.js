@@ -1,4 +1,4 @@
-﻿/*
+/*
  * FLUXO DE CAIXA
  * Inicialização, navegação SPA, gráficos Chart.js, metas, relatórios e exportação CSV.
  */
@@ -6,9 +6,11 @@
 let todasContas = [];
 let contasCarregadas = [];
 let todasMovimentacoesCache = [];
+let movimentacoesMesCache = [];
 let movimentacoesFiltradasCache = [];
 let metasCarregadas = [];
 let calculosCarregados = [];
+let ultimoResumoRelatorioCache = null;
 let usuarioAtual = null;
 
 // Instâncias ativas do Chart.js para destruição segura antes de recriar
@@ -64,7 +66,7 @@ function obterSaudacaoUsuario(usuario = usuarioAtual) {
 const titulosViews = {
     dashboard: {
         eyebrow: "Olá, bem-vindo(a)",
-        title: "Dashboard financeiro",
+        title: "Painel financeiro",
         subtitle: "Acompanhe suas finanças em um só lugar."
     },
     contas: {
@@ -165,10 +167,50 @@ function formatarIso(data) {
     return `${ano}-${mes}-${dia}`;
 }
 
+const NOMES_TIPOS_CONTA = {
+    corrente: "Conta Corrente",
+    poupanca: "Poupança",
+    investimento: "Investimento"
+};
+
+const NOMES_TIPOS_MOVIMENTO = {
+    entrada: "Entrada",
+    saida: "Saída",
+    transferencia: "Transferência",
+    transferencia_externa: "Transferência Externa",
+    investimento: "Investimento",
+    ajuste: "Ajuste"
+};
+
+const NOMES_TIPOS_CALCULO = {
+    diario: "Diário",
+    semanal: "Semanal",
+    mensal: "Mensal",
+    anual: "Anual"
+};
+
 function formatarCategoria(slug) {
     if (!slug) return "Outros";
     const chave = String(slug).toLowerCase();
     return NOMES_CATEGORIAS[chave] || slug;
+}
+
+function formatarTipoConta(tipo) {
+    if (!tipo) return "Conta";
+    const chave = String(tipo).toLowerCase();
+    return NOMES_TIPOS_CONTA[chave] || tipo;
+}
+
+function formatarTipoMovimento(tipo) {
+    if (!tipo) return "Movimentação";
+    const chave = String(tipo).toLowerCase();
+    return NOMES_TIPOS_MOVIMENTO[chave] || tipo;
+}
+
+function formatarTipoCalculo(tipo) {
+    if (!tipo) return "Período";
+    const chave = String(tipo).toLowerCase();
+    return NOMES_TIPOS_CALCULO[chave] || tipo;
 }
 
 function criarElemento(tag, texto, classe) {
@@ -729,7 +771,7 @@ function abrirDialogoMovimentacao() {
         contasCarregadas.forEach((conta) => {
             const opcao = document.createElement("option");
             opcao.value = String(conta.id);
-            opcao.textContent = `${conta.nome_banco} (${conta.tipo_conta}) — ${formatarMoeda(conta.valor_conta_atual)}`;
+            opcao.textContent = `${conta.nome_banco} (${formatarTipoConta(conta.tipo_conta)}) — ${formatarMoeda(conta.valor_conta_atual)}`;
             seletor.append(opcao);
         });
     }
@@ -739,7 +781,7 @@ function abrirDialogoMovimentacao() {
         contasCarregadas.forEach((conta) => {
             const opcao = document.createElement("option");
             opcao.value = String(conta.id);
-            opcao.textContent = `${conta.nome_banco} (${conta.tipo_conta})`;
+            opcao.textContent = `${conta.nome_banco} (${formatarTipoConta(conta.tipo_conta)})`;
             seletorDestino.append(opcao);
         });
         if (contasCarregadas.length > 1) {
@@ -752,7 +794,7 @@ function abrirDialogoMovimentacao() {
         const idSelecionado = Number(seletor.value);
         const conta = contasCarregadas.find((c) => c.id === idSelecionado);
         if (ajuda && conta) {
-            ajuda.textContent = `Saldo atual: ${formatarMoeda(conta.valor_conta_atual)} (${conta.tipo_conta})`;
+            ajuda.textContent = `Saldo atual: ${formatarMoeda(conta.valor_conta_atual)} (${formatarTipoConta(conta.tipo_conta)})`;
         }
     };
 
@@ -794,7 +836,7 @@ function abrirDialogoInvestimento() {
         contasCarregadas.forEach((conta) => {
             const opcao = document.createElement("option");
             opcao.value = String(conta.id);
-            opcao.textContent = `${conta.nome_banco} (${conta.tipo_conta}) — ${formatarMoeda(conta.valor_conta_atual)}`;
+            opcao.textContent = `${conta.nome_banco} (${formatarTipoConta(conta.tipo_conta)}) — ${formatarMoeda(conta.valor_conta_atual)}`;
             seletorConta.append(opcao);
         });
     }
@@ -804,7 +846,7 @@ function abrirDialogoInvestimento() {
         const idSelecionado = Number(seletorConta.value);
         const conta = contasCarregadas.find((c) => c.id === idSelecionado);
         if (ajudaConta && conta) {
-            ajudaConta.textContent = `Saldo disponível para débito: ${formatarMoeda(conta.valor_conta_atual)} (${conta.tipo_conta})`;
+            ajudaConta.textContent = `Saldo disponível para débito: ${formatarMoeda(conta.valor_conta_atual)} (${formatarTipoConta(conta.tipo_conta)})`;
         }
     };
 
@@ -1328,7 +1370,7 @@ function popularSeletoresContas(contas) {
         contas.forEach((conta) => {
             const opt = document.createElement("option");
             opt.value = String(conta.id);
-            opt.textContent = `${conta.nome_banco} (${conta.tipo_conta})`;
+            opt.textContent = `${conta.nome_banco} (${formatarTipoConta(conta.tipo_conta)})`;
             seletorFiltro.append(opt);
         });
         seletorFiltro.value = valorAtual;
@@ -1343,7 +1385,7 @@ function popularSeletoresContas(contas) {
         contas.forEach((conta) => {
             const opt = document.createElement("option");
             opt.value = String(conta.id);
-            opt.textContent = `${conta.nome_banco} (${conta.tipo_conta})`;
+            opt.textContent = `${conta.nome_banco} (${formatarTipoConta(conta.tipo_conta)})`;
             seletorRelatorio.append(opt);
         });
         seletorRelatorio.value = valorAtual;
@@ -1450,7 +1492,7 @@ function atualizarContas(contas) {
                 criarElemento("strong", conta.nome_banco),
                 criarElemento(
                     "span",
-                    `${conta.tipo_conta} · ${formatarMoeda(conta.valor_conta_atual)}`
+                    `${formatarTipoConta(conta.tipo_conta)} · ${formatarMoeda(conta.valor_conta_atual)}`
                 )
             );
             elemento.append(linha);
@@ -1471,7 +1513,7 @@ function atualizarContas(contas) {
             const info = document.createElement("div");
             const statusTexto = conta.ativa ? "Ativa" : "Inativa";
             info.append(
-                criarElemento("strong", `${conta.nome_banco} (${conta.tipo_conta})`),
+                criarElemento("strong", `${conta.nome_banco} (${formatarTipoConta(conta.tipo_conta)})`),
                 document.createElement("br"),
                 criarElemento(
                     "span",
@@ -1687,7 +1729,7 @@ function renderizarTabelaCompacta(seletorTabela, lista) {
         celulaTipo.append(
             criarElemento(
                 "span",
-                movimento.tipo,
+                formatarTipoMovimento(movimento.tipo),
                 `badge-type badge-${movimento.tipo}`
             )
         );
@@ -1735,7 +1777,7 @@ function renderizarTabelaDetalhada(seletorTabela, lista) {
         celulaTipo.append(
             criarElemento(
                 "span",
-                movimento.tipo,
+                formatarTipoMovimento(movimento.tipo),
                 `badge-type badge-${movimento.tipo}`
             )
         );
@@ -1862,7 +1904,21 @@ function alternarVisibilidadeGrafico(seletorContainer, seletorVazio, possuiDados
     if (vazio) vazio.hidden = possuiDados;
 }
 
+function obterCoresTemaGrafico() {
+    const escuro =
+        document.documentElement.getAttribute("data-theme") === "dark" ||
+        document.body.classList.contains("dark-theme");
+    return {
+        texto: escuro ? "#cbd5e1" : "#475569",
+        grade: escuro ? "rgba(148, 163, 184, 0.14)" : "rgba(15, 23, 42, 0.07)",
+        bordaRosca: escuro ? "#0f172a" : "#ffffff"
+    };
+}
+
 function atualizarGraficosDashboard(contas, movimentacoesMes, todasMovimentacoes, metas) {
+    if (Array.isArray(movimentacoesMes)) {
+        movimentacoesMesCache = movimentacoesMes;
+    }
     if (typeof window.Chart === "undefined") {
         return;
     }
@@ -1922,6 +1978,8 @@ function renderizarGraficosVisaoGeral(movimentacoes) {
         serieSaidas.push(Number(porData[dataIso].saidas.toFixed(2)));
     });
 
+    const coresTema = obterCoresTemaGrafico();
+
     const canvasEvolucao = document.querySelector("#chart-dashboard-evolution");
     if (canvasEvolucao) {
         graficosAtivos.dashboardEvolucao = new window.Chart(canvasEvolucao, {
@@ -1962,14 +2020,20 @@ function renderizarGraficosVisaoGeral(movimentacoes) {
                 plugins: {
                     legend: {
                         position: "bottom",
-                        labels: { boxWidth: 12, font: { size: 11 } }
+                        labels: { color: coresTema.texto, boxWidth: 12, font: { size: 11 } }
                     }
                 },
                 scales: {
+                    x: {
+                        ticks: { color: coresTema.texto },
+                        grid: { color: coresTema.grade }
+                    },
                     y: {
                         ticks: {
+                            color: coresTema.texto,
                             callback: (val) => formatarMoeda(val)
-                        }
+                        },
+                        grid: { color: coresTema.grade }
                     }
                 }
             }
@@ -2009,7 +2073,8 @@ function renderizarGraficosVisaoGeral(movimentacoes) {
                     {
                         data: categoriasValores,
                         backgroundColor: CORES_GRAFICOS.slice(0, categoriasLabels.length),
-                        borderWidth: 1
+                        borderColor: coresTema.bordaRosca,
+                        borderWidth: 2
                     }
                 ]
             },
@@ -2019,7 +2084,7 @@ function renderizarGraficosVisaoGeral(movimentacoes) {
                 plugins: {
                     legend: {
                         position: "bottom",
-                        labels: { boxWidth: 12, font: { size: 11 } }
+                        labels: { color: coresTema.texto, boxWidth: 12, font: { size: 11 } }
                     }
                 }
             }
@@ -2056,6 +2121,7 @@ function renderizarGraficoCategorias(movimentacoes) {
     const receitas = labels.map((c) => Number(mapa[c].receitas.toFixed(2)));
     const despesas = labels.map((c) => Number(mapa[c].despesas.toFixed(2)));
 
+    const coresTema = obterCoresTemaGrafico();
     const canvas = document.querySelector("#chart-categories-distribution");
     if (canvas && labels.length > 0) {
         graficosAtivos.categoriasDistribuicao = new window.Chart(canvas, {
@@ -2081,12 +2147,23 @@ function renderizarGraficoCategorias(movimentacoes) {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: "bottom" }
+                    legend: {
+                        position: "bottom",
+                        labels: { color: coresTema.texto }
+                    }
                 },
                 scales: {
+                    x: {
+                        ticks: { color: coresTema.texto },
+                        grid: { color: coresTema.grade }
+                    },
                     y: {
                         beginAtZero: true,
-                        ticks: { callback: (v) => formatarMoeda(v) }
+                        ticks: {
+                            color: coresTema.texto,
+                            callback: (v) => formatarMoeda(v)
+                        },
+                        grid: { color: coresTema.grade }
                     }
                 }
             }
@@ -2157,6 +2234,7 @@ function renderizarGraficoInvestimentos(contas, movimentacoes, metas) {
         cores.push(CORES_GRAFICOS[(idx + 4) % CORES_GRAFICOS.length]);
     });
 
+    const coresTema = obterCoresTemaGrafico();
     const canvas = document.querySelector("#chart-investments-evolution");
     if (canvas) {
         graficosAtivos.investimentosEvolucao = new window.Chart(canvas, {
@@ -2176,12 +2254,23 @@ function renderizarGraficoInvestimentos(contas, movimentacoes, metas) {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: "bottom" }
+                    legend: {
+                        position: "bottom",
+                        labels: { color: coresTema.texto }
+                    }
                 },
                 scales: {
+                    x: {
+                        ticks: { color: coresTema.texto },
+                        grid: { color: coresTema.grade }
+                    },
                     y: {
                         beginAtZero: true,
-                        ticks: { callback: (v) => formatarMoeda(v) }
+                        ticks: {
+                            color: coresTema.texto,
+                            callback: (v) => formatarMoeda(v)
+                        },
+                        grid: { color: coresTema.grade }
                     }
                 }
             }
@@ -2190,6 +2279,7 @@ function renderizarGraficoInvestimentos(contas, movimentacoes, metas) {
 }
 
 function renderizarGraficoRelatorioConsolidado(resumo) {
+    ultimoResumoRelatorioCache = resumo || null;
     const possuiDados =
         resumo &&
         (Number(resumo.total_entradas) > 0 ||
@@ -2250,11 +2340,22 @@ function renderizarGraficoRelatorioConsolidado(resumo) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: "bottom" }
+                legend: {
+                    position: "bottom",
+                    labels: { color: obterCoresTemaGrafico().texto }
+                }
             },
             scales: {
+                x: {
+                    ticks: { color: obterCoresTemaGrafico().texto },
+                    grid: { color: obterCoresTemaGrafico().grade }
+                },
                 y: {
-                    ticks: { callback: (v) => formatarMoeda(v) }
+                    ticks: {
+                        color: obterCoresTemaGrafico().texto,
+                        callback: (v) => formatarMoeda(v)
+                    },
+                    grid: { color: obterCoresTemaGrafico().grade }
                 }
             }
         }
@@ -2523,7 +2624,7 @@ function renderizarHistoricoCalculos(calculos) {
         const linha = document.createElement("tr");
         linha.append(
             criarElemento("td", obterNomeConta(calc.conta_bancaria_id)),
-            criarElemento("td", calc.tipo_calculo),
+            criarElemento("td", formatarTipoCalculo(calc.tipo_calculo)),
             criarElemento(
                 "td",
                 `${formatarData(calc.data_inicio)} a ${formatarData(calc.data_fim)}`
@@ -2587,19 +2688,19 @@ function exportarMovimentacoesCsv(listaMovimentacoes) {
     const cabecalho = [
         "ID",
         "Data",
-        "Conta Bancaria",
+        "Conta Bancária",
         "Tipo",
         "Categoria",
-        "Descricao",
+        "Descrição",
         "Valor (R$)",
-        "Observacao"
+        "Observação"
     ];
 
     const linhas = dados.map((mov) => [
         mov.id,
         mov.data_movimentacao,
         obterNomeConta(mov.conta_bancaria_id),
-        mov.tipo,
+        formatarTipoMovimento(mov.tipo),
         formatarCategoria(mov.categoria),
         mov.descricao,
         Number(mov.valor || 0).toFixed(2).replace(".", ","),
@@ -2684,6 +2785,17 @@ function atualizarInterfaceTema(tema) {
 function configurarConfiguracoes() {
     inicializarBotoesVerSenhaDashboard();
 
+    const inputNovaSenhaChecklist = document.querySelector("#settings-new-password");
+    const containerChecklistSenha = document.querySelector("#settings-password-checklist");
+    const inputConfirmarSenhaChecklist = document.querySelector("#settings-confirm-password");
+    if (typeof vincularChecklistSenha === "function" && inputNovaSenhaChecklist && containerChecklistSenha) {
+        vincularChecklistSenha({
+            inputSenha: inputNovaSenhaChecklist,
+            containerChecklist: containerChecklistSenha,
+            inputConfirmacao: inputConfirmarSenhaChecklist
+        });
+    }
+
     const temaInicial = localStorage.getItem("fluxo_caixa_tema") || "light";
     atualizarInterfaceTema(temaInicial);
 
@@ -2693,6 +2805,15 @@ function configurarConfiguracoes() {
         const proximo = atual === "dark" ? "light" : "dark";
         localStorage.setItem("fluxo_caixa_tema", proximo);
         atualizarInterfaceTema(proximo);
+        atualizarGraficosDashboard(
+            todasContas,
+            movimentacoesMesCache,
+            todasMovimentacoesCache,
+            metasCarregadas
+        );
+        if (ultimoResumoRelatorioCache) {
+            renderizarGraficoRelatorioConsolidado(ultimoResumoRelatorioCache);
+        }
         mostrarToast(
             proximo === "dark" ? "Tema escuro ativado!" : "Tema claro ativado!",
             "info"
@@ -2768,6 +2889,15 @@ async function salvarAlteracoesPerfil(event) {
                 "error"
             );
             inputConfirmarSenha?.focus();
+            return;
+        }
+        const erroSenhaForte =
+            typeof obterMensagemErroSenha === "function"
+                ? obterMensagemErroSenha(novaSenha)
+                : "";
+        if (erroSenhaForte) {
+            definirMensagem("#settings-profile-message", erroSenhaForte, "error");
+            inputNovaSenha?.focus();
             return;
         }
     }

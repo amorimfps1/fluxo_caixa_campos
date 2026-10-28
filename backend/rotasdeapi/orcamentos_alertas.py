@@ -35,6 +35,25 @@ from models import (
 
 router = APIRouter(tags=["Orçamentos e alertas"])
 
+ROTULOS_CATEGORIAS_PT = {
+    "alimentacao": "Alimentação",
+    "ajuste": "Ajuste",
+    "compras": "Compras",
+    "contas": "Contas",
+    "educacao": "Educação",
+    "freelance": "Trabalho autônomo",
+    "impostos": "Impostos",
+    "investimento": "Investimentos",
+    "lazer": "Lazer",
+    "moradia": "Moradia",
+    "outros": "Outros",
+    "salario": "Salário",
+    "saude": "Saúde",
+    "transporte": "Transporte",
+    "transferencia": "Transferência",
+    "vendas": "Vendas",
+}
+
 
 def calcular_gastos_e_orcamentos(
     db: Session,
@@ -264,6 +283,7 @@ def obter_alertas(
         for o in orcamentos_mes:
             if o["gasto"] > o["limite"]:
                 chave = f"orcamento:{o['id']}"
+                rotulo_cat = ROTULOS_CATEGORIAS_PT.get(o["categoria"], o["categoria"])
                 alertas.append({
                     "chave": chave,
                     "tipo": "orcamento",
@@ -271,7 +291,7 @@ def obter_alertas(
                     "categoria": o["categoria"],
                     "valor": o["gasto"],
                     "mensagem": (
-                        f"Orçamento de {o['categoria']} excedido: "
+                        f"Orçamento de {rotulo_cat} excedido: "
                         f"gasto R$ {o['gasto']} de R$ {o['limite']}."
                     ),
                     "lido": chave in lidos,

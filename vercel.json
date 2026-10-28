@@ -7,11 +7,15 @@
   "redirects": [
     {
       "source": "/",
-      "destination": "/login.html",
+      "destination": "/inicio.html",
       "permanent": false
     }
   ],
   "rewrites": [
+    {
+      "source": "/inicio",
+      "destination": "/inicio.html"
+    },
     {
       "source": "/login",
       "destination": "/login.html"
@@ -23,6 +27,14 @@
     {
       "source": "/dashboard",
       "destination": "/index.html"
+    },
+    {
+      "source": "/termos",
+      "destination": "/termos.html"
+    },
+    {
+      "source": "/privacidade",
+      "destination": "/privacidade.html"
     }
   ]
 }

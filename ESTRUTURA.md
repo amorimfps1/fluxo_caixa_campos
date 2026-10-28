@@ -116,10 +116,12 @@ fluxo_caixas/
 │   │   └── readme.md                   # Manual de segurança e proteção de senhas
 │   ├── servicos/                       # Serviços auxiliares e utilitários
 │   │   ├── email.py                    # Envio defensivo de e-mails via SMTP com STARTTLS
+│   │   ├── google_oauth.py             # Verificação criptográfica de ID Token Google OAuth 2.0
 │   │   └── __init__.py                 # Exportador de serviços
-│   ├── tests/                          # Suíte de testes automatizados (80 testes passing)
+│   ├── tests/                          # Suíte de testes automatizados (109 testes passing)
 │   │   ├── conftest.py                 # Fixtures globais, banco em memória e TestClient FastAPI
 │   │   ├── test_cadastro_usuario.py    # Validação de CPF, complexidade de senha e integridade
+│   │   ├── test_seguranca_oauth_lgpd.py# Testes de CPF estrito, senha forte, LGPD, OTP anti-bot e Google OAuth
 │   │   ├── test_cors.py                # Preflight CORS, allowlist e ambientes dev/prod
 │   │   ├── test_dados_sensiveis.py     # Cifragem Fernet, Blind Index HMAC e privacidade LGPD
 │   │   ├── test_financeiro.py          # Precisão Decimal, saldo disponível e transferências
@@ -148,17 +150,23 @@ fluxo_caixas/
 │   ├── *.sql                           # Dumps e scripts DDL de referência
 │   └── readme.md                       # Diagrama de relacionamentos e dicionário de dados
 │
-├── frontend/                           # Aplicação Web SPA Estática (hospedada na Vercel)
+├── frontend/                           # Aplicação Web SPA & Landing Page (hospedada na Vercel)
+│   ├── assets/
+│   │   └── logo.svg                    # Logotipo corporativo oficial em SVG
 │   ├── css/
-│   │   └── style.css                   # Design system corporativo, variáveis e responsividade
+│   │   └── style.css                   # Design system corporativo (Tema Claro e Escuro), Inter e modais
 │   ├── js/
 │   │   ├── api.js                      # Cliente HTTP com detecção de ambiente e hook de modais
-│   │   ├── cadastro.js                 # Validação client-side, máscaras e cadastro de usuário
-│   │   ├── dashboard.js                # Orquestração do painel, gráficos, filtros e modais
-│   │   └── login.js                    # Autenticação OAuth2, sessão e recuperação de senha
-│   ├── index.html                      # Dashboard financeiro principal autenticado
-│   ├── login.html                      # Tela de login
+│   │   ├── legal.js                    # Termos de Serviço, LGPD, CPF em tempo real, checklist de senha e OAuth
+│   │   ├── cadastro.js                 # Cadastro com aceite LGPD, validação em tempo real e modal OTP anti-bot
+│   │   ├── dashboard.js                # Orquestração do painel, gráficos adaptativos ao tema, filtros e CSV
+│   │   └── login.js                    # Autenticação OAuth2, Google OAuth 2.0 e recuperação de senha
+│   ├── inicio.html                     # Landing Page de alta conversão com CTAs estratégicos
+│   ├── index.html                      # Painel financeiro principal autenticado
+│   ├── login.html                      # Tela de login institucional
 │   ├── cadastro.html                   # Tela de criação de conta
+│   ├── termos.html                     # Página dedicada dos Termos de Serviço
+│   ├── privacidade.html                # Página dedicada da Política de Privacidade e LGPD
 │   └── README.md                       # Documentação do frontend e deploy na Vercel
 │
 ├── scripts/                            # Scripts utilitários de administração e manutenção

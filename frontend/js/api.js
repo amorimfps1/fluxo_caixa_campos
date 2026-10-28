@@ -103,7 +103,9 @@ const api = {
                     message = data.detail;
                 } else if (Array.isArray(data.detail)) {
                     message = data.detail
-                        .map((error) => error.msg)
+                        .map((error) =>
+                            String(error.msg || "").replace(/^Value error,\s*/i, "")
+                        )
                         .filter(Boolean)
                         .join(" ");
                 }
