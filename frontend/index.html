@@ -129,12 +129,39 @@
             </header>
 
             <!-- View: Dashboard Principal -->
-            <div id="view-dashboard" class="app-view"><section class="panel" aria-labelledby="alertas-titulo">
-  <div class="panel-header"><div><h3 id="alertas-titulo">Alertas</h3><p>Saídas futuras são lançamentos cadastrados; não indicam se uma conta está paga.</p></div></div>
-  <label><input type="checkbox" id="alerta-orcamento"> Limites excedidos</label>
-  <label><input type="checkbox" id="alerta-vencimento"> Saídas nos próximos 7 dias</label>
-  <p id="alertas-mensagem" role="status"></p><ul id="alertas-lista"></ul>
-</section>
+            <div id="view-dashboard" class="app-view">
+
+                <!-- Centro de Alertas e Vencimentos -->
+                <section class="alerts-panel" aria-labelledby="alertas-titulo">
+                    <div class="alerts-header">
+                        <div class="alerts-header-info">
+                            <div class="alerts-icon-badge" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 id="alertas-titulo">Alertas e Notificações</h3>
+                                <p>Acompanhe orçamentos que atingiram o limite e saídas programadas para os próximos 7 dias.</p>
+                            </div>
+                        </div>
+
+                        <div class="alerts-preferences" role="group" aria-label="Preferências de notificação">
+                            <label class="preference-toggle" title="Receber alertas quando gastos excederem o limite orçado">
+                                <input type="checkbox" id="alerta-orcamento" checked>
+                                <span>Limites orçamentários</span>
+                            </label>
+                            <label class="preference-toggle" title="Receber alertas de contas que vencem nos próximos 7 dias">
+                                <input type="checkbox" id="alerta-vencimento" checked>
+                                <span>Saídas nos próximos 7 dias</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="alertas-mensagem" class="alert-empty-state" role="status" aria-live="polite"></div>
+                    <ul id="alertas-lista" class="alerts-list"></ul>
+                </section>
 
 
             <!-- Indicadores financeiros -->
@@ -439,17 +466,50 @@
                 </article>
             </div>
 
-            <!-- View: Categorias -->
-            <div id="view-categorias" class="app-view" hidden><section class="panel" aria-labelledby="orcamentos-titulo">
-  <div class="panel-header"><div><h3 id="orcamentos-titulo">Orçamentos mensais</h3><p>O gasto inclui saídas e investimentos até hoje, sem transferências internas e ajustes.</p></div></div>
-  <form id="orcamento-form">
-    <label for="orcamento-mes">Mês</label> <input id="orcamento-mes" type="month" required>
-    <label for="orcamento-categoria">Categoria</label> <select id="orcamento-categoria" required></select>
-    <label for="orcamento-limite">Limite (R$)</label> <input id="orcamento-limite" type="number" min="0" max="9999999999.99" step="0.01" required>
-    <button type="submit">Salvar orçamento</button>
-  </form>
-  <p id="orcamento-mensagem" role="status"></p><ul id="orcamento-lista"></ul>
-</section>
+            <!-- View: Categorias e Orçamentos -->
+            <div id="view-categorias" class="app-view" hidden>
+                <!-- Painel de Orçamentos Mensais -->
+                <section class="budget-panel" aria-labelledby="orcamentos-titulo">
+                    <div class="panel-header" style="margin-bottom: 20px;">
+                        <div>
+                            <h3 id="orcamentos-titulo">Orçamentos mensais por categoria</h3>
+                            <p>Defina limites de gastos para cada categoria e acompanhe o percentual consumido em tempo real.</p>
+                        </div>
+                    </div>
+
+                    <form id="orcamento-form" class="budget-form">
+                        <div class="form-field">
+                            <label for="orcamento-mes">Mês de referência</label>
+                            <input id="orcamento-mes" name="mes" type="month" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="orcamento-categoria">Categoria</label>
+                            <select id="orcamento-categoria" name="categoria" required></select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="orcamento-limite">Limite orçado (R$)</label>
+                            <input
+                                id="orcamento-limite"
+                                name="limite"
+                                type="number"
+                                min="0"
+                                max="9999999999.99"
+                                step="0.01"
+                                placeholder="0,00"
+                                required
+                            >
+                        </div>
+
+                        <button type="submit" class="button-primary" id="orcamento-submit-btn">
+                            Salvar orçamento
+                        </button>
+                    </form>
+
+                    <div id="orcamento-mensagem" class="form-message" role="status" aria-live="polite" style="margin-bottom: 16px;"></div>
+                    <ul id="orcamento-lista" class="budget-grid"></ul>
+                </section>
 
                 <div class="panel-header" style="margin-bottom: 16px;">
                     <div>

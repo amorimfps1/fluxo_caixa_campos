@@ -335,8 +335,12 @@ Para detalhes completos da cobertura de testes e testes de concorrência MySQL, 
 Desenvolvido com foco em segurança, precisão contábil e arquitetura em nuvem.
 </div>
 
-## Orçamentos e alertas
+## Orçamentos e Alertas Proativos
 
-O projeto mantém duas linhagens independentes de migração. Para um banco já na linhagem tradicional, execute `python -m alembic -c "banco de dados/alembic.ini" upgrade orcamentos_alertas_legacy`; para um banco da linhagem Supabase, execute `python -m alembic -c "banco de dados/alembic.ini" upgrade orcamentos_alertas_supabase`. Não execute ambas no mesmo banco. Consulte `current` antes de escolher a linhagem.
-
-Os orçamentos somam saídas e investimentos até a data atual do servidor, excluindo transferências internas e ajustes. Saídas futuras já afetam o saldo no sistema existente; seus alertas não indicam pagamento pendente e não geram recorrências. As preferências e o estado de leitura são individuais.
+O sistema conta com um módulo completo de planejamento orçamentário e notificações financeiras proativas:
+- **Orçamentos Mensais por Categoria**: Permite estabelecer tetos de gastos por categoria para cada mês. Os gastos consolidados somam automaticamente saídas e aportes em investimentos até a data atual, apresentando barra de progresso visual (verde < 80%, âmbar 80-100%, vermelho > 100%) e cálculo em tempo real do saldo restante.
+- **Alertas Proativos**: Notifica no Dashboard quando limites orçamentários forem atingidos ou excedidos, bem como saídas cadastradas para os próximos 7 dias. O usuário pode personalizar suas preferências de notificação e marcar alertas como lidos individualmente.
+- **Migrações de Banco de Dados**: A árvore de migrações do Alembic está unificada (`banco de dados/migrations/`). Para atualizar o esquema do banco de dados em qualquer ambiente (MySQL, PostgreSQL ou Supabase), execute:
+  ```bash
+  python -m alembic -c "banco de dados/alembic.ini" upgrade head
+  ```

@@ -2966,36 +2966,93 @@ function inicializarSelectsArredondados(root = document) {
 
 
 function inicializarOrcamentosAlertas() {
-    const mes = document.querySelector('#orcamento-mes');
+    const inputMes = document.querySelector("#orcamento-mes");
     const agora = new Date();
-    mes.value = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
-    const select = document.querySelector('#orcamento-categoria');
-    document.querySelectorAll('#categories-cards-grid [data-category]').forEach(card => {
-        const option = document.createElement('option');
-        option.value = card.dataset.category;
-        option.textContent = card.querySelector('strong').textContent;
-        select.append(option);
-    });
-    mes.addEventListener('change', atualizarOrcamentos);
-    document.querySelector('#orcamento-form').addEventListener('submit', async event => {
+    if (inputMes) {
+        inputMes.value = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    const selectCategoria = document.querySelector("#orcamento-categoria");
+    if (selectCategoria && selectCategoria.options.length === 0) {
+        document.querySelectorAll("#categories-cards-grid [data-category]").forEach((card) => {
+            const cat = card.dataset.category;
+            const nome = card.querySelector("strong")?.textContent || formatarCategoria(cat);
+            const option = document.createElement("option");
+            option.value = cat;
+            option.textContent = nome;
+            selectCategoria.append(option);
+        });
+        if (typeof inicializarSelectsArredondados === "function") {
+            inicializarSelectsArredondados(selectCategoria.parentElement || document);
+        }
+    }
+
+    inputMes?.addEventListener("change", atualizarOrcamentos);
+
+    const formOrcamento = document.querySelector("#orcamento-form");
+    formOrcamento?.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const msg = document.querySelector('#orcamento-mensagem');
+        const msg = document.querySelector("#orcamento-mensagem");
+        const btnSalvar = document.querySelector("#orcamento-submit-btn");
+        const mesValor = inputMes?.value;
+        const categoriaValor = selectCategoria?.value;
+        const limiteValor = document.querySelector("#orcamento-limite")?.value;
+
+        if (!mesValor || !categoriaValor || !limiteValor) {
+            if (msg) definirMensagem("#orcamento-mensagem", "Preencha todos os campos do orçamento.", "error");
+            return;
+        }
+
+        if (btnSalvar) btnSalvar.disabled = true;
+        if (msg) definirMensagem("#orcamento-mensagem", "Salvando orçamento...", "info");
+
         try {
-            const lista = await api.get(`/orcamentos?mes=${mes.value}-01`);
-            const existente = lista.find(o => o.categoria === select.value);
-            const dados = {mes: `${mes.value}-01`, categoria: select.value, limite: document.querySelector('#orcamento-limite').value};
-            if (existente) await api.put(`/orcamentos/${existente.id}`, dados);
-            else await api.post('/orcamentos', dados);
-            msg.textContent = 'Orçamento salvo.';
+            const dataPrimeiroDia = `${mesValor}-01`;
+            const lista = await api.get(`/orcamentos?mes=${dataPrimeiroDia}`);
+            const existente = lista.find((o) => o.categoria === categoriaValor);
+            const payload = {
+                mes: dataPrimeiroDia,
+                categoria: categoriaValor,
+                limite: limiteValor
+            };
+
+            if (existente) {
+                await api.put(`/orcamentos/${existente.id}`, payload);
+                mostrarToast(`Orçamento de ${formatarCategoria(categoriaValor)} atualizado com sucesso!`);
+            } else {
+                await api.post("/orcamentos", payload);
+                mostrarToast(`Orçamento de ${formatarCategoria(categoriaValor)} cadastrado com sucesso!`);
+            }
+
+            if (msg) limparMensagem("#orcamento-mensagem");
+            const inputLimite = document.querySelector("#orcamento-limite");
+            if (inputLimite) inputLimite.value = "";
             await atualizarOrcamentosAlertas();
-        } catch (e) { msg.textContent = e.message; }
+        } catch (error) {
+            if (msg) definirMensagem("#orcamento-mensagem", error.message, "error");
+            mostrarToast(error.message, "error");
+        } finally {
+            if (btnSalvar) btnSalvar.disabled = false;
+        }
     });
-    ['orcamento', 'vencimento'].forEach(tipo => document.querySelector(`#alerta-${tipo}`).addEventListener('change', async () => {
-        try {
-            await api.put('/alertas/preferencias', {orcamento: document.querySelector('#alerta-orcamento').checked, vencimento: document.querySelector('#alerta-vencimento').checked});
-            await atualizarAlertas();
-        } catch (e) { document.querySelector('#alertas-mensagem').textContent = e.message; }
-    }));
+
+    ["orcamento", "vencimento"].forEach((tipo) => {
+        document.querySelector(`#alerta-${tipo}`)?.addEventListener("change", async () => {
+            const orcamentoAtivo = Boolean(document.querySelector("#alerta-orcamento")?.checked);
+            const vencimentoAtivo = Boolean(document.querySelector("#alerta-vencimento")?.checked);
+            try {
+                await api.put("/alertas/preferencias", {
+                    orcamento: orcamentoAtivo,
+                    vencimento: vencimentoAtivo
+                });
+                mostrarToast("Preferências de notificação atualizadas!", "info");
+                await atualizarAlertas();
+            } catch (error) {
+                mostrarToast(error.message, "error");
+            }
+        });
+    });
+
     atualizarOrcamentosAlertas();
 }
 
@@ -3004,62 +3061,213 @@ async function atualizarOrcamentosAlertas() {
 }
 
 async function atualizarOrcamentos() {
-    const msg = document.querySelector('#orcamento-mensagem');
-    const lista = document.querySelector('#orcamento-lista');
+    const msg = document.querySelector("#orcamento-mensagem");
+    const lista = document.querySelector("#orcamento-lista");
+    const inputMes = document.querySelector("#orcamento-mes");
+    if (!lista || !inputMes) return;
+
     try {
-        const mes = document.querySelector('#orcamento-mes').value;
-        if (!mes) return;
-        const dados = await api.get(`/orcamentos?mes=${mes}-01`);
+        const mesValor = inputMes.value;
+        if (!mesValor) return;
+        const dados = await api.get(`/orcamentos?mes=${mesValor}-01`);
         lista.replaceChildren();
-        dados.forEach(o => {
-            const li = document.createElement('li');
-            const texto = document.createElement('span');
-            texto.textContent = `${formatarCategoria(o.categoria)}: gasto ${formatarMoeda(Number(o.gasto))} / ${formatarMoeda(Number(o.limite))} · restante ${formatarMoeda(Number(o.restante))} `;
-            const editar = document.createElement('button');
-            editar.type = 'button'; editar.textContent = 'Editar';
-            editar.addEventListener('click', () => {
-                document.querySelector('#orcamento-categoria').value = o.categoria;
-                document.querySelector('#orcamento-limite').value = o.limite;
-                document.querySelector('#orcamento-limite').focus();
+
+        if (!dados || dados.length === 0) {
+            if (msg) definirMensagem("#orcamento-mensagem", "Nenhum orçamento cadastrado para este mês de referência.", "info");
+            return;
+        }
+
+        if (msg) limparMensagem("#orcamento-mensagem");
+
+        const fragmento = document.createDocumentFragment();
+        dados.forEach((o) => {
+            const card = document.createElement("li");
+            card.className = "budget-card";
+
+            const gastoNum = Number(o.gasto || 0);
+            const limiteNum = Number(o.limite || 0);
+            const restanteNum = Number(o.restante || 0);
+            const percentual = limiteNum > 0 ? (gastoNum / limiteNum) * 100 : 0;
+            const percentualFormatado = percentual.toFixed(1);
+
+            let statusClasse = "";
+            if (percentual >= 100) {
+                statusClasse = "danger";
+            } else if (percentual >= 80) {
+                statusClasse = "warning";
+            }
+
+            const header = document.createElement("div");
+            header.className = "budget-card-header";
+
+            const title = document.createElement("div");
+            title.className = "budget-card-title";
+            title.innerHTML = `<span>${formatarCategoria(o.categoria)}</span>`;
+
+            const percentBadge = document.createElement("span");
+            percentBadge.className = `budget-card-percent ${statusClasse}`.trim();
+            percentBadge.textContent = `${percentualFormatado}% consumido`;
+            header.append(title, percentBadge);
+
+            const progressTrack = document.createElement("div");
+            progressTrack.className = "budget-progress-track";
+            const progressFill = document.createElement("div");
+            progressFill.className = `budget-progress-fill ${statusClasse}`.trim();
+            progressFill.style.width = `${Math.min(percentual, 100)}%`;
+            progressTrack.append(progressFill);
+
+            const metrics = document.createElement("div");
+            metrics.className = "budget-card-metrics";
+
+            const colGasto = document.createElement("div");
+            colGasto.innerHTML = `Gasto: <strong>${formatarMoeda(gastoNum)}</strong> de ${formatarMoeda(limiteNum)}`;
+
+            const colRestante = document.createElement("div");
+            const restanteClasse = restanteNum >= 0 ? "positive" : "negative";
+            colRestante.className = `budget-card-remaining ${restanteClasse}`;
+            colRestante.innerHTML = `${restanteNum >= 0 ? "Restam" : "Excedeu"}: <strong>${formatarMoeda(Math.abs(restanteNum))}</strong>`;
+            metrics.append(colGasto, colRestante);
+
+            const actions = document.createElement("div");
+            actions.className = "budget-card-actions";
+
+            const btnEditar = document.createElement("button");
+            btnEditar.type = "button";
+            btnEditar.className = "button-small button-secondary";
+            btnEditar.textContent = "Editar";
+            btnEditar.addEventListener("click", () => {
+                const selectCat = document.querySelector("#orcamento-categoria");
+                const inputLim = document.querySelector("#orcamento-limite");
+                if (selectCat) selectCat.value = o.categoria;
+                if (inputLim) {
+                    inputLim.value = o.limite;
+                    inputLim.focus();
+                }
             });
-            const excluir = document.createElement('button');
-            excluir.type = 'button'; excluir.textContent = 'Excluir';
-            excluir.addEventListener('click', async () => {
-                if (!window.confirm('Excluir este orçamento?')) return;
-                try { await api.delete(`/orcamentos/${o.id}`); await atualizarOrcamentosAlertas(); }
-                catch (e) { msg.textContent = e.message; }
+
+            const btnExcluir = document.createElement("button");
+            btnExcluir.type = "button";
+            btnExcluir.className = "button-small button-danger";
+            btnExcluir.textContent = "Excluir";
+            btnExcluir.addEventListener("click", async () => {
+                if (!window.confirm(`Deseja excluir o orçamento de ${formatarCategoria(o.categoria)}?`)) return;
+                try {
+                    await api.delete(`/orcamentos/${o.id}`);
+                    mostrarToast("Orçamento excluído com sucesso!");
+                    await atualizarOrcamentosAlertas();
+                } catch (err) {
+                    mostrarToast(err.message, "error");
+                }
             });
-            li.append(texto, editar, excluir); lista.append(li);
+
+            actions.append(btnEditar, btnExcluir);
+            card.append(header, progressTrack, metrics, actions);
+            fragmento.append(card);
         });
-        if (!dados.length) msg.textContent = 'Nenhum orçamento neste mês.';
-        else msg.textContent = '';
-    } catch (e) { msg.textContent = e.message; }
+
+        lista.append(fragmento);
+    } catch (error) {
+        if (msg) definirMensagem("#orcamento-mensagem", error.message, "error");
+    }
 }
 
 async function atualizarAlertas() {
-    const msg = document.querySelector('#alertas-mensagem');
-    const lista = document.querySelector('#alertas-lista');
+    const msg = document.querySelector("#alertas-mensagem");
+    const lista = document.querySelector("#alertas-lista");
+    if (!lista) return;
+
     try {
-        const [prefs, dados] = await Promise.all([api.get('/alertas/preferencias'), api.get('/alertas')]);
-        document.querySelector('#alerta-orcamento').checked = prefs.orcamento;
-        document.querySelector('#alerta-vencimento').checked = prefs.vencimento;
+        const [prefs, dados] = await Promise.all([
+            api.get("/alertas/preferencias"),
+            api.get("/alertas")
+        ]);
+
+        const chkOrcamento = document.querySelector("#alerta-orcamento");
+        const chkVencimento = document.querySelector("#alerta-vencimento");
+        if (chkOrcamento) chkOrcamento.checked = prefs.orcamento;
+        if (chkVencimento) chkVencimento.checked = prefs.vencimento;
+
         lista.replaceChildren();
-        dados.forEach(a => {
-            const li = document.createElement('li');
-            const texto = document.createElement('span');
-            texto.textContent = `${a.mensagem} ${a.lido ? '(lido)' : ''} `;
-            li.append(texto);
-            if (!a.lido) {
-                const botao = document.createElement('button');
-                botao.type = 'button'; botao.textContent = 'Marcar como lido';
-                botao.addEventListener('click', async () => {
-                    try { await api.put(`/alertas/lido?chave=${encodeURIComponent(a.chave)}`, {}); await atualizarAlertas(); }
-                    catch (e) { msg.textContent = e.message; }
-                });
-                li.append(botao);
+
+        if (!dados || dados.length === 0) {
+            if (msg) {
+                msg.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span>Nenhum alerta pendente no momento. Suas finanças estão sob controle!</span>
+                `;
+                msg.hidden = false;
             }
-            lista.append(li);
+            return;
+        }
+
+        if (msg) msg.hidden = true;
+
+        const fragmento = document.createDocumentFragment();
+        dados.forEach((a) => {
+            const card = document.createElement("li");
+            const tipoClasse = a.chave.startsWith("orcamento:") ? "type-orcamento" : "type-vencimento";
+            card.className = `alert-card ${tipoClasse} ${a.lido ? "is-read" : ""}`.trim();
+
+            const body = document.createElement("div");
+            body.className = "alert-card-body";
+
+            const iconWrap = document.createElement("div");
+            iconWrap.className = "alert-card-icon";
+            iconWrap.setAttribute("aria-hidden", "true");
+
+            if (tipoClasse === "type-orcamento") {
+                iconWrap.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+            } else {
+                iconWrap.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
+            }
+
+            const content = document.createElement("div");
+            content.className = "alert-card-content";
+            content.textContent = a.mensagem;
+
+            if (a.lido) {
+                const badge = document.createElement("span");
+                badge.className = "alert-card-badge";
+                badge.textContent = "Lido";
+                content.append(badge);
+            }
+
+            body.append(iconWrap, content);
+            card.append(body);
+
+            if (!a.lido) {
+                const actionWrap = document.createElement("div");
+                actionWrap.className = "alert-card-action";
+
+                const btnLido = document.createElement("button");
+                btnLido.type = "button";
+                btnLido.className = "button-small button-secondary";
+                btnLido.textContent = "Marcar como lido";
+                btnLido.addEventListener("click", async () => {
+                    try {
+                        await api.put(`/alertas/lido?chave=${encodeURIComponent(a.chave)}`, {});
+                        mostrarToast("Alerta marcado como lido.", "info");
+                        await atualizarAlertas();
+                    } catch (err) {
+                        mostrarToast(err.message, "error");
+                    }
+                });
+
+                actionWrap.append(btnLido);
+                card.append(actionWrap);
+            }
+
+            fragmento.append(card);
         });
-        msg.textContent = dados.length ? '' : 'Nenhum alerta no momento.';
-    } catch (e) { msg.textContent = e.message; }
+
+        lista.append(fragmento);
+    } catch (error) {
+        if (msg) {
+            msg.textContent = error.message;
+            msg.hidden = false;
+        }
+    }
 }

@@ -920,3 +920,56 @@ class ResumoPeriodoResponse(BaseModel):
     total_transferencias_enviadas: Decimal
     total_ajustes: Decimal
     saldo_final: Decimal
+
+
+# =========================================================
+# ORÇAMENTOS E ALERTAS
+# =========================================================
+
+
+class DadosOrcamento(InputModel):
+    categoria: str = Field(min_length=1, max_length=100)
+    mes: date
+    limite: Decimal = Field(ge=0, max_digits=12, decimal_places=2, allow_inf_nan=False)
+
+    @field_validator("mes")
+    @classmethod
+    def validar_primeiro_dia(cls, valor: date) -> date:
+        if valor.day != 1:
+            raise ValueError("Informe o primeiro dia do mês.")
+        return valor
+
+
+class OrcamentoResponse(BaseModel):
+    id: int
+    categoria: str
+    mes: date
+    limite: Decimal
+    gasto: Decimal
+    restante: Decimal
+    percentual_gasto: float = 0.0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PreferenciasAlerta(InputModel):
+    orcamento: bool
+    vencimento: bool
+
+
+class PreferenciasAlertaResponse(BaseModel):
+    orcamento: bool
+    vencimento: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AlertaResponse(BaseModel):
+    chave: str
+    mensagem: str
+    lido: bool
+    tipo: Optional[Literal["orcamento", "vencimento"]] = None
+    titulo: Optional[str] = None
+    categoria: Optional[str] = None
+    data_referencia: Optional[date] = None
+    valor: Optional[Decimal] = None

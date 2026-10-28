@@ -2123,3 +2123,373 @@ body.dark-theme .nature-tab.active {
     vertical-align: middle;
     margin-right: 6px;
 }
+
+/* =========================================================
+   ORÇAMENTOS E ALERTAS PROATIVOS
+========================================================= */
+
+/* 1. Centro de Alertas e Notificações (Dashboard) */
+.alerts-panel {
+    margin-bottom: 24px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-card);
+}
+
+.alerts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.alerts-header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.alerts-icon-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.alerts-header-info h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.alerts-header-info p {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin: 2px 0 0 0;
+}
+
+.alerts-preferences {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.preference-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    transition: all 0.2s ease;
+}
+
+.preference-toggle:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text);
+}
+
+.preference-toggle input[type="checkbox"] {
+    accent-color: var(--color-primary);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
+.alerts-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.alert-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 16px;
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-primary);
+    border-radius: 10px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.alert-card.type-orcamento {
+    border-left-color: var(--color-expense);
+}
+
+.alert-card.type-vencimento {
+    border-left-color: #0284c7;
+}
+
+.alert-card.is-read {
+    opacity: 0.65;
+    border-left-color: var(--color-text-secondary);
+}
+
+.alert-card-body {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.alert-card-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.alert-card.type-orcamento .alert-card-icon {
+    background: rgba(190, 18, 60, 0.12);
+    color: var(--color-expense);
+}
+
+.alert-card.type-vencimento .alert-card-icon {
+    background: rgba(2, 132, 199, 0.12);
+    color: #0284c7;
+}
+
+.alert-card.is-read .alert-card-icon {
+    background: var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.alert-card-content {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--color-text);
+}
+
+.alert-card-content strong {
+    color: var(--color-text);
+}
+
+.alert-card-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--color-border);
+    color: var(--color-text-secondary);
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.alert-card-action {
+    flex-shrink: 0;
+}
+
+.alert-empty-state {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    background: var(--color-background);
+    border-radius: 10px;
+}
+
+.alert-empty-state svg {
+    color: var(--color-primary);
+    flex-shrink: 0;
+}
+
+/* 2. Orçamentos Mensais por Categoria */
+.budget-panel {
+    margin-bottom: 24px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+}
+
+.budget-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
+    gap: 14px;
+    align-items: flex-end;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.budget-form .form-field {
+    margin-bottom: 0;
+}
+
+.budget-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.budget-card {
+    background: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.budget-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.budget-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.budget-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.budget-card-percent {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+}
+
+.budget-card-percent.warning {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.budget-card-percent.danger {
+    background: #fee2e2;
+    color: var(--color-expense);
+}
+
+.budget-progress-track {
+    width: 100%;
+    height: 8px;
+    background: var(--color-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.budget-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-primary);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.budget-progress-fill.warning {
+    background: #d97706;
+}
+
+.budget-progress-fill.danger {
+    background: var(--color-expense);
+}
+
+.budget-card-metrics {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+.budget-card-metrics strong {
+    color: var(--color-text);
+}
+
+.budget-card-remaining {
+    font-weight: 600;
+}
+
+.budget-card-remaining.positive {
+    color: var(--color-income);
+}
+
+.budget-card-remaining.negative {
+    color: var(--color-expense);
+}
+
+.budget-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--color-border);
+}
+
+/* Tema Escuro para Alertas e Orçamentos */
+body.dark-theme .alerts-panel,
+body.dark-theme .budget-panel {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+
+body.dark-theme .preference-toggle,
+body.dark-theme .alert-card,
+body.dark-theme .budget-card,
+body.dark-theme .alert-empty-state {
+    background: #0f172a;
+    border-color: var(--color-border);
+}
+
+body.dark-theme .preference-toggle:hover {
+    border-color: var(--color-primary);
+}
+
+body.dark-theme .budget-card:hover {
+    border-color: #334155;
+}
+
+body.dark-theme .budget-card-percent.warning {
+    background: rgba(217, 119, 6, 0.2);
+    color: #fbbf24;
+}
+
+body.dark-theme .budget-card-percent.danger {
+    background: rgba(244, 63, 94, 0.2);
+    color: #fda4af;
+}

@@ -201,6 +201,18 @@ def garantir_esquema_banco() -> None:
                         )
                     except Exception:
                         pass
+
+            # Garante que as tabelas de orçamentos e alertas existam de forma idempotente
+            if "orcamentos" not in tabelas or "preferencias_alerta" not in tabelas or "alertas_lidos" not in tabelas:
+                try:
+                    from models import Orcamento, PreferenciaAlerta, AlertaLido
+                    Base.metadata.create_all(
+                        bind=conn,
+                        tables=[Orcamento.__table__, PreferenciaAlerta.__table__, AlertaLido.__table__],
+                        checkfirst=True
+                    )
+                except Exception:
+                    pass
     except Exception:
         pass
 
