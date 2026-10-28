@@ -479,3 +479,24 @@ class MetaFinanceira(Base):
         DateTime,
         server_default=text("CURRENT_TIMESTAMP")
     )
+class Orcamento(Base):
+    __tablename__ = "orcamentos"
+    __table_args__ = (UniqueConstraint("usuario_id", "categoria", "mes", name="uq_orcamento_usuario_categoria_mes"),)
+    id = Column(Integer, primary_key=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
+    categoria = Column(String(100), ForeignKey("categorias_movimentacao.nome"), nullable=False)
+    mes = Column(Date, nullable=False)
+    limite = Column(Numeric(12, 2), nullable=False)
+
+
+class PreferenciaAlerta(Base):
+    __tablename__ = "preferencias_alerta"
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), primary_key=True)
+    orcamento = Column(Boolean, nullable=False, default=True, server_default=text("true"))
+    vencimento = Column(Boolean, nullable=False, default=True, server_default=text("true"))
+
+
+class AlertaLido(Base):
+    __tablename__ = "alertas_lidos"
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), primary_key=True)
+    chave = Column(String(100), primary_key=True)

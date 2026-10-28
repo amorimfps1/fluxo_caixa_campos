@@ -1,4 +1,4 @@
-from contextlib import asynccontextmanager
+﻿from contextlib import asynccontextmanager
 import os
 from pathlib import Path
 
@@ -13,7 +13,8 @@ from rotasdeapi import (
     conta_bancaria,
     fluxo_dinheiro,
     calculo_financeiro,
-    meta_financeira
+    meta_financeira,
+    orcamentos_alertas
 )
 
 carregar_configuracao()
@@ -93,6 +94,7 @@ app.include_router(conta_bancaria.router)
 app.include_router(fluxo_dinheiro.router)
 app.include_router(calculo_financeiro.router)
 app.include_router(meta_financeira.router)
+app.include_router(orcamentos_alertas.router)
 
 
 @app.get("/")
