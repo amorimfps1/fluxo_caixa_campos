@@ -4,14 +4,15 @@
 > 💻 **Base URL Local:** `http://127.0.0.1:8000`  
 > 📖 **Documentação Interativa (Swagger UI):** [https://fluxo-caixa-cuq1.onrender.com/docs](https://fluxo-caixa-cuq1.onrender.com/docs)
 
-Este documento descreve todos os endpoints REST expostos pela API do **Sistema de Fluxo de Caixa**, seus formatos de requisição, regras de validação e respostas.
+Este documento descreve todos os endpoints REST expostos pela API do **Sistema de Fluxo de Caixa**, seus formatos de requisição, regras de validação, segurança e respostas.
 
 ---
 
 ## 🔐 Padrões Globais
 
 - **Autenticação:** Padrão OAuth2 Bearer Token (`Authorization: Bearer <access_token>`).
-- **Isolamento de Dados:** O `usuario_id` é sempre obtido do token JWT assinado; nenhum endpoint aceita `usuario_id` vindo do cliente.
+- **Isolamento de Dados:** O `usuario_id` é sempre obtido do token JWT assinado; nenhum endpoint aceita `usuario_id` arbitrário vindo do cliente.
+- **Precisão Financeira:** Valores monetários processados com tipo `Decimal(12, 2)`.
 - **Paginação nas Listagens:** Suporte aos query parameters `limit` (padrão `50`, máximo `100`) e `offset` (padrão `0`).
 
 ---
@@ -19,7 +20,7 @@ Este documento descreve todos os endpoints REST expostos pela API do **Sistema d
 ## 👤 1. Usuários e Autenticação (`usuario.py`)
 
 ### `POST /usuarios/`
-Registra um novo usuário com validação algorítmica de CPF e complexidade de senha.
+Registra um novo usuário com validação algorítmica de CPF, complexidade de senha e envio de e-mail de boas-vindas com código de confirmação.
 - **Autenticação:** Pública (com rate limit por IP).
 - **Body (`application/json`):**
   ```json
@@ -32,41 +33,46 @@ Registra um novo usuário com validação algorítmica de CPF e complexidade de 
   }
   ```
 - **Regras de Validação:**
-  - `cpf`: 11 dígitos numéricos ASCII com dígitos verificadores válidos (cifrado com Fernet antes de salvar).
-  - `senha`: Mínimo de 8 caracteres, contendo letra maiúscula, minúscula, número e caractere especial.
-  - `telefone`: Opcional (10 ou 11 dígitos), também cifrado com Fernet.
-- **Resposta (`201 Created`):** Retorna `id`, `nome_completo`, `email`, `telefone` e `criado_em` (o CPF nunca é exposto).
+  - `cpf`: 11 dígitos numéricos com dígitos verificadores válidos (cifrado com Fernet AES-128 e indexado por Blind Index HMAC-SHA256).
+  - `senha`: Mínimo de 8 caracteres, contendo letra maiúscula, minúscula, número e caractere especial (hasheada com Argon2id/Bcrypt).
+  - `telefone`: Opcional (10 ou 11 dígitos), cifrado com Fernet.
+- **Resposta (`201 Created`):** Retorna `id`, `nome_completo`, `email`, `telefone`, `email_confirmado` e `criado_em`.
+
+### `POST /usuarios/confirmar-email`
+Valida o código OTP de 6 dígitos enviado por e-mail para ativar a confirmação cadastral.
+- **Body (`application/json`):** `{"email": "arthur@exemplo.com", "codigo": "123456"}`
 
 ### `POST /login`
-Autentica o usuário e emite o token JWT.
+Autentica o usuário e emite o token JWT com controle anti-força bruta.
 - **Autenticação:** Pública (protegida por rate limit: máx. 5 falhas em 15 min por IP/conta → `HTTP 429`).
 - **Body (`application/x-www-form-urlencoded`):**
   - `username`: e-mail cadastrado
   - `password`: senha do usuário
-- **Resposta (`200 OK`):**
-  ```json
-  {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "token_type": "bearer"
-  }
-  ```
+- **Resposta (`200 OK`):** `{"access_token": "...", "token_type": "bearer"}`
+
+### `POST /usuarios/esqueci-senha`
+Gera código OTP seguro e envia por e-mail para recuperação de acesso.
+
+### `POST /usuarios/redefinir-senha`
+Redefine a senha do usuário mediante validação criptográfica do e-mail, código OTP e nova senha forte.
 
 ### `GET /usuarios/me`
 Retorna os dados cadastrais do usuário autenticado.
-- **Autenticação:** Bearer JWT.
 
-### `POST /usuarios/redefinir-senha`
-Redefine a senha do usuário mediante validação criptográfica do e-mail e do CPF cadastrado.
-- **Autenticação:** Pública (protegida por rate limit anti-força bruta por IP e conta + comparação HMAC em tempo constante).
-- **Body (`application/json`):**
-  ```json
-  {
-    "email": "arthur@exemplo.com",
-    "cpf": "123.456.789-09",
-    "nova_senha": "NovaSenhaForte@2026"
-  }
-  ```
-- **Resposta (`200 OK`):** `{"mensagem": "Senha redefinida com sucesso."}`
+### `PUT /usuarios/me`
+Atualiza dados de perfil do usuário logado (`nome_completo`, `telefone`).
+
+### `DELETE /usuarios/me`
+Exclui a conta do usuário logado e remove em cascata todas as suas contas bancárias, movimentações e registros vinculados. Exige confirmação de senha no payload.
+
+### `GET /usuarios/`
+Lista usuários cadastrados no sistema (endpoint administrativo protegido por Bearer JWT).
+
+### `GET /usuarios/{usuario_id}`
+Detalha o cadastro de um usuário específico por ID.
+
+### `DELETE /usuarios/{usuario_id}`
+Remove um usuário específico por ID com exclusão segura em cascata de seus dados.
 
 ---
 
@@ -83,65 +89,98 @@ Cria uma nova conta bancária para o usuário logado.
   }
   ```
 - **Tipos aceitos:** `corrente`, `poupanca`, `investimento`.
-- **Comportamento:** Se `saldo_inicial > 0`, cria automaticamente uma movimentação inicial vinculada à conta.
+- **Comportamento:** Se `saldo_inicial > 0`, cria automaticamente um lançamento de saldo inicial.
 
 ### `GET /contas-bancarias/`
-Lista as contas do usuário com `valor_conta_atual` sincronizado.
-- **Query Params:** `ativa` (booleano opcional), `limit`, `offset`.
+Lista as contas do usuário com `valor_conta_atual` recalculado dinamicamente.
 
 ### `PUT /contas-bancarias/{conta_id}`
-Atualiza `nome_banco`, `tipo_conta` ou status `ativa`.
+Atualiza dados cadastrais da conta (`nome_banco`, `tipo_conta`, `ativa`).
 
 ### `DELETE /contas-bancarias/{conta_id}`
-Remove a conta bancária (bloqueia exclusão caso existam transferências vinculadas a outra conta ativa do usuário).
+Remove a conta bancária (bloqueia exclusão caso existam transferências ativas vinculadas a outra conta).
 
 ---
 
-## 💸 3. Fluxo de Dinheiro (`fluxo_dinheiro.py`)
+## 💸 3. Fluxo de Dinheiro e Investimentos (`fluxo_dinheiro.py`)
 
 ### `POST /fluxo-dinheiro/`
-Registra uma movimentação financeira ou transferência entre contas.
+Registra movimentações financeiras, transferências atômicas ou aportes de investimento.
 - **Tipos (`tipo`):**
-  - `entrada`: Receitas (valor positivo).
-  - `saida`: Despesas (valor positivo; valida saldo disponível em contas `poupanca` e `investimento`).
-  - `ajuste`: Conciliação contábil (aceita valor positivo ou negativo diferente de zero).
-  - `transferencia`: Transfere valor de `conta_bancaria_id` (origem) para `conta_destino_id` (destino) em uma transação atômica com par vinculado (`transferencia_id`).
-- **Categorias permitidas (`categoria`):** `alimentacao`, `ajuste`, `compras`, `contas`, `educacao`, `freelance`, `impostos`, `investimento`, `lazer`, `moradia`, `outros`, `salario`, `saude`, `transporte`, `transferencia`, `vendas`.
+  - `entrada`: Ganhos Financeiros. Subdividido no frontend em **Ganhos Fixos** (`salario`) e **Ganhos Variáveis** (`vendas`, `freelance`, `outros`, etc.).
+  - `saida`: Despesas. Subdividido em **Gastos Fixos** e **Gastos Variáveis**. Valida saldo disponível em contas `poupanca` e `investimento`.
+  - `investimento`: Aporte financeiro em ativos. O valor é **debitado automaticamente da conta de origem**, integrado à carteira de patrimônio e classificado pelo ativo correspondente:
+    - *Renda Fixa:* `Poupança`, `CDB`, `LCI/LCA`, `Tesouro Direto`, `Fundos de Investimento`
+    - *Renda Variável:* `Ações`, `ETFs`, `FIIs`, `Subscrições`
+  - `ajuste`: Conciliação contábil (positivo ou negativo).
+  - `transferencia`: Transfere fundos entre duas contas do usuário de forma atômica gerando par vinculado por `transferencia_id`.
 
 ### `GET /fluxo-dinheiro/`
-Retorna o extrato de movimentações do usuário.
-- **Filtros opcionais:** `conta_id`, `tipo`, `categoria`, `data_inicio`, `data_fim`, `limit`, `offset`.
+Retorna o extrato de movimentações com paginação e filtros combinados (`conta_id`, `tipo`, `categoria`, `data_inicio`, `data_fim`).
 
 ### `PUT /fluxo-dinheiro/{movimentacao_id}`
-Atualiza descrição, valor, tipo, categoria, data ou observação de um lançamento e recalcula o saldo da conta.
+Atualiza os atributos de um lançamento e recalcula instantaneamente os saldos das contas envolvidas.
 
 ### `DELETE /fluxo-dinheiro/{movimentacao_id}`
-Remove a movimentação. Caso pertença a uma transferência (`transferencia_id`), remove ambas as pontas (origem e destino) e atualiza os saldos das duas contas na mesma transação.
+Exclui a movimentação. Se pertencer a uma transferência, remove atomicamente ambas as pontas (origem e destino).
 
 ---
 
 ## 📊 4. Cálculos Financeiros (`calculo_financeiro.py`)
 
 ### `POST /calculos-financeiros/`
-Consolida e grava o balanço de uma conta em um período (`diario`, `semanal`, `mensal`, `anual`).
-- **Fórmula Contábil:**
-  $$\text{Saldo Final} = \text{Entradas} - \text{Saídas} + \text{Transferências Recebidas} - \text{Transferências Enviadas} + \text{Ajustes}$$
+Gera e persiste o balanço contábil consolidado de uma conta por período (`diario`, `semanal`, `mensal`, `anual`).
 
 ### `GET /calculos-financeiros/`
-Lista o histórico de cálculos consolidados do usuário.
+Lista o histórico de relatórios de conciliação e balanços consolidados.
 
 ---
 
 ## 🎯 5. Metas Financeiras (`meta_financeira.py`)
 
-- `POST /metas-financeiras/`: Cria meta com `nome_meta`, `valor_desejado`, `valor_atual` e `data_limite`.
-- `GET /metas-financeiras/`: Lista metas com filtro opcional por `status` (`em_andamento` ou `concluida`).
-- `PUT /metas-financeiras/{meta_id}`: Atualiza valores/dados; promove automaticamente `status` para `concluida` quando `valor_atual >= valor_desejado`.
-- `DELETE /metas-financeiras/{meta_id}`: Exclui a meta financeira.
+- `POST /metas-financeiras/`: Cria uma meta de economia (`nome_meta`, `valor_desejado`, `valor_atual`, `data_limite`).
+- `GET /metas-financeiras/`: Lista as metas do usuário.
+- `PUT /metas-financeiras/{meta_id}`: Registra aportes ou atualiza dados; define `status = "concluida"` quando `valor_atual >= valor_desejado`.
+- `DELETE /metas-financeiras/{meta_id}`: Exclui a meta.
 
 ---
 
-## 🩺 6. Sistema (`api.py`)
+## 🔔 6. Orçamentos e Alertas Proativos (`orcamentos_alertas.py`)
 
-- `GET /`: Confirmação de disponibilidade da API.
-- `GET /health`: Retorna `{"status": "healthy", "ambiente": "production|development", "versao": "1.0.0"}`.
+### `GET /orcamentos`
+Lista os orçamentos do mês corrente ou especificado (`?mes=2026-10`), com total gasto, percentual atingido e saldo restante.
+
+### `POST /orcamentos`
+Cria ou atualiza teto de gastos por categoria para determinado mês.
+- **Body (`application/json`):**
+  ```json
+  {
+    "categoria": "alimentacao",
+    "limite_mensal": 1200.00,
+    "mes_referencia": "2026-10"
+  }
+  ```
+
+### `PUT /orcamentos/{item_id}`
+Edita o limite mensal de um orçamento existente.
+
+### `DELETE /orcamentos/{item_id}`
+Exclui o teto orçamentário.
+
+### `GET /alertas`
+Retorna alertas consolidados para o Dashboard:
+- Orçamentos que atingiram 80% ou 100% do teto.
+- Contas/saídas com vencimento programado nos próximos 7 dias.
+
+### `PUT /alertas/lido`
+Registra a marcação de um alerta como lido para não reaparecer na interface.
+
+### `GET /alertas/preferencias` & `PUT /alertas/preferencias`
+Consulta e atualiza as preferências de notificação do usuário (ex: ativar/desativar avisos de vencimento).
+
+---
+
+## 🩺 7. Sistema e Monitoramento (`api.py`)
+
+- `GET /`: Confirmação de status operacional da API.
+- `GET /health`: Healthcheck detalhado (`{"status": "healthy", "ambiente": "production|development", "versao": "1.0.0"}`).
