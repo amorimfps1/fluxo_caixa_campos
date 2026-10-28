@@ -80,6 +80,7 @@ frontend/
 - **Hierarquia Estrita de Botões & Barras de Filtro Anti-Estouro:**
   - Ações principais (`+ Nova movimentação`, `+ Nova conta`, `Exportar CSV`, `Limpar`, `Gerar relatório`, `Salvar`) padronizadas em `.button-primary` (`height: 44px` nos filtros, `border-radius: 10px`).
   - Barras de filtros de **Relatórios** (`#custom-report-form`), **Movimentações** (`#movements-filter-form`) e **Orçamentos** (`#orcamento-form`) estruturadas em CSS Grid (`gap: 16px`, `align-items: end`, `min-width: 0` e `text-overflow: ellipsis` em todos os `.filter-group`, `<select>`, `<input type="date">` e `.custom-select-trigger`), com breakpoints responsivos em `1150px` (2 colunas) e `640px` (1 coluna).
+  - Formulários de **Configurações** (`#view-configuracoes` — Dados cadastrais e Alterar senha) alinhados pelo topo (`repeat(3, minmax(0, 1fr)); align-items: start; gap: 20px;`) com altura fixa de `46px` em todos os inputs e `.password-input-wrapper`, impedindo que textos auxiliares ou o card de requisitos de senha desalinhem colunas vizinhas.
   - Encerramento de sessão (`#logout` / `.btn-logout`) **sempre vermelho** (`#DC2626`, hover `#991B1B`) em qualquer tema, com modal defensivo de confirmação.
 - **Validações Reativas em Tempo Real:**
   - Cálculo matemático **Módulo 11 de CPF** durante a digitação/desfoque com limpeza imediata do erro ao corrigir.

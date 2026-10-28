@@ -544,4 +544,11 @@ def test_design_system_wcag_hierarquia_botoes_validacoes_e_sidebar() -> None:
     assert 'class="filter-bar movements-filter-bar" id="movements-filter-form"' in index_html
     assert "filter-group" in index_html
 
+    # 7. Alinhamento vertical pelo topo nos formulários de Configurações (#view-configuracoes)
+    assert "settings-grid-3col" in index_html
+    assert "align-items: start !important;" in style_css
+    assert "justify-content: flex-start !important;" in style_css
+    assert "height: 46px !important;" in style_css
+
+
 

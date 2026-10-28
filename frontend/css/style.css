@@ -981,8 +981,11 @@ tbody tr:hover {
    ==================================================================== */
 
 .form-field {
-    display: grid;
-    gap: 7px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 8px;
     min-width: 0;
     width: 100%;
 }
@@ -1570,6 +1573,7 @@ body.login-page .form-dialog::backdrop {
 .form-row-2col {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    align-items: start;
     gap: 16px;
 }
 
@@ -2896,7 +2900,72 @@ body.dark-theme .transaction-investimento {
 .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: start;
     gap: 16px;
+}
+
+#view-configuracoes .form-grid,
+.settings-form .form-grid,
+.settings-grid-3col {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start !important;
+    gap: 20px;
+}
+
+#view-configuracoes .form-field,
+#view-configuracoes .form-group,
+.settings-form .form-field,
+.settings-form .form-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start !important;
+    align-items: stretch;
+    align-self: start !important;
+    gap: 8px;
+    height: auto !important;
+    min-width: 0;
+    width: 100%;
+}
+
+#view-configuracoes .form-field > label,
+.settings-form .form-field > label {
+    display: block;
+    line-height: 1.4;
+    min-height: 18px;
+    margin: 0 !important;
+}
+
+#view-configuracoes .form-field > input,
+#view-configuracoes .password-input-wrapper,
+#settings-name,
+#settings-email,
+#settings-phone {
+    width: 100%;
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    flex: 0 0 46px !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+}
+
+#view-configuracoes .password-input-wrapper {
+    position: relative;
+    display: block;
+}
+
+#view-configuracoes .password-input-wrapper > input,
+#settings-current-password,
+#settings-new-password,
+#settings-confirm-password {
+    width: 100% !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    flex: 0 0 46px !important;
+    margin: 0 !important;
+    box-sizing: border-box;
 }
 
 .theme-toggle-btn {
@@ -3767,6 +3836,12 @@ body.dark-theme .budget-card-percent.danger {
 }
 
 @media (max-width: 960px) {
+    #view-configuracoes .form-grid,
+    .settings-form .form-grid,
+    .settings-grid-3col {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .login-split-layout,
     .landing-hero-grid,
     .charts-grid-two {
@@ -3934,6 +4009,9 @@ body.dark-theme .budget-card-percent.danger {
 }
 
 @media (max-width: 640px) {
+    #view-configuracoes .form-grid,
+    .settings-form .form-grid,
+    .settings-grid-3col,
     .filter-bar,
     #custom-report-form,
     .report-filter-bar,

@@ -144,7 +144,7 @@ flowchart TD
   - Sobrescrita `input:-webkit-autofill` no login para evitar caixas amarelas/azuis do navegador e tradução automática de erros `400/409/422` para português.
 - **Microinterações & Sidebar Unificada:**
   - Cartão de perfil do usuário (`#user-profile-badge`) sempre visível no rodapé da barra lateral e integrado diretamente à seção `#configuracoes`.
-  - Fechamento de modais ao clicar no backdrop externo (*click outside*), trava de rolagem (`modal-open`), barras de filtro em CSS Grid anti-sobreposição (`min-width: 0`, `height: 44px` e `gap: 16px` em Relatórios, Movimentações e Orçamentos) e confirmação defensiva ao realizar *logout*.
+  - Fechamento de modais ao clicar no backdrop externo (*click outside*), trava de rolagem (`modal-open`), barras de filtro em CSS Grid anti-sobreposição (`min-width: 0`, `height: 44px` e `gap: 16px` em Relatórios, Movimentações e Orçamentos), grades de 3 colunas alinhadas pelo topo em Configurações (`align-items: start`, inputs fixos em `46px`) e confirmação defensiva ao realizar *logout*.
 
 ### 🔒 Segurança & Privacidade LGPD
 - **Criptografia Simétrica em Repouso:** CPF e telefone armazenados cifrados com **Fernet (AES-128-CBC + HMAC-SHA256)**.
