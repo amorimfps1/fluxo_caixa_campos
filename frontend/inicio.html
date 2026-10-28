@@ -9,8 +9,8 @@
     >
     <title>Fluxo de Caixa | Gestão Financeira &amp; Patrimonial Inteligente</title>
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="css/style.css?v=14">
-    <script src="js/legal.js?v=14" defer></script>
+    <link rel="stylesheet" href="css/style.css?v=15">
+    <script src="js/legal.js?v=15" defer></script>
 </head>
 <body class="landing-page">
     <!-- Barra de Navegação Institucional -->
@@ -19,10 +19,17 @@
             <a href="inicio.html" class="brand" aria-label="Fluxo de Caixa — Página inicial">
                 <span class="brand-logo" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="Fluxo de Caixa">
-                        <rect width="40" height="40" rx="10" fill="#047857"/>
-                        <rect x="9" y="24" width="5" height="8" rx="1.5" fill="#ffffff" fill-opacity="0.55"/>
-                        <rect x="17.5" y="20" width="5" height="12" rx="1.5" fill="#ffffff" fill-opacity="0.8"/>
-                        <rect x="26" y="16" width="5" height="16" rx="1.5" fill="#ffffff"/>
+                        <defs>
+                            <linearGradient id="fc_logo_inicio" x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#10B981"/>
+                                <stop offset="1" stop-color="#047857"/>
+                            </linearGradient>
+                        </defs>
+                        <rect width="40" height="40" rx="10" fill="url(#fc_logo_inicio)"/>
+                        <rect x="0.75" y="0.75" width="38.5" height="38.5" rx="9.25" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="1.2"/>
+                        <rect x="9" y="24" width="5" height="8" rx="1.5" fill="#ffffff" fill-opacity="0.62"/>
+                        <rect x="17.5" y="19.5" width="5" height="12.5" rx="1.5" fill="#ffffff" fill-opacity="0.85"/>
+                        <rect x="26" y="15" width="5" height="17" rx="1.5" fill="#ffffff"/>
                         <path d="M9 17.5 L16.5 11.5 L21.5 14 L31 7.5" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                         <path d="M26.2 7.5 H31 V12.3" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -63,8 +70,8 @@
                     </h1>
 
                     <p class="landing-lead">
-                        Centralize contas correntes, poupança e investimentos (CDB, Tesouro Direto, FIIs, Ações e ETFs),
-                        monitore tetos de orçamento em tempo real e proteja seus dados com criptografia de nível institucional.
+                        Centralize contas correntes, poupança e investimentos (CDB, Poupança, Tesouro Direto, FIIs, Ações e ETFs),
+                        automatize o agendamento inteligente de contas fixas e salários, acompanhe metas financeiras e exporte relatórios completos em CSV.
                     </p>
 
                     <div class="landing-cta-group">
@@ -156,6 +163,36 @@
 
                 <div class="landing-features-grid">
                     <article class="landing-feature-card">
+                        <div class="highlight-icon blue">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                            </svg>
+                        </div>
+                        <h3>Múltiplas Contas Bancárias &amp; Transferências</h3>
+                        <p>
+                            Gerencie contas correntes, poupanças e corretoras com transferências internas vinculadas e
+                            motor matemático Decimal livre de erros de arredondamento.
+                        </p>
+                    </article>
+
+                    <article class="landing-feature-card">
+                        <div class="highlight-icon green">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                        </div>
+                        <h3>Agendamento Inteligente de Contas Fixas &amp; Salários</h3>
+                        <p>
+                            Programe salários, aluguéis e faturas fixas com repetição mensal automática (dias 1 a 31),
+                            separando com precisão ganhos e despesas fixas das variáveis.
+                        </p>
+                    </article>
+
+                    <article class="landing-feature-card">
                         <div class="highlight-icon green">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
@@ -164,22 +201,23 @@
                         </div>
                         <h3>Carteira de Investimentos Integrada</h3>
                         <p>
-                            Registre aportes em CDB, LCI/LCA, Tesouro Direto, Fundos, Ações, FIIs e ETFs com débito
-                            conciliado automaticamente na conta bancária de origem.
+                            Registre aportes em CDB, Poupança, LCI/LCA, Tesouro Direto, Fundos, Ações, FIIs e ETFs com
+                            débito conciliado automaticamente na conta bancária de origem.
                         </p>
                     </article>
 
                     <article class="landing-feature-card">
-                        <div class="highlight-icon blue">
+                        <div class="highlight-icon purple">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                <line x1="1" y1="10" x2="23" y2="10"></line>
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <circle cx="12" cy="12" r="6"></circle>
+                                <circle cx="12" cy="12" r="2"></circle>
                             </svg>
                         </div>
-                        <h3>Múltiplas Contas &amp; Transferências Atômicas</h3>
+                        <h3>Metas Financeiras &amp; Evolução Patrimonial</h3>
                         <p>
-                            Gerencie contas correntes, poupanças e corretoras com transferências internas vinculadas e
-                            motor matemático Decimal livre de erros de arredondamento.
+                            Defina metas de reserva de emergência, viagens ou aquisição de patrimônio e acompanhe o
+                            percentual acumulado e o saldo restante em tempo real.
                         </p>
                     </article>
 
@@ -194,6 +232,21 @@
                         <p>
                             Estabeleça limites por categoria, acompanhe o percentual consumido e receba avisos
                             antecipados de contas a vencer nos próximos 7 dias.
+                        </p>
+                    </article>
+
+                    <article class="landing-feature-card">
+                        <div class="highlight-icon blue">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </div>
+                        <h3>Relatórios Customizados &amp; Exportação CSV</h3>
+                        <p>
+                            Gere balanços consolidados por período, salve cálculos oficiais no histórico e exporte suas
+                            movimentações em CSV UTF-8 compatível com Excel e auditoria contábil.
                         </p>
                     </article>
                 </div>

@@ -206,14 +206,14 @@ function validarCpfMatematico(valor) {
         return {
             valido: false,
             incompleto: true,
-            mensagem: "O CPF deve possuir 11 números."
+            mensagem: "CPF inválido. Verifique os números digitados."
         };
     }
     if (digitos.length !== 11) {
         return {
             valido: false,
             incompleto: false,
-            mensagem: "O CPF deve possuir 11 números."
+            mensagem: "CPF inválido. Verifique os números digitados."
         };
     }
 
@@ -222,7 +222,7 @@ function validarCpfMatematico(valor) {
         return {
             valido: false,
             incompleto: false,
-            mensagem: "CPF inválido (sequência repetida não permitida)."
+            mensagem: "CPF inválido. Verifique os números digitados."
         };
     }
 
@@ -244,7 +244,7 @@ function validarCpfMatematico(valor) {
         return {
             valido: false,
             incompleto: false,
-            mensagem: "CPF inválido. Verifique os dígitos informados."
+            mensagem: "CPF inválido. Verifique os números digitados."
         };
     }
 
@@ -256,8 +256,26 @@ function validarCpfMatematico(valor) {
     };
 }
 
-function vincularValidacaoCpfTempoReal(inputCpf, elementoFeedback) {
+function vincularValidacaoCpfTempoReal(inputCpf, elementoFeedback = null, elementoErro = null) {
     if (!inputCpf) return;
+
+    const erroEl =
+        elementoErro ||
+        inputCpf.closest(".form-field, label")?.querySelector("small.field-error");
+
+    const ocultarErro = () => {
+        if (erroEl) {
+            erroEl.textContent = "";
+            erroEl.hidden = true;
+        }
+    };
+
+    const exibirErro = (mensagem) => {
+        if (erroEl) {
+            erroEl.textContent = mensagem || "CPF inválido. Verifique os números digitados.";
+            erroEl.hidden = false;
+        }
+    };
 
     const atualizarEstado = (exibirIncompleto = false) => {
         inputCpf.value = formatarMascaraCpf(inputCpf.value);
@@ -266,7 +284,9 @@ function vincularValidacaoCpfTempoReal(inputCpf, elementoFeedback) {
         if (!digitos) {
             inputCpf.classList.remove("input-valid", "input-invalid");
             inputCpf.removeAttribute("aria-invalid");
+            ocultarErro();
             if (elementoFeedback) {
+                elementoFeedback.hidden = false;
                 elementoFeedback.textContent = "Criptografado em repouso (Fernet AES + HMAC-SHA256).";
                 elementoFeedback.className = "field-help";
             }
@@ -278,7 +298,9 @@ function vincularValidacaoCpfTempoReal(inputCpf, elementoFeedback) {
             inputCpf.classList.add("input-valid");
             inputCpf.classList.remove("input-invalid");
             inputCpf.setAttribute("aria-invalid", "false");
+            ocultarErro();
             if (elementoFeedback) {
+                elementoFeedback.hidden = false;
                 elementoFeedback.textContent = "✓ CPF matematicamente válido.";
                 elementoFeedback.className = "field-feedback is-valid";
             }
@@ -286,14 +308,22 @@ function vincularValidacaoCpfTempoReal(inputCpf, elementoFeedback) {
             inputCpf.classList.add("input-invalid");
             inputCpf.classList.remove("input-valid");
             inputCpf.setAttribute("aria-invalid", "true");
+            exibirErro(resultado.mensagem);
             if (elementoFeedback) {
-                elementoFeedback.textContent = resultado.mensagem;
-                elementoFeedback.className = "field-feedback is-invalid";
+                if (erroEl) {
+                    elementoFeedback.hidden = true;
+                } else {
+                    elementoFeedback.hidden = false;
+                    elementoFeedback.textContent = resultado.mensagem;
+                    elementoFeedback.className = "field-feedback is-invalid";
+                }
             }
         } else {
             inputCpf.classList.remove("input-valid", "input-invalid");
             inputCpf.removeAttribute("aria-invalid");
+            ocultarErro();
             if (elementoFeedback) {
+                elementoFeedback.hidden = false;
                 elementoFeedback.textContent = `Digite os 11 números (${digitos.length}/11).`;
                 elementoFeedback.className = "field-help";
             }
@@ -305,6 +335,106 @@ function vincularValidacaoCpfTempoReal(inputCpf, elementoFeedback) {
 }
 
 /* =========================================================
+   1.B VALIDAÇÃO ESTRITA DE E-MAIL EM TEMPO REAL
+========================================================= */
+
+function validarEmailFormato(email) {
+    const valor = String(email || "").trim();
+    if (!valor || valor.length > 254 || /\s/.test(valor)) {
+        return false;
+    }
+    const regexEmail = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!regexEmail.test(valor)) {
+        return false;
+    }
+    const partes = valor.split("@");
+    if (partes.length !== 2) return false;
+    const [usuario, dominio] = partes;
+    if (
+        usuario.startsWith(".") ||
+        usuario.endsWith(".") ||
+        usuario.includes("..") ||
+        dominio.startsWith(".") ||
+        dominio.startsWith("-") ||
+        dominio.endsWith("-") ||
+        dominio.includes("..")
+    ) {
+        return false;
+    }
+    return true;
+}
+
+function vincularValidacaoEmailTempoReal(inputEmail, elementoErro = null) {
+    if (!inputEmail) return;
+
+    const erroEl =
+        elementoErro ||
+        inputEmail.closest(".form-field, label")?.querySelector("small.field-error");
+
+    let jaDesfocou = false;
+
+    const limparEstado = () => {
+        inputEmail.classList.remove("input-valid", "input-invalid");
+        inputEmail.removeAttribute("aria-invalid");
+        if (erroEl) {
+            erroEl.textContent = "";
+            erroEl.hidden = true;
+        }
+    };
+
+    const marcarValido = () => {
+        inputEmail.classList.add("input-valid");
+        inputEmail.classList.remove("input-invalid");
+        inputEmail.setAttribute("aria-invalid", "false");
+        if (erroEl) {
+            erroEl.textContent = "";
+            erroEl.hidden = true;
+        }
+    };
+
+    const marcarInvalido = () => {
+        inputEmail.classList.add("input-invalid");
+        inputEmail.classList.remove("input-valid");
+        inputEmail.setAttribute("aria-invalid", "true");
+        if (erroEl) {
+            erroEl.textContent = "Informe um endereço de e-mail válido (ex.: nome@dominio.com).";
+            erroEl.hidden = false;
+        }
+    };
+
+    inputEmail.addEventListener("input", () => {
+        const valor = inputEmail.value.trim();
+        if (!valor) {
+            limparEstado();
+            return;
+        }
+        if (validarEmailFormato(valor)) {
+            marcarValido();
+            return;
+        }
+        if (jaDesfocou || inputEmail.classList.contains("input-invalid")) {
+            marcarInvalido();
+        } else {
+            inputEmail.classList.remove("input-valid");
+        }
+    });
+
+    inputEmail.addEventListener("blur", () => {
+        const valor = inputEmail.value.trim();
+        if (!valor) {
+            limparEstado();
+            return;
+        }
+        jaDesfocou = true;
+        if (validarEmailFormato(valor)) {
+            marcarValido();
+        } else {
+            marcarInvalido();
+        }
+    });
+}
+
+/* =========================================================
    2. CHECKLIST INTERATIVO DE FORÇA DE SENHA EM TEMPO REAL
 ========================================================= */
 
@@ -312,10 +442,10 @@ function avaliarForcaSenha(senha) {
     const valor = String(senha || "");
     const criterios = {
         tamanho: valor.length >= 8,
-        maiuscula: /[A-ZÀ-Ý]/.test(valor),
-        minuscula: /[a-zà-ÿ]/.test(valor),
+        maiuscula: /[A-Z]/.test(valor),
+        minuscula: /[a-z]/.test(valor),
         numero: /\d/.test(valor),
-        especial: /[^A-Za-zÀ-ÿ0-9\s]/.test(valor)
+        especial: /[!@#$%^&*(),.?":{}|<>_\-\[\]\\\/+=~`';]/.test(valor)
     };
     const atendidos = Object.values(criterios).filter(Boolean).length;
     const valida = atendidos === 5;
@@ -325,9 +455,9 @@ function avaliarForcaSenha(senha) {
 function obterMensagemErroSenha(senha) {
     const status = avaliarForcaSenha(senha);
     if (!status.tamanho) return "A senha deve possuir no mínimo 8 caracteres.";
-    if (!status.maiuscula) return "A senha deve possuir pelo menos uma letra maiúscula.";
-    if (!status.minuscula) return "A senha deve possuir pelo menos uma letra minúscula.";
-    if (!status.numero) return "A senha deve possuir pelo menos um número.";
+    if (!status.maiuscula) return "A senha deve possuir pelo menos uma letra maiúscula (A-Z).";
+    if (!status.minuscula) return "A senha deve possuir pelo menos uma letra minúscula (a-z).";
+    if (!status.numero) return "A senha deve possuir pelo menos um número (0-9).";
     if (!status.especial) return "A senha deve possuir pelo menos um caractere especial.";
     return "";
 }
@@ -336,7 +466,8 @@ function vincularChecklistSenha({
     inputSenha,
     containerChecklist,
     inputConfirmacao = null,
-    feedbackConfirmacao = null
+    feedbackConfirmacao = null,
+    erroConfirmacao = null
 }) {
     if (!inputSenha || !containerChecklist) return;
 
@@ -344,7 +475,7 @@ function vincularChecklistSenha({
         containerChecklist.classList.add("password-checklist");
         containerChecklist.innerHTML = `
             <div class="password-checklist-header">
-                <span>Força da senha</span>
+                <span>Requisitos de segurança da senha</span>
                 <strong data-password-status>0/5 requisitos</strong>
             </div>
             <div class="password-strength-track" aria-hidden="true">
@@ -352,16 +483,19 @@ function vincularChecklistSenha({
             </div>
             <ul class="password-req-list">
                 <li class="password-req" data-req="tamanho"><span class="password-req-dot" aria-hidden="true"></span><span>Mínimo de 8 caracteres</span></li>
-                <li class="password-req" data-req="maiuscula"><span class="password-req-dot" aria-hidden="true"></span><span>1 letra maiúscula (A–Z)</span></li>
-                <li class="password-req" data-req="minuscula"><span class="password-req-dot" aria-hidden="true"></span><span>1 letra minúscula (a–z)</span></li>
-                <li class="password-req" data-req="numero"><span class="password-req-dot" aria-hidden="true"></span><span>1 número (0–9)</span></li>
-                <li class="password-req" data-req="especial"><span class="password-req-dot" aria-hidden="true"></span><span>1 caractere especial (!@#$%...)</span></li>
+                <li class="password-req" data-req="maiuscula"><span class="password-req-dot" aria-hidden="true"></span><span>Pelo menos uma letra maiúscula (A-Z)</span></li>
+                <li class="password-req" data-req="minuscula"><span class="password-req-dot" aria-hidden="true"></span><span>Pelo menos uma letra minúscula (a-z)</span></li>
+                <li class="password-req" data-req="numero"><span class="password-req-dot" aria-hidden="true"></span><span>Pelo menos um número (0-9)</span></li>
+                <li class="password-req" data-req="especial"><span class="password-req-dot" aria-hidden="true"></span><span>Pelo menos um caractere especial (!@#$%^&amp;*(),.?":{}|&lt;&gt;_-)</span></li>
             </ul>
         `;
     }
 
     const barra = containerChecklist.querySelector(".password-strength-bar");
     const rotuloStatus = containerChecklist.querySelector("[data-password-status]");
+    const erroConfEl =
+        erroConfirmacao ||
+        inputConfirmacao?.closest(".form-field, label")?.querySelector("small.field-error");
 
     const atualizarConfirmacao = () => {
         if (!inputConfirmacao) return;
@@ -369,7 +503,13 @@ function vincularChecklistSenha({
         const s2 = inputConfirmacao.value;
         if (!s2) {
             inputConfirmacao.classList.remove("input-valid", "input-invalid");
+            inputConfirmacao.removeAttribute("aria-invalid");
+            if (erroConfEl) {
+                erroConfEl.textContent = "";
+                erroConfEl.hidden = true;
+            }
             if (feedbackConfirmacao) {
+                feedbackConfirmacao.hidden = false;
                 feedbackConfirmacao.textContent = "";
                 feedbackConfirmacao.className = "field-help";
             }
@@ -378,15 +518,29 @@ function vincularChecklistSenha({
         if (s1 && s1 === s2) {
             inputConfirmacao.classList.add("input-valid");
             inputConfirmacao.classList.remove("input-invalid");
+            inputConfirmacao.setAttribute("aria-invalid", "false");
+            if (erroConfEl) {
+                erroConfEl.textContent = "";
+                erroConfEl.hidden = true;
+            }
             if (feedbackConfirmacao) {
+                feedbackConfirmacao.hidden = false;
                 feedbackConfirmacao.textContent = "✓ As senhas conferem.";
                 feedbackConfirmacao.className = "field-feedback is-valid";
             }
         } else {
             inputConfirmacao.classList.add("input-invalid");
             inputConfirmacao.classList.remove("input-valid");
-            if (feedbackConfirmacao) {
-                feedbackConfirmacao.textContent = "As senhas informadas não conferem.";
+            inputConfirmacao.setAttribute("aria-invalid", "true");
+            if (erroConfEl) {
+                erroConfEl.textContent = "As senhas digitadas não coincidem.";
+                erroConfEl.hidden = false;
+                if (feedbackConfirmacao) {
+                    feedbackConfirmacao.hidden = true;
+                }
+            } else if (feedbackConfirmacao) {
+                feedbackConfirmacao.hidden = false;
+                feedbackConfirmacao.textContent = "As senhas digitadas não coincidem.";
                 feedbackConfirmacao.className = "field-feedback is-invalid";
             }
         }
@@ -668,6 +822,8 @@ window.FluxoLegal = {
     formatarMascaraCpf,
     validarCpfMatematico,
     vincularValidacaoCpfTempoReal,
+    validarEmailFormato,
+    vincularValidacaoEmailTempoReal,
     avaliarForcaSenha,
     obterMensagemErroSenha,
     vincularChecklistSenha,

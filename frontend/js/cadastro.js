@@ -47,12 +47,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const nameInput = document.querySelector("#register-name");
     const cpfInput = document.querySelector("#register-cpf");
     const cpfFeedback = document.querySelector("#cpf-feedback");
+    const cpfError = document.querySelector("#cpf-error");
     const emailInput = document.querySelector("#register-email");
+    const emailError = document.querySelector("#email-error");
     const phoneInput = document.querySelector("#register-phone");
     const passwordInput = document.querySelector("#register-password");
     const passwordChecklist = document.querySelector("#register-password-checklist");
     const confirmationInput = document.querySelector("#register-password-confirm");
     const confirmFeedback = document.querySelector("#password-confirm-feedback");
+    const passwordConfirmError = document.querySelector("#password-confirm-error");
     const acceptTermsCheckbox = document.querySelector("#accept-terms");
     const acceptPrivacyCheckbox = document.querySelector("#accept-privacy");
     const message = document.querySelector("#register-message");
@@ -71,7 +74,11 @@ document.addEventListener("DOMContentLoaded", () => {
     let emailPendenteVerificacao = "";
 
     if (typeof vincularValidacaoCpfTempoReal === "function") {
-        vincularValidacaoCpfTempoReal(cpfInput, cpfFeedback);
+        vincularValidacaoCpfTempoReal(cpfInput, cpfFeedback, cpfError);
+    }
+
+    if (typeof vincularValidacaoEmailTempoReal === "function") {
+        vincularValidacaoEmailTempoReal(emailInput, emailError);
     }
 
     if (typeof vincularChecklistSenha === "function") {
@@ -79,7 +86,8 @@ document.addEventListener("DOMContentLoaded", () => {
             inputSenha: passwordInput,
             containerChecklist: passwordChecklist,
             inputConfirmacao: confirmationInput,
-            feedbackConfirmacao: confirmFeedback
+            feedbackConfirmacao: confirmFeedback,
+            erroConfirmacao: passwordConfirmError
         });
     }
 
@@ -149,7 +157,10 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (verifySubmitBtn) verifySubmitBtn.disabled = true;
+        if (verifySubmitBtn) {
+            verifySubmitBtn.disabled = true;
+            verifySubmitBtn.classList.add("is-loading");
+        }
         verifyMessage.textContent = "Confirmando código e liberando seu acesso...";
         verifyMessage.className = "form-message info";
 
@@ -170,7 +181,10 @@ document.addEventListener("DOMContentLoaded", () => {
             verifyMessage.textContent = erro.message;
             verifyMessage.className = "form-message error";
         } finally {
-            if (verifySubmitBtn) verifySubmitBtn.disabled = false;
+            if (verifySubmitBtn) {
+                verifySubmitBtn.disabled = false;
+                verifySubmitBtn.classList.remove("is-loading");
+            }
         }
     });
 
@@ -200,23 +214,48 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // 1. Validação matemática estrita de CPF antes do envio
+        // 1. Validação matemática estrita de CPF (Módulo 11) antes do envio ao servidor
         const validacaoCpf = typeof validarCpfMatematico === "function"
             ? validarCpfMatematico(cpfInput.value)
-            : { valido: cpfInput.value.replace(/\D/g, "").length === 11, mensagem: "CPF inválido." };
+            : {
+                  valido: cpfInput.value.replace(/\D/g, "").length === 11,
+                  mensagem: "CPF inválido. Verifique os números digitados."
+              };
 
         if (!validacaoCpf.valido) {
+            const msgCpf = validacaoCpf.mensagem || "CPF inválido. Verifique os números digitados.";
             cpfInput.classList.add("input-invalid");
-            message.textContent = validacaoCpf.mensagem;
+            cpfInput.classList.remove("input-valid");
+            cpfInput.setAttribute("aria-invalid", "true");
+            if (cpfError) {
+                cpfError.textContent = msgCpf;
+                cpfError.hidden = false;
+            }
+            if (cpfFeedback && cpfError) {
+                cpfFeedback.hidden = true;
+            }
+            message.textContent = msgCpf;
             message.classList.add("error");
             cpfInput.focus();
             return;
         }
 
-        // 2. Validação de e-mail
+        // 2. Validação estrita de formato de e-mail antes do envio
         const email = emailInput.value.trim();
-        if (!email || !emailInput.checkValidity()) {
-            message.textContent = "Informe um endereço de e-mail válido.";
+        const emailValido = typeof validarEmailFormato === "function"
+            ? validarEmailFormato(email)
+            : Boolean(email && emailInput.checkValidity());
+
+        if (!emailValido) {
+            const msgEmail = "Informe um endereço de e-mail válido (ex.: nome@dominio.com).";
+            emailInput.classList.add("input-invalid");
+            emailInput.classList.remove("input-valid");
+            emailInput.setAttribute("aria-invalid", "true");
+            if (emailError) {
+                emailError.textContent = msgEmail;
+                emailError.hidden = false;
+            }
+            message.textContent = msgEmail;
             message.classList.add("error");
             emailInput.focus();
             return;
@@ -234,7 +273,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (passwordInput.value !== confirmationInput.value) {
-            message.textContent = "As senhas informadas não conferem.";
+            const msgConfirmacao = "As senhas digitadas não coincidem.";
+            confirmationInput.classList.add("input-invalid");
+            confirmationInput.classList.remove("input-valid");
+            confirmationInput.setAttribute("aria-invalid", "true");
+            if (passwordConfirmError) {
+                passwordConfirmError.textContent = msgConfirmacao;
+                passwordConfirmError.hidden = false;
+            }
+            message.textContent = msgConfirmacao;
             message.classList.add("error");
             confirmationInput.focus();
             return;
@@ -251,14 +298,19 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (submitButton) submitButton.disabled = true;
+        const cpfNormalizado = cpfInput.value.replace(/\D/g, "");
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.classList.add("is-loading");
+        }
         message.textContent = "Criando sua conta protegida e enviando código de verificação...";
         message.classList.add("info");
 
         try {
             await api.post("/usuarios/", {
                 nome_completo: nome,
-                cpf: cpfInput.value.trim(),
+                cpf: cpfNormalizado,
                 email,
                 telefone: phoneInput.value.trim() || null,
                 senha: passwordInput.value,
@@ -271,10 +323,30 @@ document.addEventListener("DOMContentLoaded", () => {
             message.className = "form-message info";
             abrirModalVerificacaoEmail(email);
         } catch (error) {
-            message.textContent = error.message;
+            const msgErro = error?.message || "Não foi possível concluir o cadastro.";
+            const msgLower = msgErro.toLowerCase();
+            if (msgLower.includes("cpf")) {
+                cpfInput.classList.add("input-invalid");
+                cpfInput.classList.remove("input-valid");
+                if (cpfError) {
+                    cpfError.textContent = msgErro;
+                    cpfError.hidden = false;
+                }
+            } else if (msgLower.includes("e-mail") || msgLower.includes("email")) {
+                emailInput.classList.add("input-invalid");
+                emailInput.classList.remove("input-valid");
+                if (emailError) {
+                    emailError.textContent = msgErro;
+                    emailError.hidden = false;
+                }
+            }
+            message.textContent = msgErro;
             message.className = "form-message error";
         } finally {
-            if (submitButton) submitButton.disabled = false;
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.classList.remove("is-loading");
+            }
         }
     });
 });

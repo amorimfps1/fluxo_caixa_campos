@@ -57,6 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const emailInput = document.querySelector("#email");
+    const loginEmailError = document.querySelector("#login-email-error");
     const senhaInput = document.querySelector("#senha");
     const submitButton = form.querySelector('[type="submit"]');
 
@@ -65,6 +66,10 @@ document.addEventListener("DOMContentLoaded", () => {
             "O formulário de login precisa dos campos #email, #senha e #login-message."
         );
         return;
+    }
+
+    if (typeof vincularValidacaoEmailTempoReal === "function") {
+        vincularValidacaoEmailTempoReal(emailInput, loginEmailError);
     }
 
     form.addEventListener("submit", async (event) => {
@@ -79,17 +84,31 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!email || !senha) {
             message.textContent = "Preencha o e-mail e a senha.";
             message.classList.add("error");
+            (!email ? emailInput : senhaInput).focus();
             return;
         }
 
-        if (!emailInput.checkValidity()) {
-            message.textContent = "Informe um endereço de e-mail válido.";
+        const emailValido = typeof validarEmailFormato === "function"
+            ? validarEmailFormato(email)
+            : emailInput.checkValidity();
+
+        if (!emailValido) {
+            const msgEmail = "Informe um endereço de e-mail válido (ex.: nome@dominio.com).";
+            emailInput.classList.add("input-invalid");
+            emailInput.classList.remove("input-valid");
+            if (loginEmailError) {
+                loginEmailError.textContent = msgEmail;
+                loginEmailError.hidden = false;
+            }
+            message.textContent = msgEmail;
             message.classList.add("error");
+            emailInput.focus();
             return;
         }
 
         if (submitButton) {
             submitButton.disabled = true;
+            submitButton.classList.add("is-loading");
         }
 
         message.textContent = "Autenticando com segurança...";
@@ -118,6 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } finally {
             if (submitButton) {
                 submitButton.disabled = false;
+                submitButton.classList.remove("is-loading");
             }
         }
     });

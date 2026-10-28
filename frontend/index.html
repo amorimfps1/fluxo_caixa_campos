@@ -18,11 +18,11 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=14">
+    <link rel="stylesheet" href="css/style.css?v=15">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
-    <script src="js/api.js?v=14" defer></script>
-    <script src="js/legal.js?v=14" defer></script>
-    <script src="js/dashboard.js?v=14" defer></script>
+    <script src="js/api.js?v=15" defer></script>
+    <script src="js/legal.js?v=15" defer></script>
+    <script src="js/dashboard.js?v=15" defer></script>
 </head>
 
 <body>
@@ -32,21 +32,20 @@
         <aside class="sidebar">
             <div class="brand">
                 <span class="brand-logo" aria-hidden="true">
-                    <svg width="42" height="42" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="48" height="48" rx="13" fill="url(#fc_sidebar_bg)"/>
-                        <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="12.25" stroke="#34D399" stroke-opacity="0.32" stroke-width="1.5"/>
-                        <rect x="12" y="27" width="4.5" height="9" rx="2.25" fill="#A7F3D0" fill-opacity="0.78"/>
-                        <rect x="20.5" y="21.5" width="4.5" height="14.5" rx="2.25" fill="#6EE7B7" fill-opacity="0.9"/>
-                        <rect x="29" y="15.5" width="4.5" height="20.5" rx="2.25" fill="#FFFFFF"/>
-                        <path d="M12.5 23L21 16.5L26.5 19.5L35.5 11.5" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M30.5 11.5H35.5V16.5" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="Fluxo de Caixa">
                         <defs>
-                            <linearGradient id="fc_sidebar_bg" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#059669"/>
-                                <stop offset="0.55" stop-color="#047857"/>
-                                <stop offset="1" stop-color="#064E3B"/>
+                            <linearGradient id="fc_sidebar_bg" x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#10B981"/>
+                                <stop offset="1" stop-color="#047857"/>
                             </linearGradient>
                         </defs>
+                        <rect width="40" height="40" rx="10" fill="url(#fc_sidebar_bg)"/>
+                        <rect x="0.75" y="0.75" width="38.5" height="38.5" rx="9.25" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="1.2"/>
+                        <rect x="9" y="24" width="5" height="8" rx="1.5" fill="#FFFFFF" fill-opacity="0.62"/>
+                        <rect x="17.5" y="19.5" width="5" height="12.5" rx="1.5" fill="#FFFFFF" fill-opacity="0.85"/>
+                        <rect x="26" y="15" width="5" height="17" rx="1.5" fill="#FFFFFF"/>
+                        <path d="M9 17.5 L16.5 11.5 L21.5 14 L31 7.5" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M26.2 7.5 H31 V12.3" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </span>
 
@@ -89,77 +88,41 @@
                     Relatórios
                 </a>
 
-                <a href="#configuracoes" class="nav-link">
-                    <span class="nav-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
-                    Configurações
-                </a>
             </nav>
-
-            <div class="sidebar-user" id="user-profile-badge" hidden>
-                <div class="sidebar-user-avatar" id="user-avatar">U</div>
-                <div class="sidebar-user-info">
-                    <strong id="user-name">Usuário</strong>
-                    <span id="user-email">—</span>
-                </div>
-            </div>
 
             <div class="sidebar-footer">
                 <a
-                    href="https://mail.google.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="sidebar-footer-link"
-                    title="Acessar Gmail"
-                >
-                    <span class="sidebar-footer-icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                            <polyline points="22,6 12,13 2,6"></polyline>
-                        </svg>
-                    </span>
-                    <span>Gmail</span>
-                </a>
-
-                <a
                     href="#configuracoes"
-                    class="sidebar-footer-link nav-link"
-                    title="Configurações da conta"
+                    class="sidebar-user nav-link"
+                    id="user-profile-badge"
+                    aria-label="Abrir configurações da conta"
+                    title="Abrir configurações da conta e preferências de tema"
                 >
-                    <span class="sidebar-footer-icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div class="sidebar-user-avatar" id="user-avatar">U</div>
+                    <div class="sidebar-user-info">
+                        <strong id="user-name">Titular da Conta</strong>
+                        <span id="user-email">Configurações e perfil</span>
+                        <span class="sidebar-user-action">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                            Configurações
+                        </span>
+                    </div>
+                    <span class="sidebar-user-gear" aria-hidden="true">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"></circle>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                         </svg>
                     </span>
-                    <span>Configurações</span>
-                </a>
-                <a
-                    href="inicio.html"
-                    class="sidebar-footer-link"
-                    title="Página de apresentação do Fluxo de Caixa"
-                >
-                    <span class="sidebar-footer-icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                        </svg>
-                    </span>
-                    <span>Apresentação</span>
                 </a>
 
-                <a
-                    href="privacidade.html"
-                    data-open-legal="privacidade"
-                    class="sidebar-footer-link"
-                    title="Política de Privacidade e LGPD"
-                >
-                    <span class="sidebar-footer-icon" aria-hidden="true">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        </svg>
-                    </span>
-                    <span>Privacidade (LGPD)</span>
-                </a>
+                <div class="sidebar-legal-links">
+                    <a href="inicio.html" title="Página de apresentação do Fluxo de Caixa">Apresentação</a>
+                    <span aria-hidden="true">·</span>
+                    <a href="privacidade.html" data-open-legal="privacidade" title="Política de Privacidade e LGPD">Privacidade (LGPD)</a>
+                </div>
             </div>
         </aside>
 
@@ -210,7 +173,7 @@
 
                     <button
                         type="button"
-                        class="button-secondary"
+                        class="button-danger btn-logout"
                         id="logout"
                     >
                         Sair
@@ -388,7 +351,7 @@
                         </div>
                         <button
                             type="button"
-                            class="button-secondary"
+                            class="button-primary"
                             id="new-account"
                         >
                             + Nova conta
@@ -419,7 +382,7 @@
                     <div class="panel-header-actions">
                         <button
                             type="button"
-                            class="button-secondary btn-exportar-csv"
+                            class="button-primary btn-exportar-csv"
                             title="Exportar movimentações para CSV"
                         >
                             <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exportar CSV
@@ -490,7 +453,7 @@
                         <div class="panel-header-actions">
                             <button
                                 type="button"
-                                class="button-secondary btn-exportar-csv"
+                                class="button-primary btn-exportar-csv"
                                 id="export-movements-csv"
                             >
                                 <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exportar CSV
@@ -548,7 +511,7 @@
 
                         <div class="filter-actions">
                             <button type="submit" class="button-primary">Filtrar</button>
-                            <button type="button" class="button-secondary" id="clear-movements-filter">Limpar</button>
+                            <button type="button" class="button-primary" id="clear-movements-filter">Limpar</button>
                         </div>
                     </form>
 
@@ -814,7 +777,7 @@
                         <div class="panel-header-actions">
                             <button
                                 type="button"
-                                class="button-secondary btn-exportar-csv"
+                                class="button-primary btn-exportar-csv"
                                 id="export-report-csv"
                             >
                                 <svg class="button-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Exportar CSV do período
@@ -1700,7 +1663,7 @@
                     >
                         Cancelar
                     </button>
-                    <button type="button" class="button-danger" id="logout-confirm-btn">
+                    <button type="button" class="button-danger btn-logout" id="logout-confirm-btn">
                         Sim, sair
                     </button>
                 </div>

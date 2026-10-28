@@ -235,7 +235,7 @@ function obterNomeConta(contaId) {
 ========================================================= */
 
 function configurarNavegacao() {
-    const navLinks = document.querySelectorAll(".navigation .nav-link");
+    const navLinks = document.querySelectorAll(".sidebar .nav-link");
 
     function ativarSecao(hash) {
         let viewName = (hash || window.location.hash || "#dashboard")
@@ -353,6 +353,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!api.getToken()) {
         verificarSessao();
         return;
+    }
+
+    const nomeSessao = (sessionStorage.getItem("fluxo_caixa_nome_usuario") || "").trim();
+    if (nomeSessao) {
+        const iniciaisSessao = nomeSessao
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((parte) => parte[0]?.toUpperCase() || "")
+            .join("");
+        definirTexto("#user-avatar", iniciaisSessao || "U");
+        definirTexto("#user-name", nomeSessao);
     }
 
     atualizarData();
@@ -479,7 +490,7 @@ function configurarDialogos() {
     document.querySelectorAll(".btn-abrir-nova-conta, #new-account").forEach((botao) => {
         botao.addEventListener("click", () => abrirDialogoConta());
     });
-    document.querySelectorAll(".btn-abrir-nova-movimentacao").forEach((botao) => {
+    document.querySelectorAll(".btn-abrir-nova-movimentacao:not(#new-movement)").forEach((botao) => {
         botao.addEventListener("click", abrirDialogoMovimentacao);
     });
     botaoTopo?.addEventListener("click", () => {
@@ -2759,6 +2770,7 @@ function atualizarInterfaceTema(tema) {
 
     document.documentElement.setAttribute("data-theme", escuro ? "dark" : "light");
     document.body.classList.toggle("dark-theme", escuro);
+    document.body.classList.toggle("light-theme", !escuro);
 
     if (botao) {
         botao.setAttribute("aria-pressed", String(escuro));
@@ -2915,7 +2927,10 @@ async function salvarAlteracoesPerfil(event) {
         payload.nova_senha = novaSenha;
     }
 
-    if (btnSalvar) btnSalvar.disabled = true;
+    if (btnSalvar) {
+        btnSalvar.disabled = true;
+        btnSalvar.classList.add("is-loading");
+    }
     definirMensagem("#settings-profile-message", "Salvando alterações...", "info");
 
     try {
@@ -2936,7 +2951,10 @@ async function salvarAlteracoesPerfil(event) {
     } catch (error) {
         definirMensagem("#settings-profile-message", error.message, "error");
     } finally {
-        if (btnSalvar) btnSalvar.disabled = false;
+        if (btnSalvar) {
+            btnSalvar.disabled = false;
+            btnSalvar.classList.remove("is-loading");
+        }
     }
 }
 
@@ -2958,7 +2976,10 @@ async function confirmarExclusaoConta(event) {
         return;
     }
 
-    if (btnExcluir) btnExcluir.disabled = true;
+    if (btnExcluir) {
+        btnExcluir.disabled = true;
+        btnExcluir.classList.add("is-loading");
+    }
     definirMensagem(
         "#delete-account-message",
         "Excluindo sua conta permanentemente...",
@@ -2973,7 +2994,10 @@ async function confirmarExclusaoConta(event) {
     } catch (error) {
         definirMensagem("#delete-account-message", error.message, "error");
     } finally {
-        if (btnExcluir) btnExcluir.disabled = false;
+        if (btnExcluir) {
+            btnExcluir.disabled = false;
+            btnExcluir.classList.remove("is-loading");
+        }
     }
 }
 

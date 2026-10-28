@@ -3,7 +3,49 @@
  * Comunicação com a API FastAPI.
  */
 
-// URL padrão da API em produção no Render
+function traduzirMensagemErroApi(mensagemBruta, statusHttp = 400) {
+    const msg = String(mensagemBruta || "").trim();
+    if (!msg) {
+        return `Erro HTTP ${statusHttp}.`;
+    }
+
+    const textolimpo = msg.replace(/^Value error,\s*/i, "").trim();
+    const lower = textoLimpoMinusculo(textolimpo);
+
+    if (
+        lower.includes("not a valid email") ||
+        lower.includes("email address") ||
+        lower.includes("part after the @-sign") ||
+        lower.includes("an email address must have an @-sign")
+    ) {
+        return "Informe um endereço de e-mail válido (ex.: nome@dominio.com).";
+    }
+    if (lower.includes("field required") || lower === "missing") {
+        return "Preencha todos os campos obrigatórios antes de continuar.";
+    }
+    if (lower.includes("string should have at least")) {
+        return "Um dos campos informados possui menos caracteres do que o mínimo exigido.";
+    }
+    if (lower.includes("string should have at most")) {
+        return "Um dos campos informados excedeu o limite máximo de caracteres.";
+    }
+    if (lower.includes("input should be a valid")) {
+        return "Verifique o formato dos dados preenchidos e tente novamente.";
+    }
+    if (lower.includes("json decode error") || lower.includes("invalid json")) {
+        return "Os dados enviados estão em formato inválido.";
+    }
+
+    return textoLimpoFinal(textolimpo);
+}
+
+function textoLimpoMinusculo(texto) {
+    return String(texto || "").toLowerCase();
+}
+
+function textoLimpoFinal(texto) {
+    return String(texto || "").trim();
+}
 const RENDER_API_URL = "https://fluxo-caixa-cuq1.onrender.com";
 
 function obterUrlBaseApi() {
@@ -100,14 +142,14 @@ const api = {
             try {
                 const data = await response.json();
                 if (typeof data.detail === "string") {
-                    message = data.detail;
+                    message = traduzirMensagemErroApi(data.detail, response.status);
                 } else if (Array.isArray(data.detail)) {
-                    message = data.detail
+                    const partes = data.detail
                         .map((error) =>
-                            String(error.msg || "").replace(/^Value error,\s*/i, "")
+                            traduzirMensagemErroApi(error?.msg || "", response.status)
                         )
-                        .filter(Boolean)
-                        .join(" ");
+                        .filter(Boolean);
+                    message = [...new Set(partes)].join(" ") || message;
                 }
             } catch {
                 // Mantém a mensagem HTTP quando a resposta não contém JSON.
@@ -170,9 +212,23 @@ const api = {
 
 function aplicarTemaPreferido(tema) {
     const temaFinal = tema === "dark" ? "dark" : "light";
+    const paginaSempreEscura = Boolean(
+        document.body &&
+            (document.body.classList.contains("login-page") ||
+                document.body.classList.contains("landing-page"))
+    );
+
+    if (paginaSempreEscura) {
+        document.documentElement.setAttribute("data-theme", "dark");
+        document.body.classList.add("dark-theme");
+        document.body.classList.remove("light-theme");
+        return;
+    }
+
     document.documentElement.setAttribute("data-theme", temaFinal);
     if (document.body) {
         document.body.classList.toggle("dark-theme", temaFinal === "dark");
+        document.body.classList.toggle("light-theme", temaFinal !== "dark");
     }
     localStorage.setItem("fluxo_caixa_tema", temaFinal);
 }

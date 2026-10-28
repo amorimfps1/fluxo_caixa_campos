@@ -475,3 +475,63 @@ def test_estrutura_frontend_landing_lgpd_oauth_e_temas() -> None:
     assert '[data-theme="dark"]' in style_css
     assert ".password-checklist" in style_css
     assert ".legal-dialog" in style_css
+
+
+def test_design_system_wcag_hierarquia_botoes_validacoes_e_sidebar() -> None:
+    raiz_frontend = Path(__file__).resolve().parents[2] / "frontend"
+
+    logo_svg = (raiz_frontend / "assets" / "logo.svg").read_text(encoding="utf-8")
+    login_html = (raiz_frontend / "login.html").read_text(encoding="utf-8")
+    cadastro_html = (raiz_frontend / "cadastro.html").read_text(encoding="utf-8")
+    index_html = (raiz_frontend / "index.html").read_text(encoding="utf-8")
+    style_css = (raiz_frontend / "css" / "style.css").read_text(encoding="utf-8")
+    api_js = (raiz_frontend / "js" / "api.js").read_text(encoding="utf-8")
+    legal_js = (raiz_frontend / "js" / "legal.js").read_text(encoding="utf-8")
+    cadastro_js = (raiz_frontend / "js" / "cadastro.js").read_text(encoding="utf-8")
+    dashboard_js = (raiz_frontend / "js" / "dashboard.js").read_text(encoding="utf-8")
+
+    # 1. Logotipo vetorial local com verde esmeralda #10B981
+    assert "#10B981" in logo_svg or "#10b981" in logo_svg
+
+    # 2. Tokens semânticos WCAG AA (Tema Claro e Tema Escuro) e Autofill Fix
+    css_lower = style_css.lower()
+    assert "#f8fafc" in css_lower
+    assert "#0b0f19" in css_lower
+    assert "#10b981" in css_lower
+    assert "#dc2626" in css_lower
+    assert "--btn-primary-text" in style_css
+    assert "input:-webkit-autofill" in style_css
+    assert "-webkit-text-fill-color" in style_css
+    assert "small.field-error" in style_css
+    assert ".btn-logout" in style_css
+
+    # 3. Hierarquia estrita de botões em index.html
+    assert 'class="button-danger btn-logout"' in index_html
+    assert 'class="button-primary btn-exportar-csv"' in index_html
+    assert 'id="clear-movements-filter"' in index_html
+    assert 'id="new-account"' in index_html
+
+    # 4. Reorganização da Sidebar: sem Gmail solto e perfil unificado com #configuracoes
+    assert "mail.google.com" not in index_html
+    assert 'href="#configuracoes"' in index_html
+    assert 'id="user-profile-badge"' in index_html
+    assert ".sidebar .nav-link" in dashboard_js
+    assert ".btn-abrir-nova-movimentacao:not(#new-movement)" in dashboard_js
+
+    # 5. Validações reativas no Cadastro e Login (CPF Módulo 11, E-mail e 5 regras de senha)
+    assert 'id="cpf-error"' in cadastro_html
+    assert 'id="email-error"' in cadastro_html
+    assert 'id="password-confirm-error"' in cadastro_html
+    assert 'id="login-email-error"' in login_html
+    assert "Mínimo de 8 caracteres" in cadastro_html
+    assert "Pelo menos uma letra maiúscula (A-Z)" in cadastro_html
+    assert "Pelo menos uma letra minúscula (a-z)" in cadastro_html
+    assert "Pelo menos um número (0-9)" in cadastro_html
+    assert "Pelo menos um caractere especial" in cadastro_html
+    assert "validarEmailFormato" in legal_js
+    assert "vincularValidacaoEmailTempoReal" in legal_js
+    assert "CPF inválido. Verifique os números digitados." in legal_js
+    assert "As senhas digitadas não coincidem." in legal_js
+    assert "traduzirMensagemErroApi" in api_js
+    assert "cpfNormalizado" in cadastro_js
+
