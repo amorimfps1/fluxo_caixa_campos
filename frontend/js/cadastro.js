@@ -1,8 +1,9 @@
 /*
  * FLUXO DE CAIXA
- * Cadastro institucional com validação estrita de CPF em tempo real,
- * checklist visual interativo de senha forte, aceite obrigatório LGPD,
- * Google OAuth 2.0 e verificação de e-mail anti-bot via código OTP.
+ * Cadastro institucional com validação estrita em tempo real (CPF Módulo 11,
+ * Telefone com DDD 11-99, E-mail com detecção de domínio incorreto e 5 regras de senha),
+ * Google OAuth 2.0 e verificação OTP multi-canal (E-mail Gmail ou Telefone SMS/WhatsApp)
+ * com contador regressivo de 60s, troca rápida de canal e modo de contingência inteligente.
  */
 
 function inicializarBotoesVerSenha(root = document) {
@@ -51,6 +52,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const emailInput = document.querySelector("#register-email");
     const emailError = document.querySelector("#email-error");
     const phoneInput = document.querySelector("#register-phone");
+    const phoneError = document.querySelector("#phone-error");
+    const phoneOptionalTag = document.querySelector("#register-phone-optional");
+    const channelRadios = document.querySelectorAll('input[name="canal_verificacao"]');
+    const submitLabel = document.querySelector("#register-submit-label");
     const passwordInput = document.querySelector("#register-password");
     const passwordChecklist = document.querySelector("#register-password-checklist");
     const confirmationInput = document.querySelector("#register-password-confirm");
@@ -61,17 +66,97 @@ document.addEventListener("DOMContentLoaded", () => {
     const message = document.querySelector("#register-message");
     const submitButton = form.querySelector('[type="submit"]');
 
-    // Modal Anti-Bot de Verificação de E-mail
+    // Modal Multi-Canal de Verificação OTP (6 dígitos)
     const verifyDialog = document.querySelector("#verify-email-dialog");
     const verifyForm = document.querySelector("#verify-email-form");
+    const verifyTitle = document.querySelector("#verify-email-title");
     const verifyEmailDisplay = document.querySelector("#verify-email-display");
+    const verifyContingencyBanner = document.querySelector("#verify-contingency-banner");
+    const verifyContingencyCode = document.querySelector("#verify-contingency-code");
+    const verifyFillContingencyBtn = document.querySelector("#verify-fill-contingency-btn");
     const verifyOtpInput = document.querySelector("#verify-otp-input");
+    const verifyInlinePhoneBox = document.querySelector("#verify-inline-phone-box");
+    const verifyInlinePhoneInput = document.querySelector("#verify-inline-phone");
+    const verifyInlinePhoneError = document.querySelector("#verify-inline-phone-error");
+    const verifyInlinePhoneSend = document.querySelector("#verify-inline-phone-send");
     const verifyMessage = document.querySelector("#verify-email-message");
     const verifySubmitBtn = document.querySelector("#verify-email-submit");
     const resendBtn = document.querySelector("#resend-verification-btn");
+    const switchChannelBtn = document.querySelector("#switch-verification-channel-btn");
     const verifyCloseBtn = document.querySelector("#verify-email-close");
 
     let emailPendenteVerificacao = "";
+    let telefonePendenteVerificacao = "";
+    let canalAtualVerificacao = "email";
+    let timerReenvioId = null;
+    let segundosRestantesReenvio = 0;
+
+    function obterCanalSelecionadoFormulario() {
+        const selecionado = document.querySelector('input[name="canal_verificacao"]:checked');
+        return selecionado ? selecionado.value : "email";
+    }
+
+    function ehCanalTelefone(canal) {
+        return canal === "telefone" || canal === "sms" || canal === "whatsapp";
+    }
+
+    let controleTelefone = null;
+    if (typeof vincularValidacaoTelefoneTempoReal === "function") {
+        controleTelefone = vincularValidacaoTelefoneTempoReal(
+            phoneInput,
+            phoneError,
+            () => ehCanalTelefone(obterCanalSelecionadoFormulario())
+        );
+        if (verifyInlinePhoneInput) {
+            vincularValidacaoTelefoneTempoReal(
+                verifyInlinePhoneInput,
+                verifyInlinePhoneError,
+                () => true
+            );
+        }
+    }
+
+    function atualizarInterfaceSeletorCanal() {
+        const canal = obterCanalSelecionadoFormulario();
+        const porTelefone = ehCanalTelefone(canal);
+
+        channelRadios.forEach((radio) => {
+            const card = radio.closest(".channel-option-card");
+            if (card) {
+                card.classList.toggle("is-selected", radio.checked);
+            }
+        });
+
+        if (phoneOptionalTag) {
+            phoneOptionalTag.textContent = porTelefone
+                ? "(obrigatório para SMS/WhatsApp)"
+                : "(opcional)";
+            phoneOptionalTag.classList.toggle("is-required", porTelefone);
+        }
+        if (phoneInput) {
+            phoneInput.required = porTelefone;
+        }
+        if (submitLabel) {
+            submitLabel.textContent = porTelefone
+                ? "Criar conta e receber código no Telefone"
+                : "Criar conta e receber código por E-mail";
+        }
+        if (!porTelefone && phoneInput && !phoneInput.value.trim()) {
+            phoneInput.classList.remove("input-invalid");
+            phoneInput.removeAttribute("aria-invalid");
+            if (phoneError) {
+                phoneError.textContent = "";
+                phoneError.hidden = true;
+            }
+        } else if (controleTelefone) {
+            controleTelefone.revalidar(false);
+        }
+    }
+
+    channelRadios.forEach((radio) => {
+        radio.addEventListener("change", atualizarInterfaceSeletorCanal);
+    });
+    atualizarInterfaceSeletorCanal();
 
     if (typeof vincularValidacaoCpfTempoReal === "function") {
         vincularValidacaoCpfTempoReal(cpfInput, cpfFeedback, cpfError);
@@ -97,19 +182,117 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function abrirModalVerificacaoEmail(emailCadastrado) {
+    function iniciarContadorReenvio(segundos = 60) {
+        if (timerReenvioId) {
+            clearInterval(timerReenvioId);
+            timerReenvioId = null;
+        }
+        segundosRestantesReenvio = segundos;
+
+        const atualizarBotao = () => {
+            if (!resendBtn) return;
+            if (segundosRestantesReenvio > 0) {
+                resendBtn.disabled = true;
+                resendBtn.textContent = `Reenviar código (${segundosRestantesReenvio}s)`;
+            } else {
+                resendBtn.disabled = false;
+                resendBtn.textContent = "Reenviar código";
+                if (timerReenvioId) {
+                    clearInterval(timerReenvioId);
+                    timerReenvioId = null;
+                }
+            }
+        };
+
+        atualizarBotao();
+        timerReenvioId = setInterval(() => {
+            segundosRestantesReenvio -= 1;
+            atualizarBotao();
+        }, 1000);
+    }
+
+    function atualizarEstadoVisualModalOtp({
+        canal = "email",
+        destinoMascarado = "",
+        modoContingencia = false,
+        codigoDemonstracao = ""
+    }) {
+        canalAtualVerificacao = ehCanalTelefone(canal) ? "telefone" : "email";
+        const porTel = canalAtualVerificacao === "telefone";
+
+        if (verifyTitle) {
+            verifyTitle.textContent = porTel
+                ? "Verifique seu Telefone (SMS / WhatsApp)"
+                : "Verifique seu E-mail (Gmail)";
+        }
+
+        const destinoExibido =
+            destinoMascarado ||
+            (porTel
+                ? typeof mascararTelefoneCliente === "function"
+                    ? mascararTelefoneCliente(telefonePendenteVerificacao)
+                    : telefonePendenteVerificacao
+                : typeof mascararEmailCliente === "function"
+                ? mascararEmailCliente(emailPendenteVerificacao)
+                : emailPendenteVerificacao);
+
+        if (verifyEmailDisplay) {
+            verifyEmailDisplay.textContent = destinoExibido;
+        }
+
+        if (switchChannelBtn) {
+            switchChannelBtn.textContent = porTel
+                ? "Não recebeu no Telefone? Enviar código para o meu E-mail"
+                : "Não recebeu no Gmail? Enviar código para o meu Telefone";
+        }
+
+        if (verifyContingencyBanner && verifyContingencyCode) {
+            if (modoContingencia && codigoDemonstracao) {
+                verifyContingencyCode.textContent = codigoDemonstracao;
+                verifyContingencyBanner.hidden = false;
+            } else {
+                verifyContingencyCode.textContent = "";
+                verifyContingencyBanner.hidden = true;
+            }
+        }
+    }
+
+    verifyFillContingencyBtn?.addEventListener("click", () => {
+        if (verifyOtpInput && verifyContingencyCode?.textContent) {
+            verifyOtpInput.value = verifyContingencyCode.textContent.trim();
+            verifyOtpInput.focus();
+        }
+    });
+
+    function abrirModalVerificacaoOtp(respostaCadastro, emailCadastrado, telefoneCadastrado, canalEscolhido) {
         emailPendenteVerificacao = emailCadastrado;
+        telefonePendenteVerificacao = telefoneCadastrado || "";
+
         if (!verifyDialog) {
             window.location.assign("login.html?cadastro=sucesso");
             return;
         }
-        if (verifyEmailDisplay) verifyEmailDisplay.textContent = emailCadastrado;
+
         if (verifyOtpInput) verifyOtpInput.value = "";
+        if (verifyInlinePhoneBox) verifyInlinePhoneBox.hidden = true;
+
+        atualizarEstadoVisualModalOtp({
+            canal: respostaCadastro?.canal_verificacao || canalEscolhido || "email",
+            destinoMascarado: respostaCadastro?.destino_mascarado || "",
+            modoContingencia: Boolean(respostaCadastro?.modo_contingencia),
+            codigoDemonstracao: respostaCadastro?.codigo_demonstracao || ""
+        });
+
         if (verifyMessage) {
             verifyMessage.textContent =
-                "Conta criada! Insira o código de 6 dígitos enviado para o seu e-mail.";
+                canalAtualVerificacao === "telefone"
+                    ? "Conta criada! Digite o código de 6 dígitos enviado para o seu telefone."
+                    : "Conta criada! Digite o código de 6 dígitos enviado para o seu e-mail.";
             verifyMessage.className = "form-message info";
         }
+
+        iniciarContadorReenvio(60);
+
         if (typeof verifyDialog.showModal === "function") {
             verifyDialog.showModal();
         } else {
@@ -119,30 +302,105 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     verifyCloseBtn?.addEventListener("click", () => {
+        if (timerReenvioId) {
+            clearInterval(timerReenvioId);
+            timerReenvioId = null;
+        }
         if (verifyDialog && typeof verifyDialog.close === "function") {
             verifyDialog.close();
         }
         window.location.assign("login.html?cadastro=sucesso");
     });
 
-    resendBtn?.addEventListener("click", async () => {
+    async function dispararReenvioOuTrocaCanal(novoCanal, telefoneInformado = "") {
         if (!emailPendenteVerificacao || !verifyMessage) return;
-        resendBtn.disabled = true;
-        verifyMessage.textContent = "Reenviando um novo código de verificação...";
+
+        const payload = {
+            email: emailPendenteVerificacao,
+            canal_verificacao: novoCanal
+        };
+        if (telefoneInformado) {
+            payload.telefone = telefoneInformado;
+        }
+
+        if (resendBtn) resendBtn.disabled = true;
+        if (switchChannelBtn) switchChannelBtn.disabled = true;
+        verifyMessage.textContent =
+            novoCanal === "telefone"
+                ? "Enviando novo código de 6 dígitos para o seu telefone..."
+                : "Enviando novo código de 6 dígitos para o seu e-mail...";
         verifyMessage.className = "form-message info";
+
         try {
-            const resp = await api.post("/usuarios/reenviar-verificacao", {
-                email: emailPendenteVerificacao
+            const resp = await api.post("/usuarios/enviar-codigo", payload);
+            if (telefoneInformado) {
+                telefonePendenteVerificacao = telefoneInformado;
+            }
+            if (verifyInlinePhoneBox) verifyInlinePhoneBox.hidden = true;
+
+            atualizarEstadoVisualModalOtp({
+                canal: resp?.canal_utilizado || novoCanal,
+                destinoMascarado: resp?.destino_mascarado || "",
+                modoContingencia: Boolean(resp?.modo_contingencia),
+                codigoDemonstracao: resp?.codigo_demonstracao || ""
             });
+
             verifyMessage.textContent =
-                resp?.mensagem || "Novo código enviado! Confira sua caixa de entrada.";
+                resp?.mensagem || "Novo código enviado com sucesso!";
             verifyMessage.className = "form-message info";
+            iniciarContadorReenvio(60);
+            verifyOtpInput?.focus();
         } catch (erro) {
             verifyMessage.textContent = erro.message;
             verifyMessage.className = "form-message error";
+            if (segundosRestantesReenvio <= 0 && resendBtn) {
+                resendBtn.disabled = false;
+            }
         } finally {
-            resendBtn.disabled = false;
+            if (switchChannelBtn) switchChannelBtn.disabled = false;
         }
+    }
+
+    resendBtn?.addEventListener("click", async () => {
+        if (segundosRestantesReenvio > 0) return;
+        await dispararReenvioOuTrocaCanal(canalAtualVerificacao);
+    });
+
+    switchChannelBtn?.addEventListener("click", async () => {
+        const proximoCanal = canalAtualVerificacao === "email" ? "telefone" : "email";
+        if (proximoCanal === "telefone" && !telefonePendenteVerificacao) {
+            if (verifyInlinePhoneBox) {
+                verifyInlinePhoneBox.hidden = false;
+                verifyInlinePhoneInput?.focus();
+            }
+            if (verifyMessage) {
+                verifyMessage.textContent =
+                    "Informe seu telefone com DDD acima para enviarmos o código por SMS / WhatsApp.";
+                verifyMessage.className = "form-message info";
+            }
+            return;
+        }
+        await dispararReenvioOuTrocaCanal(proximoCanal, telefonePendenteVerificacao);
+    });
+
+    verifyInlinePhoneSend?.addEventListener("click", async () => {
+        if (!verifyInlinePhoneInput) return;
+        const telDigitado = verifyInlinePhoneInput.value.trim();
+        const validacaoTel =
+            typeof validarTelefoneBrasileiro === "function"
+                ? validarTelefoneBrasileiro(telDigitado, { obrigatorio: true })
+                : { valido: telDigitado.replace(/\D/g, "").length >= 10, mensagem: "Telefone inválido." };
+
+        if (!validacaoTel.valido) {
+            verifyInlinePhoneInput.classList.add("input-invalid");
+            if (verifyInlinePhoneError) {
+                verifyInlinePhoneError.textContent = validacaoTel.mensagem;
+                verifyInlinePhoneError.hidden = false;
+            }
+            verifyInlinePhoneInput.focus();
+            return;
+        }
+        await dispararReenvioOuTrocaCanal("telefone", telDigitado);
     });
 
     verifyForm?.addEventListener("submit", async (event) => {
@@ -169,6 +427,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 email: emailPendenteVerificacao,
                 codigo_otp: codigo
             });
+
+            if (timerReenvioId) {
+                clearInterval(timerReenvioId);
+                timerReenvioId = null;
+            }
 
             if (dados && typeof dados.access_token === "string" && dados.access_token) {
                 api.setToken(dados.access_token);
@@ -240,18 +503,56 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // 2. Validação estrita de formato de e-mail antes do envio
+        // 2. Validação do telefone com DDD (11 a 99) — obrigatório quando escolher canal Telefone
+        const canalEscolhido = obterCanalSelecionadoFormulario();
+        const telObrigatorio = ehCanalTelefone(canalEscolhido);
+        const telefoneTexto = phoneInput.value.trim();
+
+        if (telObrigatorio || telefoneTexto) {
+            const validacaoTel =
+                typeof validarTelefoneBrasileiro === "function"
+                    ? validarTelefoneBrasileiro(telefoneTexto, { obrigatorio: telObrigatorio })
+                    : {
+                          valido: telefoneTexto.replace(/\D/g, "").length >= 10,
+                          mensagem: "Informe um telefone válido com DDD."
+                      };
+
+            if (!validacaoTel.valido) {
+                const msgTel =
+                    validacaoTel.mensagem ||
+                    "Informe um telefone válido com DDD (11 a 99) para receber o código.";
+                phoneInput.classList.add("input-invalid");
+                phoneInput.classList.remove("input-valid");
+                phoneInput.setAttribute("aria-invalid", "true");
+                if (phoneError) {
+                    phoneError.textContent = msgTel;
+                    phoneError.hidden = false;
+                }
+                message.textContent = msgTel;
+                message.classList.add("error");
+                phoneInput.focus();
+                return;
+            }
+        }
+
+        // 3. Validação estrita de formato e domínio de e-mail antes do envio
         const email = emailInput.value.trim();
+        const erroDominio =
+            typeof detectarErroDominioEmail === "function"
+                ? detectarErroDominioEmail(email)
+                : null;
         const emailValido = typeof validarEmailFormato === "function"
             ? validarEmailFormato(email)
             : Boolean(email && emailInput.checkValidity());
 
-        if (!emailValido) {
-            const msgEmail = "Informe um endereço de e-mail válido (ex.: nome@dominio.com).";
+        if (!emailValido || erroDominio) {
+            const msgEmail = erroDominio
+                ? erroDominio.mensagem
+                : "Informe um endereço de e-mail válido (ex.: nome@dominio.com).";
             emailInput.classList.add("input-invalid");
             emailInput.classList.remove("input-valid");
             emailInput.setAttribute("aria-invalid", "true");
-            if (emailError) {
+            if (emailError && !erroDominio) {
                 emailError.textContent = msgEmail;
                 emailError.hidden = false;
             }
@@ -261,7 +562,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // 3. Validação estrita dos 5 requisitos de senha forte
+        // 4. Validação estrita dos 5 requisitos de senha forte
         if (typeof obterMensagemErroSenha === "function") {
             const erroSenha = obterMensagemErroSenha(passwordInput.value);
             if (erroSenha) {
@@ -287,7 +588,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // 4. Validação obrigatória dos Termos de Serviço e Política de Privacidade (LGPD)
+        // 5. Validação obrigatória dos Termos de Serviço e Política de Privacidade (LGPD)
         const aceitouTermos = Boolean(acceptTermsCheckbox?.checked);
         const aceitouPrivacidade = Boolean(acceptPrivacyCheckbox?.checked);
         if (!aceitouTermos || !aceitouPrivacidade) {
@@ -304,24 +605,33 @@ document.addEventListener("DOMContentLoaded", () => {
             submitButton.disabled = true;
             submitButton.classList.add("is-loading");
         }
-        message.textContent = "Criando sua conta protegida e enviando código de verificação...";
+        message.textContent = telObrigatorio
+            ? "Criando sua conta protegida e enviando código de 6 dígitos para o seu Telefone..."
+            : "Criando sua conta protegida e enviando código de 6 dígitos para o seu E-mail...";
         message.classList.add("info");
 
         try {
-            await api.post("/usuarios/", {
+            const respostaCadastro = await api.post("/usuarios/", {
                 nome_completo: nome,
                 cpf: cpfNormalizado,
                 email,
-                telefone: phoneInput.value.trim() || null,
+                telefone: telefoneTexto || null,
                 senha: passwordInput.value,
+                canal_verificacao: canalEscolhido,
                 aceite_termos: true,
                 aceite_privacidade: true
             });
 
-            message.textContent =
-                "Cadastro registrado! Confirme o código de 6 dígitos enviado para o seu e-mail.";
+            message.textContent = telObrigatorio
+                ? "Cadastro registrado! Confirme o código de 6 dígitos enviado para o seu telefone."
+                : "Cadastro registrado! Confirme o código de 6 dígitos enviado para o seu e-mail.";
             message.className = "form-message info";
-            abrirModalVerificacaoEmail(email);
+            abrirModalVerificacaoOtp(
+                respostaCadastro,
+                email,
+                telefoneTexto,
+                canalEscolhido
+            );
         } catch (error) {
             const msgErro = error?.message || "Não foi possível concluir o cadastro.";
             const msgLower = msgErro.toLowerCase();
@@ -332,7 +642,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     cpfError.textContent = msgErro;
                     cpfError.hidden = false;
                 }
-            } else if (msgLower.includes("e-mail") || msgLower.includes("email")) {
+            } else if (msgLower.includes("telefone") || msgLower.includes("ddd") || msgLower.includes("sms")) {
+                phoneInput.classList.add("input-invalid");
+                phoneInput.classList.remove("input-valid");
+                if (phoneError) {
+                    phoneError.textContent = msgErro;
+                    phoneError.hidden = false;
+                }
+            } else if (msgLower.includes("e-mail") || msgLower.includes("email") || msgLower.includes("domínio")) {
                 emailInput.classList.add("input-invalid");
                 emailInput.classList.remove("input-valid");
                 if (emailError) {

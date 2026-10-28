@@ -9,10 +9,10 @@
     >
     <title>Fluxo de Caixa | Acesso Institucional</title>
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="css/style.css?v=15">
-    <script src="js/api.js?v=15" defer></script>
-    <script src="js/legal.js?v=15" defer></script>
-    <script src="js/login.js?v=15" defer></script>
+    <link rel="stylesheet" href="css/style.css?v=18">
+    <script src="js/api.js?v=18" defer></script>
+    <script src="js/legal.js?v=18" defer></script>
+    <script src="js/login.js?v=18" defer></script>
 </head>
 <body class="login-page">
     <div class="login-split-layout">
@@ -248,6 +248,12 @@
                     <a href="cadastro.html" class="link-cadastro">Criar conta gratuita</a>
                 </footer>
 
+                <div class="login-verify-shortcut">
+                    <button type="button" class="forgot-password-link" id="open-login-verify-trigger">
+                        Possui um código pendente? Verificar por E-mail ou Telefone
+                    </button>
+                </div>
+
                 <nav class="auth-legal-bar" aria-label="Links institucionais e jurídicos">
                     <a href="inicio.html">Apresentação</a>
                     <span>·</span>
@@ -259,13 +265,103 @@
         </main>
     </div>
 
-    <!-- Modal de Redefinição de Senha -->
+    <!-- Modal Multi-Canal de Confirmação de Código na Tela de Login -->
+    <dialog class="form-dialog" id="login-verify-dialog" aria-labelledby="login-verify-title">
+        <form id="login-verify-form" class="dialog-form" novalidate>
+            <div class="dialog-header">
+                <div>
+                    <h2 id="login-verify-title">Confirmar código de verificação</h2>
+                    <p id="login-verify-subtitle">
+                        Escolha se deseja receber o código de 6 dígitos por E-mail (Gmail) ou no Telefone (SMS / WhatsApp).
+                    </p>
+                </div>
+                <button type="button" class="dialog-close" id="login-verify-close" aria-label="Fechar janela">&times;</button>
+            </div>
+
+            <div class="otp-contingency-banner" id="login-verify-contingency-banner" role="status" aria-live="polite" hidden>
+                <div class="otp-contingency-text">
+                    <strong>Modo de Contingência Ativo:</strong> utilize o código gerado abaixo para ativar sua conta imediatamente:
+                </div>
+                <div class="otp-contingency-code-row">
+                    <code class="otp-contingency-code" id="login-verify-contingency-code">000000</code>
+                    <button type="button" class="button-secondary button-small" id="login-verify-fill-contingency">
+                        Preencher código
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="login-verify-email">E-mail da conta</label>
+                <input
+                    id="login-verify-email"
+                    type="email"
+                    autocomplete="email"
+                    placeholder="seu-email@gmail.com"
+                    required
+                >
+                <small class="field-error" id="login-verify-email-error" role="alert" hidden></small>
+            </div>
+
+            <div class="form-field verification-channel-group" role="radiogroup" aria-label="Canal de verificação no login">
+                <label>Canal para envio do código de 6 dígitos</label>
+                <div class="channel-selector-grid">
+                    <label class="channel-option-card is-selected" for="login-channel-email">
+                        <input type="radio" id="login-channel-email" name="login_canal_verificacao" value="email" checked>
+                        <span class="channel-option-content">
+                            <span class="channel-option-title">E-mail (Gmail)</span>
+                            <span class="channel-option-desc">Receber na caixa de entrada</span>
+                        </span>
+                    </label>
+                    <label class="channel-option-card" for="login-channel-phone">
+                        <input type="radio" id="login-channel-phone" name="login_canal_verificacao" value="telefone">
+                        <span class="channel-option-content">
+                            <span class="channel-option-title">Telefone (SMS / WhatsApp)</span>
+                            <span class="channel-option-desc">Receber no celular cadastrado</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="otp-quick-actions">
+                <button type="button" class="button-secondary otp-resend-btn" id="login-verify-send-btn">
+                    Enviar código
+                </button>
+                <button type="button" class="otp-switch-channel-btn" id="login-verify-switch-btn">
+                    Não recebeu no Gmail? Enviar código para o meu Telefone
+                </button>
+            </div>
+
+            <div class="form-field">
+                <label for="login-verify-otp">Código recebido (6 dígitos)</label>
+                <input
+                    id="login-verify-otp"
+                    class="otp-code-input"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="one-time-code"
+                    maxlength="6"
+                    placeholder="000000"
+                    required
+                >
+            </div>
+
+            <p id="login-verify-message" class="form-message" role="status" aria-live="polite"></p>
+
+            <div class="dialog-actions">
+                <button type="submit" class="button-primary" id="login-verify-submit">
+                    Confirmar código e entrar
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Modal de Redefinição de Senha Multi-Canal -->
     <dialog class="form-dialog" id="forgot-password-dialog" aria-labelledby="forgot-password-title">
         <form id="forgot-password-form" class="dialog-form" novalidate>
             <div class="dialog-header">
                 <div>
                     <h2 id="forgot-password-title">Recuperação de Acesso</h2>
-                    <p>Receba um código temporário de verificação (OTP) por e-mail ou valide via CPF.</p>
+                    <p>Receba um código temporário de 6 dígitos por E-mail (Gmail), Telefone (SMS / WhatsApp) ou valide via CPF.</p>
                 </div>
                 <button
                     type="button"
@@ -273,6 +369,49 @@
                     id="forgot-password-close"
                     aria-label="Fechar janela"
                 >&times;</button>
+            </div>
+
+            <div class="otp-contingency-banner" id="reset-contingency-banner" role="status" aria-live="polite" hidden>
+                <div class="otp-contingency-text">
+                    <strong>Modo de Contingência Ativo:</strong> utilize o código temporário gerado abaixo para redefinir sua senha agora:
+                </div>
+                <div class="otp-contingency-code-row">
+                    <code class="otp-contingency-code" id="reset-contingency-code">000000</code>
+                    <button type="button" class="button-secondary button-small" id="reset-fill-contingency-btn">
+                        Preencher código
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-field verification-channel-group" role="radiogroup" aria-label="Canal de recuperação de senha">
+                <label>Onde deseja receber o código de recuperação?</label>
+                <div class="channel-selector-grid">
+                    <label class="channel-option-card is-selected" for="reset-channel-email">
+                        <input
+                            type="radio"
+                            id="reset-channel-email"
+                            name="reset_canal_verificacao"
+                            value="email"
+                            checked
+                        >
+                        <span class="channel-option-content">
+                            <span class="channel-option-title">Receber código por E-mail (Gmail)</span>
+                            <span class="channel-option-desc">Envio para o e-mail cadastrado</span>
+                        </span>
+                    </label>
+                    <label class="channel-option-card" for="reset-channel-phone">
+                        <input
+                            type="radio"
+                            id="reset-channel-phone"
+                            name="reset_canal_verificacao"
+                            value="telefone"
+                        >
+                        <span class="channel-option-content">
+                            <span class="channel-option-title">Receber código no Telefone (SMS / WhatsApp)</span>
+                            <span class="channel-option-desc">Envio para o celular cadastrado</span>
+                        </span>
+                    </label>
+                </div>
             </div>
 
             <div class="form-field">
@@ -283,7 +422,7 @@
                         name="email"
                         type="email"
                         autocomplete="email"
-                        placeholder="seu-email@exemplo.com"
+                        placeholder="seu-email@gmail.com"
                         required
                     >
                     <button
@@ -294,9 +433,19 @@
                         Enviar código
                     </button>
                 </div>
-                <span class="field-help">
-                    Código seguro de 6 dígitos válido por 15 minutos.
-                </span>
+                <small class="field-error" id="reset-email-error" role="alert" hidden></small>
+                <div class="otp-quick-actions otp-quick-actions-compact">
+                    <span class="field-help" id="reset-destination-help">
+                        Código seguro de 6 dígitos válido por 15 minutos.
+                    </span>
+                    <button
+                        type="button"
+                        class="otp-switch-channel-btn"
+                        id="reset-switch-channel-btn"
+                    >
+                        Não recebeu no Gmail? Enviar código para o meu Telefone
+                    </button>
+                </div>
             </div>
 
             <div class="form-grid">

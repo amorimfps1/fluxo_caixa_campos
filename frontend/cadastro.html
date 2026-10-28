@@ -9,10 +9,10 @@
     >
     <title>Fluxo de Caixa | Criar Nova Conta</title>
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="css/style.css?v=15">
-    <script src="js/api.js?v=15" defer></script>
-    <script src="js/legal.js?v=15" defer></script>
-    <script src="js/cadastro.js?v=15" defer></script>
+    <link rel="stylesheet" href="css/style.css?v=18">
+    <script src="js/api.js?v=18" defer></script>
+    <script src="js/legal.js?v=18" defer></script>
+    <script src="js/cadastro.js?v=18" defer></script>
 </head>
 <body class="login-page">
     <main class="login-shell register-shell">
@@ -113,7 +113,7 @@
 
                     <div class="form-field">
                         <label for="register-phone">
-                            Telefone <span class="field-optional">(opcional)</span>
+                            Telefone <span class="field-optional" id="register-phone-optional">(opcional)</span>
                         </label>
                         <div class="input-icon-wrapper">
                             <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -125,11 +125,12 @@
                                 type="tel"
                                 inputmode="tel"
                                 autocomplete="tel"
-                                maxlength="32"
+                                maxlength="20"
                                 placeholder="(11) 98765-4321"
                             >
                         </div>
-                        <span class="field-help">Armazenado sob criptografia simétrica LGPD.</span>
+                        <small class="field-error" id="phone-error" role="alert" hidden></small>
+                        <span class="field-help">DDD válido (11 a 99) · Criptografia simétrica LGPD.</span>
                     </div>
                 </div>
 
@@ -146,12 +147,45 @@
                             type="email"
                             autocomplete="email"
                             maxlength="100"
-                            placeholder="seu-email@exemplo.com"
+                            placeholder="seu-email@gmail.com"
                             required
                         >
                     </div>
                     <small class="field-error" id="email-error" role="alert" hidden></small>
-                    <span class="field-help">Enviaremos um código anti-bot de 6 dígitos para ativar sua conta.</span>
+                    <span class="field-help">Validamos erros de digitação de domínio em tempo real.</span>
+                </div>
+
+                <!-- Seletor Elegante de Canal de Verificação (E-mail Gmail ou Telefone SMS/WhatsApp) -->
+                <div class="form-field verification-channel-group" role="radiogroup" aria-labelledby="register-channel-label">
+                    <label id="register-channel-label">Onde deseja receber seu código de verificação (6 dígitos)?</label>
+                    <div class="channel-selector-grid">
+                        <label class="channel-option-card is-selected" for="channel-email">
+                            <input
+                                type="radio"
+                                id="channel-email"
+                                name="canal_verificacao"
+                                value="email"
+                                checked
+                            >
+                            <span class="channel-option-content">
+                                <span class="channel-option-title">Receber código por E-mail (Gmail)</span>
+                                <span class="channel-option-desc">Envio imediato para sua caixa de entrada</span>
+                            </span>
+                        </label>
+
+                        <label class="channel-option-card" for="channel-phone">
+                            <input
+                                type="radio"
+                                id="channel-phone"
+                                name="canal_verificacao"
+                                value="telefone"
+                            >
+                            <span class="channel-option-content">
+                                <span class="channel-option-title">Receber código no Telefone (SMS / WhatsApp)</span>
+                                <span class="channel-option-desc">Código direto no celular com DDD</span>
+                            </span>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="form-row-2col">
@@ -293,7 +327,7 @@
                 ></p>
 
                 <button class="button-primary login-submit" type="submit" id="register-submit-btn">
-                    <span>Criar conta e verificar e-mail</span>
+                    <span id="register-submit-label">Criar conta e receber código</span>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                         <polyline points="12 5 19 12 12 19"></polyline>
@@ -316,14 +350,14 @@
         </section>
     </main>
 
-    <!-- Modal Anti-Bot: Verificação de E-mail com Código OTP Descartável -->
+    <!-- Modal Multi-Canal Anti-Bot: Verificação com Código OTP de 6 Dígitos (E-mail ou Telefone) -->
     <dialog class="form-dialog" id="verify-email-dialog" aria-labelledby="verify-email-title">
         <form id="verify-email-form" class="dialog-form" novalidate>
             <div class="dialog-header">
                 <div>
-                    <h2 id="verify-email-title">Verifique seu e-mail</h2>
-                    <p>
-                        Enviamos um código anti-bot de 6 dígitos para
+                    <h2 id="verify-email-title">Verifique seu código de acesso</h2>
+                    <p id="verify-email-subtitle">
+                        Enviamos um código de 6 dígitos para
                         <strong id="verify-email-display">—</strong>. Digite-o abaixo para ativar seu acesso definitivo.
                     </p>
                 </div>
@@ -333,6 +367,19 @@
                     id="verify-email-close"
                     aria-label="Fechar janela"
                 >&times;</button>
+            </div>
+
+            <!-- Aviso Visual Amigável de Contingência (quando servidor Render ainda não possui SMTP/SMS ativo) -->
+            <div class="otp-contingency-banner" id="verify-contingency-banner" role="status" aria-live="polite" hidden>
+                <div class="otp-contingency-text">
+                    <strong>Modo de Contingência Ativo:</strong> o provedor externo de envio ainda não está ativo neste servidor. Utilize o código de verificação gerado abaixo para concluir agora:
+                </div>
+                <div class="otp-contingency-code-row">
+                    <code class="otp-contingency-code" id="verify-contingency-code">000000</code>
+                    <button type="button" class="button-secondary button-small" id="verify-fill-contingency-btn">
+                        Preencher código
+                    </button>
+                </div>
             </div>
 
             <div class="form-field">
@@ -348,9 +395,47 @@
                     placeholder="000000"
                     required
                 >
-                <span class="field-help">
-                    Código temporário e de uso único, válido por 15 minutos. Verifique também a pasta de spam.
+                <span class="field-help" id="verify-otp-help">
+                    Código temporário e de uso único, válido por 15 minutos. Verifique também a pasta de spam ou SMS/WhatsApp.
                 </span>
+            </div>
+
+            <!-- Campo rápido de telefone caso o usuário troque de Gmail para Telefone sem ter preenchido antes -->
+            <div class="otp-inline-phone-box" id="verify-inline-phone-box" hidden>
+                <div class="form-field">
+                    <label for="verify-inline-phone">Informe seu celular com DDD para receber via SMS / WhatsApp</label>
+                    <div class="otp-email-row">
+                        <input
+                            id="verify-inline-phone"
+                            type="tel"
+                            inputmode="tel"
+                            maxlength="20"
+                            placeholder="(11) 98765-4321"
+                        >
+                        <button type="button" class="button-secondary otp-send-btn" id="verify-inline-phone-send">
+                            Enviar SMS
+                        </button>
+                    </div>
+                    <small class="field-error" id="verify-inline-phone-error" role="alert" hidden></small>
+                </div>
+            </div>
+
+            <!-- Ações rápidas: Reenviar com contador de 60s e Trocar Canal (Gmail <-> Telefone) -->
+            <div class="otp-quick-actions">
+                <button
+                    type="button"
+                    class="button-secondary otp-resend-btn"
+                    id="resend-verification-btn"
+                >
+                    Reenviar código
+                </button>
+                <button
+                    type="button"
+                    class="otp-switch-channel-btn"
+                    id="switch-verification-channel-btn"
+                >
+                    Não recebeu no Gmail? Enviar código para o meu Telefone
+                </button>
             </div>
 
             <p
@@ -361,13 +446,6 @@
             ></p>
 
             <div class="dialog-actions">
-                <button
-                    type="button"
-                    class="button-secondary"
-                    id="resend-verification-btn"
-                >
-                    Reenviar código
-                </button>
                 <button
                     type="submit"
                     class="button-primary"

@@ -335,8 +335,265 @@ function vincularValidacaoCpfTempoReal(inputCpf, elementoFeedback = null, elemen
 }
 
 /* =========================================================
-   1.B VALIDAÇÃO ESTRITA DE E-MAIL EM TEMPO REAL
+   1.B VALIDAÇÃO ESTRITA DE TELEFONE BRASILEIRO (DDD 11-99 E E.164)
 ========================================================= */
+
+function formatarMascaraTelefone(valor) {
+    const bruto = String(valor || "");
+    const temMais55 = /^\s*\+55/.test(bruto);
+    const temMaisInternacional = /^\s*\+/.test(bruto) && !temMais55;
+
+    if (temMaisInternacional) {
+        const limpoInt = bruto.replace(/[^\d+ ()-]/g, "").slice(0, 22);
+        return limpoInt;
+    }
+
+    let digitos = bruto.replace(/\D/g, "");
+    if (temMais55 && digitos.startsWith("55")) {
+        digitos = digitos.slice(2);
+    }
+    digitos = digitos.slice(0, 11);
+
+    if (!digitos) {
+        return temMais55 ? "+55 " : "";
+    }
+
+    let formatado = "";
+    if (digitos.length <= 2) {
+        formatado = `(${digitos}`;
+    } else if (digitos.length <= 6) {
+        formatado = `(${digitos.slice(0, 2)}) ${digitos.slice(2)}`;
+    } else if (digitos.length <= 10) {
+        formatado = `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`;
+    } else {
+        formatado = `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7, 11)}`;
+    }
+
+    return temMais55 ? `+55 ${formatado}` : formatado;
+}
+
+function validarTelefoneBrasileiro(valor, { obrigatorio = false } = {}) {
+    const bruto = String(valor || "").trim();
+    if (!bruto) {
+        return {
+            valido: !obrigatorio,
+            incompleto: true,
+            e164: "",
+            mensagem: obrigatorio
+                ? "Informe um telefone válido com DDD para receber o código por SMS ou WhatsApp."
+                : ""
+        };
+    }
+
+    if (/[^0-9+().\-\s]/.test(bruto)) {
+        return {
+            valido: false,
+            incompleto: false,
+            e164: "",
+            mensagem: "O telefone contém caracteres inválidos."
+        };
+    }
+
+    const digitosTotais = bruto.replace(/\D/g, "");
+    if (bruto.startsWith("+") && !bruto.startsWith("+55")) {
+        if (digitosTotais.length >= 10 && digitosTotais.length <= 15) {
+            return {
+                valido: true,
+                incompleto: false,
+                e164: `+${digitosTotais}`,
+                mensagem: "Telefone internacional válido."
+            };
+        }
+        return {
+            valido: false,
+            incompleto: digitosTotais.length < 10,
+            e164: "",
+            mensagem: "Informe um telefone válido com código do país (10 a 15 dígitos)."
+        };
+    }
+
+    let nacional = digitosTotais;
+    if ((bruto.startsWith("+55") || nacional.length === 12 || nacional.length === 13) && nacional.startsWith("55")) {
+        nacional = nacional.slice(2);
+    }
+
+    if (nacional.length < 10) {
+        return {
+            valido: false,
+            incompleto: true,
+            e164: "",
+            mensagem: "Informe o DDD (11 a 99) seguido do telefone com 8 ou 9 dígitos."
+        };
+    }
+
+    if (nacional.length > 11) {
+        return {
+            valido: false,
+            incompleto: false,
+            e164: "",
+            mensagem: "Telefone inválido. Use o formato (DD) 9XXXX-XXXX."
+        };
+    }
+
+    const ddd = Number(nacional.slice(0, 2));
+    if (!Number.isInteger(ddd) || ddd < 11 || ddd > 99) {
+        return {
+            valido: false,
+            incompleto: false,
+            e164: "",
+            mensagem: "DDD inválido. Informe um DDD brasileiro válido entre 11 e 99."
+        };
+    }
+
+    if (nacional.length === 11 && nacional[2] !== "9") {
+        return {
+            valido: false,
+            incompleto: false,
+            e164: "",
+            mensagem: "Celulares com 11 dígitos devem começar com 9 após o DDD."
+        };
+    }
+
+    return {
+        valido: true,
+        incompleto: false,
+        e164: `+55${nacional}`,
+        nacional,
+        mensagem: "Telefone válido."
+    };
+}
+
+function vincularValidacaoTelefoneTempoReal(
+    inputTelefone,
+    elementoErro = null,
+    isObrigatorioFn = () => false
+) {
+    if (!inputTelefone) return null;
+
+    const erroEl =
+        elementoErro ||
+        inputTelefone.closest(".form-field, label")?.querySelector("small.field-error");
+
+    const atualizarEstado = (exibirIncompleto = false) => {
+        inputTelefone.value = formatarMascaraTelefone(inputTelefone.value);
+        const obrigatorio = Boolean(typeof isObrigatorioFn === "function" ? isObrigatorioFn() : isObrigatorioFn);
+        const digitos = inputTelefone.value.replace(/\D/g, "");
+
+        if (!digitos) {
+            if (obrigatorio && exibirIncompleto) {
+                inputTelefone.classList.add("input-invalid");
+                inputTelefone.classList.remove("input-valid");
+                inputTelefone.setAttribute("aria-invalid", "true");
+                if (erroEl) {
+                    erroEl.textContent =
+                        "Informe seu telefone com DDD para receber o código via SMS ou WhatsApp.";
+                    erroEl.hidden = false;
+                }
+            } else {
+                inputTelefone.classList.remove("input-valid", "input-invalid");
+                inputTelefone.removeAttribute("aria-invalid");
+                if (erroEl) {
+                    erroEl.textContent = "";
+                    erroEl.hidden = true;
+                }
+            }
+            return;
+        }
+
+        const res = validarTelefoneBrasileiro(inputTelefone.value, { obrigatorio });
+        if (res.valido) {
+            inputTelefone.classList.add("input-valid");
+            inputTelefone.classList.remove("input-invalid");
+            inputTelefone.setAttribute("aria-invalid", "false");
+            if (erroEl) {
+                erroEl.textContent = "";
+                erroEl.hidden = true;
+            }
+        } else if (!res.incompleto || exibirIncompleto) {
+            inputTelefone.classList.add("input-invalid");
+            inputTelefone.classList.remove("input-valid");
+            inputTelefone.setAttribute("aria-invalid", "true");
+            if (erroEl) {
+                erroEl.textContent = res.mensagem;
+                erroEl.hidden = false;
+            }
+        } else {
+            inputTelefone.classList.remove("input-valid", "input-invalid");
+            inputTelefone.removeAttribute("aria-invalid");
+            if (erroEl) {
+                erroEl.textContent = "";
+                erroEl.hidden = true;
+            }
+        }
+    };
+
+    inputTelefone.addEventListener("input", () => atualizarEstado(false));
+    inputTelefone.addEventListener("blur", () => atualizarEstado(true));
+    return { revalidar: atualizarEstado };
+}
+
+function mascararEmailCliente(email) {
+    const limpo = String(email || "").trim().toLowerCase();
+    if (!limpo.includes("@")) return limpo || "—";
+    const [local, dominio] = limpo.split("@");
+    const prefixo = local.length <= 2 ? local.slice(0, 1) || "*" : local.slice(0, 2);
+    return `${prefixo}***@${dominio}`;
+}
+
+function mascararTelefoneCliente(telefone) {
+    const digitos = String(telefone || "").replace(/\D/g, "");
+    let nac = digitos;
+    if ((nac.length === 12 || nac.length === 13) && nac.startsWith("55")) {
+        nac = nac.slice(2);
+    }
+    if (nac.length === 11) {
+        return `(${nac.slice(0, 2)}) ${nac[2]}****-${nac.slice(-4)}`;
+    }
+    if (nac.length === 10) {
+        return `(${nac.slice(0, 2)}) ****-${nac.slice(-4)}`;
+    }
+    return telefone || "(**) *****-****";
+}
+
+/* =========================================================
+   1.C VALIDAÇÃO ESTRITA DE E-MAIL E DOMÍNIOS EM TEMPO REAL
+========================================================= */
+
+const MAPA_DOMINIOS_EMAIL_SUGERIDOS = {
+    "gamil.com": "gmail.com",
+    "gnail.com": "gmail.com",
+    "gmial.com": "gmail.com",
+    "gmai.com": "gmail.com",
+    "gmail.con": "gmail.com",
+    "gmail.cmo": "gmail.com",
+    "gmail.cm": "gmail.com",
+    "hotmial.com": "hotmail.com",
+    "hotmal.com": "hotmail.com",
+    "hotmail.con": "hotmail.com",
+    "outlok.com": "outlook.com",
+    "outllok.com": "outlook.com",
+    "outlook.con": "outlook.com",
+    "yaho.com": "yahoo.com",
+    "yahooo.com": "yahoo.com",
+    "yahoo.con": "yahoo.com"
+};
+
+function detectarErroDominioEmail(email) {
+    const valor = String(email || "").trim().toLowerCase();
+    if (!valor.includes("@")) return null;
+    const partes = valor.split("@");
+    if (partes.length !== 2 || !partes[0] || !partes[1]) return null;
+    const [usuario, dominio] = partes;
+    const dominioSugerido = MAPA_DOMINIOS_EMAIL_SUGERIDOS[dominio];
+    if (!dominioSugerido) return null;
+    const sugestaoEmail = `${usuario}@${dominioSugerido}`;
+    return {
+        dominioDigitado: dominio,
+        dominioSugerido,
+        sugestaoEmail,
+        mensagem: `Domínio '@${dominio}' parece incorreto. Você quis dizer ${sugestaoEmail}?`
+    };
+}
 
 function validarEmailFormato(email) {
     const valor = String(email || "").trim();
@@ -359,6 +616,9 @@ function validarEmailFormato(email) {
         dominio.endsWith("-") ||
         dominio.includes("..")
     ) {
+        return false;
+    }
+    if (detectarErroDominioEmail(valor)) {
         return false;
     }
     return true;
@@ -392,7 +652,36 @@ function vincularValidacaoEmailTempoReal(inputEmail, elementoErro = null) {
         }
     };
 
-    const marcarInvalido = () => {
+    const renderizarSugestaoDominio = (erroDominio) => {
+        inputEmail.classList.add("input-invalid");
+        inputEmail.classList.remove("input-valid");
+        inputEmail.setAttribute("aria-invalid", "true");
+        if (!erroEl) return;
+
+        erroEl.replaceChildren();
+        const spanTexto = document.createElement("span");
+        spanTexto.textContent = `${erroDominio.mensagem} `;
+
+        const btnCorrigir = document.createElement("button");
+        btnCorrigir.type = "button";
+        btnCorrigir.className = "email-typo-fix-btn";
+        btnCorrigir.textContent = `Usar @${erroDominio.dominioSugerido}`;
+        btnCorrigir.addEventListener("click", () => {
+            inputEmail.value = erroDominio.sugestaoEmail;
+            marcarValido();
+            inputEmail.focus();
+        });
+
+        erroEl.append(spanTexto, btnCorrigir);
+        erroEl.hidden = false;
+    };
+
+    const marcarInvalido = (valorAtual = "") => {
+        const erroDominio = detectarErroDominioEmail(valorAtual);
+        if (erroDominio) {
+            renderizarSugestaoDominio(erroDominio);
+            return;
+        }
         inputEmail.classList.add("input-invalid");
         inputEmail.classList.remove("input-valid");
         inputEmail.setAttribute("aria-invalid", "true");
@@ -408,12 +697,17 @@ function vincularValidacaoEmailTempoReal(inputEmail, elementoErro = null) {
             limparEstado();
             return;
         }
+        const erroDominio = detectarErroDominioEmail(valor);
+        if (erroDominio) {
+            renderizarSugestaoDominio(erroDominio);
+            return;
+        }
         if (validarEmailFormato(valor)) {
             marcarValido();
             return;
         }
         if (jaDesfocou || inputEmail.classList.contains("input-invalid")) {
-            marcarInvalido();
+            marcarInvalido(valor);
         } else {
             inputEmail.classList.remove("input-valid");
         }
@@ -429,7 +723,7 @@ function vincularValidacaoEmailTempoReal(inputEmail, elementoErro = null) {
         if (validarEmailFormato(valor)) {
             marcarValido();
         } else {
-            marcarInvalido();
+            marcarInvalido(valor);
         }
     });
 }
@@ -666,7 +960,7 @@ function abrirDocumentoJuridico(tipo) {
 }
 
 /* =========================================================
-   4. INTEGRAÇÃO GOOGLE OAUTH 2.0 (GOOGLE IDENTITY SERVICES)
+   4. INTEGRAÇÃO GOOGLE OAUTH 2.0 + COMPLETAR CADASTRO + FLUXO ASSISTIDO
 ========================================================= */
 
 let _googleScriptPromise = null;
@@ -683,10 +977,400 @@ function carregarScriptGoogleGsi() {
         script.async = true;
         script.defer = true;
         script.onload = () => resolve(true);
-        script.onerror = () => reject(new Error("Não foi possível carregar o serviço de autenticação do Google."));
+        script.onerror = () => reject(new Error("Não foi possível carregar o serviço externo do Google."));
         document.head.append(script);
     });
     return _googleScriptPromise;
+}
+
+function abrirModalCompletarCadastroGoogle(nomeUsuario = "") {
+    return new Promise((resolve) => {
+        let dialog = document.getElementById("google-complete-profile-dialog");
+        if (dialog) dialog.remove();
+
+        dialog = document.createElement("dialog");
+        dialog.id = "google-complete-profile-dialog";
+        dialog.className = "form-dialog";
+        dialog.setAttribute("aria-labelledby", "google-complete-title");
+        dialog.innerHTML = `
+            <form id="google-complete-form" class="dialog-form" novalidate>
+                <div class="dialog-header">
+                    <div>
+                        <h2 id="google-complete-title">Complete seu cadastro rápido</h2>
+                        <p>
+                            Conta Google autenticada${nomeUsuario ? ` (${nomeUsuario})` : ""}! Informe seu CPF e Telefone para habilitar recuperação segura e proteção LGPD.
+                        </p>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label for="google-complete-cpf">CPF do titular</label>
+                    <input
+                        id="google-complete-cpf"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="14"
+                        placeholder="000.000.000-00"
+                        required
+                    >
+                    <small class="field-error" id="google-complete-cpf-error" role="alert" hidden></small>
+                    <span class="field-help" id="google-complete-cpf-help">Criptografado com Fernet AES + Blind Index HMAC.</span>
+                </div>
+                <div class="form-field">
+                    <label for="google-complete-phone">Telefone com DDD (SMS / WhatsApp)</label>
+                    <input
+                        id="google-complete-phone"
+                        type="tel"
+                        inputmode="tel"
+                        maxlength="20"
+                        placeholder="(11) 98765-4321"
+                    >
+                    <small class="field-error" id="google-complete-phone-error" role="alert" hidden></small>
+                </div>
+                <p id="google-complete-message" class="form-message" role="status" aria-live="polite"></p>
+                <div class="dialog-actions">
+                    <button type="button" class="button-secondary" id="google-complete-skip">
+                        Concluir depois
+                    </button>
+                    <button type="submit" class="button-primary" id="google-complete-submit">
+                        Salvar e acessar painel
+                    </button>
+                </div>
+            </form>
+        `;
+        document.body.append(dialog);
+
+        const inputCpf = dialog.querySelector("#google-complete-cpf");
+        const helpCpf = dialog.querySelector("#google-complete-cpf-help");
+        const errCpf = dialog.querySelector("#google-complete-cpf-error");
+        const inputTel = dialog.querySelector("#google-complete-phone");
+        const errTel = dialog.querySelector("#google-complete-phone-error");
+        const msg = dialog.querySelector("#google-complete-message");
+        const btnSkip = dialog.querySelector("#google-complete-skip");
+        const btnSubmit = dialog.querySelector("#google-complete-submit");
+        const form = dialog.querySelector("#google-complete-form");
+
+        vincularValidacaoCpfTempoReal(inputCpf, helpCpf, errCpf);
+        vincularValidacaoTelefoneTempoReal(inputTel, errTel, () => false);
+
+        const finalizar = () => {
+            if (typeof dialog.close === "function" && dialog.open) {
+                dialog.close();
+            }
+            resolve();
+        };
+
+        btnSkip?.addEventListener("click", finalizar);
+
+        form?.addEventListener("submit", async (ev) => {
+            ev.preventDefault();
+            const valCpf = validarCpfMatematico(inputCpf.value);
+            if (!valCpf.valido) {
+                if (errCpf) {
+                    errCpf.textContent = valCpf.mensagem;
+                    errCpf.hidden = false;
+                }
+                inputCpf.classList.add("input-invalid");
+                inputCpf.focus();
+                return;
+            }
+
+            const telTexto = inputTel.value.trim();
+            if (telTexto) {
+                const valTel = validarTelefoneBrasileiro(telTexto, { obrigatorio: false });
+                if (!valTel.valido) {
+                    if (errTel) {
+                        errTel.textContent = valTel.mensagem;
+                        errTel.hidden = false;
+                    }
+                    inputTel.classList.add("input-invalid");
+                    inputTel.focus();
+                    return;
+                }
+            }
+
+            if (btnSubmit) btnSubmit.disabled = true;
+            if (msg) {
+                msg.textContent = "Salvando seus dados criptografados...";
+                msg.className = "form-message info";
+            }
+
+            try {
+                await api.put("/usuarios/me/completar-cadastro", {
+                    cpf: valCpf.digitos,
+                    telefone: telTexto || null
+                });
+                finalizar();
+            } catch (erro) {
+                if (msg) {
+                    msg.textContent = erro.message || "Não foi possível salvar os dados.";
+                    msg.className = "form-message error";
+                }
+                if (btnSubmit) btnSubmit.disabled = false;
+            }
+        });
+
+        if (typeof dialog.showModal === "function") {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute("open", "open");
+        }
+        inputCpf?.focus();
+    });
+}
+
+function abrirModalGoogleAssistido({ onAuthenticated }) {
+    let dialog = document.getElementById("google-assisted-dialog");
+    if (dialog) dialog.remove();
+
+    const emailPreenchido = (
+        document.querySelector("#email")?.value ||
+        document.querySelector("#register-email")?.value ||
+        ""
+    ).trim();
+    const nomePreenchido = (document.querySelector("#register-name")?.value || "").trim();
+    const cpfPreenchido = (document.querySelector("#register-cpf")?.value || "").trim();
+    const telPreenchido = (document.querySelector("#register-phone")?.value || "").trim();
+
+    dialog = document.createElement("dialog");
+    dialog.id = "google-assisted-dialog";
+    dialog.className = "form-dialog";
+    dialog.setAttribute("aria-labelledby", "google-assisted-title");
+    dialog.innerHTML = `
+        <form id="google-assisted-form" class="dialog-form" novalidate>
+            <div class="dialog-header">
+                <div>
+                    <h2 id="google-assisted-title">Continuar com o Google</h2>
+                    <p>
+                        Informe sua conta Gmail para entrar ou criar sua conta verificada instantaneamente (sem necessidade de código OTP).
+                    </p>
+                </div>
+                <button type="button" class="dialog-close" id="google-assisted-close" aria-label="Fechar janela">&times;</button>
+            </div>
+
+            <div class="otp-contingency-banner is-info">
+                <strong>Autenticação Google Assistida Ativa:</strong> seu acesso será liberado imediatamente com e-mail verificado.
+            </div>
+
+            <div class="form-field">
+                <label for="google-assisted-email">E-mail da conta Google</label>
+                <input
+                    id="google-assisted-email"
+                    type="email"
+                    autocomplete="email"
+                    placeholder="seu.nome@gmail.com"
+                    required
+                >
+                <small class="field-error" id="google-assisted-email-error" role="alert" hidden></small>
+            </div>
+
+            <div class="form-field">
+                <label for="google-assisted-name">Nome completo de exibição</label>
+                <input
+                    id="google-assisted-name"
+                    type="text"
+                    autocomplete="name"
+                    minlength="3"
+                    maxlength="150"
+                    placeholder="Seu nome completo"
+                    required
+                >
+            </div>
+
+            <div class="form-row-2col">
+                <div class="form-field">
+                    <label for="google-assisted-cpf">CPF <span class="field-optional" id="google-assisted-cpf-tag">(opcional no 1º acesso)</span></label>
+                    <input
+                        id="google-assisted-cpf"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="14"
+                        placeholder="000.000.000-00"
+                    >
+                    <small class="field-error" id="google-assisted-cpf-error" role="alert" hidden></small>
+                </div>
+
+                <div class="form-field">
+                    <label for="google-assisted-phone">Telefone <span class="field-optional">(opcional)</span></label>
+                    <input
+                        id="google-assisted-phone"
+                        type="tel"
+                        inputmode="tel"
+                        maxlength="20"
+                        placeholder="(11) 98765-4321"
+                    >
+                    <small class="field-error" id="google-assisted-phone-error" role="alert" hidden></small>
+                </div>
+            </div>
+
+            <p id="google-assisted-message" class="form-message" role="status" aria-live="polite"></p>
+
+            <div class="dialog-actions">
+                <button type="button" class="button-secondary" id="google-assisted-cancel">
+                    Cancelar
+                </button>
+                <button type="submit" class="button-primary" id="google-assisted-submit">
+                    Continuar com esta conta Google
+                </button>
+            </div>
+        </form>
+    `;
+    document.body.append(dialog);
+
+    const inputEmail = dialog.querySelector("#google-assisted-email");
+    const errEmail = dialog.querySelector("#google-assisted-email-error");
+    const inputNome = dialog.querySelector("#google-assisted-name");
+    const inputCpf = dialog.querySelector("#google-assisted-cpf");
+    const tagCpf = dialog.querySelector("#google-assisted-cpf-tag");
+    const errCpf = dialog.querySelector("#google-assisted-cpf-error");
+    const inputTel = dialog.querySelector("#google-assisted-phone");
+    const errTel = dialog.querySelector("#google-assisted-phone-error");
+    const msg = dialog.querySelector("#google-assisted-message");
+    const btnClose = dialog.querySelector("#google-assisted-close");
+    const btnCancel = dialog.querySelector("#google-assisted-cancel");
+    const btnSubmit = dialog.querySelector("#google-assisted-submit");
+    const form = dialog.querySelector("#google-assisted-form");
+
+    if (inputEmail && emailPreenchido) inputEmail.value = emailPreenchido;
+    if (inputNome && nomePreenchido) inputNome.value = nomePreenchido;
+    if (inputCpf && cpfPreenchido) inputCpf.value = formatarMascaraCpf(cpfPreenchido);
+    if (inputTel && telPreenchido) inputTel.value = formatarMascaraTelefone(telPreenchido);
+
+    vincularValidacaoEmailTempoReal(inputEmail, errEmail);
+    vincularValidacaoCpfTempoReal(inputCpf, null, errCpf);
+    vincularValidacaoTelefoneTempoReal(inputTel, errTel, () => false);
+
+    // Preenche sugestão amigável de nome a partir do e-mail caso o usuário esteja na tela de login
+    inputEmail?.addEventListener("blur", () => {
+        if (!inputNome.value.trim() && inputEmail.value.includes("@")) {
+            const prefixo = inputEmail.value
+                .split("@")[0]
+                .replace(/[._-]+/g, " ")
+                .trim();
+            if (prefixo.length >= 3) {
+                inputNome.value = prefixo.replace(/\b\w/g, (l) => l.toUpperCase());
+            }
+        }
+    });
+
+    const fechar = () => {
+        if (typeof dialog.close === "function") {
+            dialog.close();
+        } else {
+            dialog.removeAttribute("open");
+        }
+    };
+    btnClose?.addEventListener("click", fechar);
+    btnCancel?.addEventListener("click", fechar);
+
+    form?.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        if (msg) {
+            msg.textContent = "";
+            msg.className = "form-message";
+        }
+
+        const email = inputEmail.value.trim();
+        if (!validarEmailFormato(email)) {
+            const erroDom = detectarErroDominioEmail(email);
+            const txtErro = erroDom
+                ? erroDom.mensagem
+                : "Informe um e-mail Google válido (ex.: nome@gmail.com).";
+            if (msg) {
+                msg.textContent = txtErro;
+                msg.className = "form-message error";
+            }
+            inputEmail.focus();
+            return;
+        }
+
+        let nome = inputNome.value.trim();
+        if (nome.length < 3) {
+            const derivado = email.split("@")[0].replace(/[._-]+/g, " ").trim();
+            if (derivado.length >= 3) {
+                nome = derivado.replace(/\b\w/g, (l) => l.toUpperCase());
+                inputNome.value = nome;
+            } else {
+                if (msg) {
+                    msg.textContent = "Informe seu nome completo (mínimo de 3 caracteres).";
+                    msg.className = "form-message error";
+                }
+                inputNome.focus();
+                return;
+            }
+        }
+
+        let cpfDigitos = null;
+        if (inputCpf.value.trim()) {
+            const valCpf = validarCpfMatematico(inputCpf.value);
+            if (!valCpf.valido) {
+                if (errCpf) {
+                    errCpf.textContent = valCpf.mensagem;
+                    errCpf.hidden = false;
+                }
+                if (msg) {
+                    msg.textContent = valCpf.mensagem;
+                    msg.className = "form-message error";
+                }
+                inputCpf.focus();
+                return;
+            }
+            cpfDigitos = valCpf.digitos;
+        }
+
+        const telTexto = inputTel.value.trim();
+        if (telTexto) {
+            const valTel = validarTelefoneBrasileiro(telTexto, { obrigatorio: false });
+            if (!valTel.valido) {
+                if (errTel) {
+                    errTel.textContent = valTel.mensagem;
+                    errTel.hidden = false;
+                }
+                if (msg) {
+                    msg.textContent = valTel.mensagem;
+                    msg.className = "form-message error";
+                }
+                inputTel.focus();
+                return;
+            }
+        }
+
+        if (btnSubmit) btnSubmit.disabled = true;
+        if (msg) {
+            msg.textContent = "Autenticando sua conta Google com aprovação automática...";
+            msg.className = "form-message info";
+        }
+
+        try {
+            api.clearToken();
+            const dados = await api.post("/usuarios/auth/google/assistido", {
+                email,
+                nome_completo: nome,
+                cpf: cpfDigitos,
+                telefone: telTexto || null
+            });
+            fechar();
+            await onAuthenticated(dados);
+        } catch (erro) {
+            const textoErro = erro.message || "Não foi possível autenticar com o Google.";
+            if (textoErro.toLowerCase().includes("cpf") && tagCpf) {
+                tagCpf.textContent = "(obrigatório para vincular conta existente)";
+                inputCpf?.focus();
+            }
+            if (msg) {
+                msg.textContent = textoErro;
+                msg.className = "form-message error";
+            }
+        } finally {
+            if (btnSubmit) btnSubmit.disabled = false;
+        }
+    });
+
+    if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+    } else {
+        dialog.setAttribute("open", "open");
+    }
+    (emailPreenchido ? inputNome : inputEmail)?.focus();
 }
 
 async function inicializarBotaoGoogleOAuth({
@@ -705,8 +1389,22 @@ async function inicializarBotaoGoogleOAuth({
         msgEl.className = `form-message ${tipo}`;
     };
 
-    const processarCredencialGoogle = async (credential) => {
-        if (!credential) {
+    const concluirSessaoGoogle = async (dados) => {
+        if (!dados || typeof dados.access_token !== "string" || !dados.access_token) {
+            throw new Error("A API não retornou um token de sessão válido.");
+        }
+        api.setToken(dados.access_token);
+        if (dados.usuario && dados.usuario.nome_completo) {
+            sessionStorage.setItem("fluxo_caixa_nome_usuario", dados.usuario.nome_completo);
+        }
+        if (dados.precisa_completar_cadastro) {
+            await abrirModalCompletarCadastroGoogle(dados.usuario?.nome_completo || "");
+        }
+        window.location.assign("index.html");
+    };
+
+    const processarPayloadGoogle = async (payloadAuth) => {
+        if (!payloadAuth || (!payloadAuth.credential && !payloadAuth.access_token)) {
             exibirMensagem("Não foi possível obter a credencial do Google.", "error");
             return;
         }
@@ -715,15 +1413,8 @@ async function inicializarBotaoGoogleOAuth({
 
         try {
             api.clearToken();
-            const dados = await api.post("/usuarios/auth/google", { credential });
-            if (!dados || typeof dados.access_token !== "string" || !dados.access_token) {
-                throw new Error("A API não retornou um token de sessão válido.");
-            }
-            api.setToken(dados.access_token);
-            if (dados.usuario && dados.usuario.nome_completo) {
-                sessionStorage.setItem("fluxo_caixa_nome_usuario", dados.usuario.nome_completo);
-            }
-            window.location.assign("index.html");
+            const dados = await api.post("/usuarios/auth/google", payloadAuth);
+            await concluirSessaoGoogle(dados);
         } catch (erro) {
             exibirMensagem(erro.message || "Falha ao autenticar com o Google.", "error");
         } finally {
@@ -736,6 +1427,7 @@ async function inicializarBotaoGoogleOAuth({
         document.querySelector('meta[name="google-client-id"]')?.getAttribute("content") ||
         ""
     ).trim();
+    let modoAssistidoDisponivel = !clientId;
 
     if (!clientId && typeof api !== "undefined") {
         try {
@@ -743,22 +1435,50 @@ async function inicializarBotaoGoogleOAuth({
             if (cfg && typeof cfg.client_id === "string") {
                 clientId = cfg.client_id.trim();
             }
+            if (cfg && typeof cfg.modo_assistido === "boolean") {
+                modoAssistidoDisponivel = cfg.modo_assistido;
+            } else {
+                modoAssistidoDisponivel = !clientId;
+            }
         } catch {
-            // Mantém botão visível com mensagem orientativa caso a API ainda esteja iniciando
+            modoAssistidoDisponivel = true;
         }
     }
+
+    let tokenClientOAuth2 = null;
 
     if (clientId) {
         try {
             await carregarScriptGoogleGsi();
             window.google.accounts.id.initialize({
                 client_id: clientId,
-                callback: (response) => processarCredencialGoogle(response?.credential),
+                callback: (response) => {
+                    if (response?.credential) {
+                        processarPayloadGoogle({ credential: response.credential });
+                    }
+                },
                 ux_mode: "popup",
                 auto_select: false
             });
 
-            if (containerGsi) {
+            if (window.google.accounts.oauth2) {
+                tokenClientOAuth2 = window.google.accounts.oauth2.initTokenClient({
+                    client_id: clientId,
+                    scope: "openid email profile",
+                    callback: (tokenResponse) => {
+                        if (tokenResponse && tokenResponse.access_token) {
+                            processarPayloadGoogle({ access_token: tokenResponse.access_token });
+                        } else if (tokenResponse && tokenResponse.error) {
+                            exibirMensagem(
+                                "Autenticação com o Google cancelada ou não autorizada.",
+                                "error"
+                            );
+                        }
+                    }
+                });
+            }
+
+            if (containerGsi && !tokenClientOAuth2) {
                 containerGsi.hidden = false;
                 window.google.accounts.id.renderButton(containerGsi, {
                     type: "standard",
@@ -774,25 +1494,51 @@ async function inicializarBotaoGoogleOAuth({
                 return;
             }
         } catch {
-            // Se o script externo estiver bloqueado pela rede, mantém o botão customizado funcional
+            // Se o script externo do Google for bloqueado por rede/extensão, mantém o botão funcional
         }
     }
 
     if (botaoFallback) {
         botaoFallback.addEventListener("click", async () => {
-            if (!clientId) {
-                exibirMensagem(
-                    "O Login com Google está pronto para uso: configure a variável GOOGLE_CLIENT_ID no servidor para habilitar a janela oficial do Google OAuth 2.0.",
-                    "info"
-                );
+            if (clientId) {
+                try {
+                    await carregarScriptGoogleGsi();
+                    if (tokenClientOAuth2) {
+                        tokenClientOAuth2.requestAccessToken({ prompt: "select_account" });
+                        return;
+                    }
+                    if (window.google?.accounts?.oauth2) {
+                        tokenClientOAuth2 = window.google.accounts.oauth2.initTokenClient({
+                            client_id: clientId,
+                            scope: "openid email profile",
+                            callback: (tokenResponse) => {
+                                if (tokenResponse?.access_token) {
+                                    processarPayloadGoogle({ access_token: tokenResponse.access_token });
+                                }
+                            }
+                        });
+                        tokenClientOAuth2.requestAccessToken({ prompt: "select_account" });
+                        return;
+                    }
+                    window.google.accounts.id.prompt();
+                    return;
+                } catch (erro) {
+                    if (!modoAssistidoDisponivel) {
+                        exibirMensagem(erro.message, "error");
+                        return;
+                    }
+                }
+            }
+
+            if (modoAssistidoDisponivel) {
+                abrirModalGoogleAssistido({ onAuthenticated: concluirSessaoGoogle });
                 return;
             }
-            try {
-                await carregarScriptGoogleGsi();
-                window.google.accounts.id.prompt();
-            } catch (erro) {
-                exibirMensagem(erro.message, "error");
-            }
+
+            exibirMensagem(
+                "Configure a variável GOOGLE_CLIENT_ID no servidor para habilitar o Google OAuth 2.0.",
+                "info"
+            );
         });
     }
 }
@@ -822,6 +1568,12 @@ window.FluxoLegal = {
     formatarMascaraCpf,
     validarCpfMatematico,
     vincularValidacaoCpfTempoReal,
+    formatarMascaraTelefone,
+    validarTelefoneBrasileiro,
+    vincularValidacaoTelefoneTempoReal,
+    mascararEmailCliente,
+    mascararTelefoneCliente,
+    detectarErroDominioEmail,
     validarEmailFormato,
     vincularValidacaoEmailTempoReal,
     avaliarForcaSenha,

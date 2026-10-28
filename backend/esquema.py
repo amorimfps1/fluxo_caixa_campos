@@ -8,6 +8,7 @@ from pydantic import (
     model_validator,
 )
 from dados_sensiveis import descriptografar_telefone
+from servicos.notificacao_otp import normalizar_telefone_e164
 
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import date, datetime
@@ -216,6 +217,55 @@ def _normalizar_categoria(valor: str) -> str:
     return mapa_apelidos.get(sem_acentos, sem_acentos)
 
 
+CanalVerificacaoInput = Literal[
+    "email",
+    "telefone",
+    "sms",
+    "whatsapp",
+]
+
+DOMINIOS_EMAIL_ERRO_DIGITACAO: dict[str, str] = {
+    "gamil.com": "gmail.com",
+    "gnail.com": "gmail.com",
+    "gmial.com": "gmail.com",
+    "gmai.com": "gmail.com",
+    "gmail.con": "gmail.com",
+    "gmail.cmo": "gmail.com",
+    "gmail.cm": "gmail.com",
+    "hotmial.com": "hotmail.com",
+    "hotmal.com": "hotmail.com",
+    "hotmail.con": "hotmail.com",
+    "outlok.com": "outlook.com",
+    "outllok.com": "outlook.com",
+    "outlook.con": "outlook.com",
+    "yaho.com": "yahoo.com",
+    "yahooo.com": "yahoo.com",
+    "yahoo.con": "yahoo.com",
+}
+
+
+def validar_email_normalizado_e_dominio(valor: str) -> str:
+    """Normaliza o e-mail e bloqueia erros comuns de digitação de domínio."""
+    limpo = str(valor).strip().lower()
+    if "@" in limpo:
+        _, dominio = limpo.split("@", 1)
+        if dominio in DOMINIOS_EMAIL_ERRO_DIGITACAO:
+            sugestao = DOMINIOS_EMAIL_ERRO_DIGITACAO[dominio]
+            raise ValueError(
+                f"Domínio de e-mail inválido ('@{dominio}'). Verifique se você quis digitar '@{sugestao}'."
+            )
+    return limpo
+
+
+def validar_telefone_opcional(valor: str | None) -> str | None:
+    """Valida formato, DDD brasileiro (11 a 99) e quantidade de dígitos (10 ou 11)."""
+    if valor is None or not valor.strip():
+        return None
+    telefone = valor.strip()
+    normalizar_telefone_e164(telefone)
+    return telefone
+
+
 class UsuarioCreate(InputModel):
     nome_completo: str = Field(
         min_length=3,
@@ -231,37 +281,19 @@ class UsuarioCreate(InputModel):
         max_length=100
     )
 
+    canal_verificacao: CanalVerificacaoInput = "email"
     aceite_termos: bool = True
     aceite_privacidade: bool = True
 
     @field_validator("email")
     @classmethod
     def normalizar_email(cls, valor: EmailStr) -> str:
-        return str(valor).strip().lower()
+        return validar_email_normalizado_e_dominio(str(valor))
 
     @field_validator("telefone")
     @classmethod
     def validar_telefone(cls, valor: str | None) -> str | None:
-        if valor is None or not valor.strip():
-            return None
-
-        telefone = valor.strip()
-        caracteres_permitidos = set("+0123456789 ().-")
-        if any(caractere not in caracteres_permitidos for caractere in telefone):
-            raise ValueError("O telefone contém caracteres inválidos.")
-        if telefone.count("+") > 1 or (
-            "+" in telefone and not telefone.startswith("+")
-        ):
-            raise ValueError("O código do país deve aparecer no início.")
-
-        digitos = "".join(
-            caractere for caractere in telefone if caractere.isdigit()
-        )
-        if not 10 <= len(digitos) <= 15:
-            raise ValueError(
-                "O telefone deve conter entre 10 e 15 dígitos."
-            )
-        return telefone
+        return validar_telefone_opcional(valor)
 
     @field_validator("nome_completo")
     @classmethod
@@ -291,25 +323,46 @@ class UsuarioCreate(InputModel):
             raise ValueError(
                 "É obrigatório aceitar os Termos de Serviço e a Política de Privacidade (LGPD)."
             )
+        if self.canal_verificacao in ("telefone", "sms", "whatsapp") and not self.telefone:
+            raise ValueError(
+                "Informe um telefone válido com DDD para receber o código de verificação por SMS ou WhatsApp."
+            )
         return self
 
 
 class EsqueciSenhaRequest(InputModel):
     email: EmailStr
+    canal_verificacao: CanalVerificacaoInput = "email"
+    telefone: str | None = Field(default=None, max_length=32)
 
     @field_validator("email")
     @classmethod
     def normalizar_email(cls, valor: EmailStr) -> str:
         return str(valor).strip().lower()
+
+    @field_validator("telefone")
+    @classmethod
+    def validar_telefone(cls, valor: str | None) -> str | None:
+        return validar_telefone_opcional(valor)
 
 
 class ReenviarVerificacaoRequest(InputModel):
     email: EmailStr
+    canal_verificacao: CanalVerificacaoInput = "email"
+    telefone: str | None = Field(default=None, max_length=32)
 
     @field_validator("email")
     @classmethod
     def normalizar_email(cls, valor: EmailStr) -> str:
         return str(valor).strip().lower()
+
+    @field_validator("telefone")
+    @classmethod
+    def validar_telefone(cls, valor: str | None) -> str | None:
+        return validar_telefone_opcional(valor)
+
+
+EnviarCodigoVerificacaoRequest = ReenviarVerificacaoRequest
 
 
 class ConfirmarEmailRequest(InputModel):
@@ -343,15 +396,82 @@ VerificarEmailRequest = ConfirmarEmailRequest
 
 
 class GoogleAuthRequest(InputModel):
-    credential: str = Field(min_length=10, max_length=4096)
+    credential: str | None = Field(default=None, min_length=10, max_length=4096)
+    access_token: str | None = Field(default=None, min_length=10, max_length=4096)
+    cpf: str | None = None
+    telefone: str | None = Field(default=None, max_length=32)
 
-    @field_validator("credential")
+    @field_validator("credential", "access_token")
     @classmethod
-    def normalizar_credential(cls, valor: str) -> str:
+    def normalizar_token_google(cls, valor: str | None) -> str | None:
+        if valor is None:
+            return None
         limpo = valor.strip()
         if not limpo:
-            raise ValueError("A credencial do Google não pode ficar vazia.")
+            return None
         return limpo
+
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf(cls, valor: str | None) -> str | None:
+        if valor is None or not valor.strip():
+            return None
+        return validar_cpf_brasileiro(valor)
+
+    @field_validator("telefone")
+    @classmethod
+    def validar_telefone(cls, valor: str | None) -> str | None:
+        return validar_telefone_opcional(valor)
+
+    @model_validator(mode="after")
+    def exigir_credencial_ou_token(self):
+        if not self.credential and not self.access_token:
+            raise ValueError("Informe a credencial ou o token de acesso do Google.")
+        return self
+
+
+class GoogleAssistidoRequest(InputModel):
+    email: EmailStr
+    nome_completo: str = Field(min_length=3, max_length=150)
+    cpf: str | None = None
+    telefone: str | None = Field(default=None, max_length=32)
+
+    @field_validator("email")
+    @classmethod
+    def normalizar_email(cls, valor: EmailStr) -> str:
+        return validar_email_normalizado_e_dominio(str(valor))
+
+    @field_validator("nome_completo")
+    @classmethod
+    def validar_nome(cls, valor: str) -> str:
+        return UsuarioCreate.validar_nome(valor)
+
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf(cls, valor: str | None) -> str | None:
+        if valor is None or not valor.strip():
+            return None
+        return validar_cpf_brasileiro(valor)
+
+    @field_validator("telefone")
+    @classmethod
+    def validar_telefone(cls, valor: str | None) -> str | None:
+        return validar_telefone_opcional(valor)
+
+
+class CompletarCadastroOAuthRequest(InputModel):
+    cpf: str
+    telefone: str | None = Field(default=None, max_length=32)
+
+    @field_validator("cpf")
+    @classmethod
+    def validar_cpf(cls, valor: str) -> str:
+        return validar_cpf_brasileiro(valor)
+
+    @field_validator("telefone")
+    @classmethod
+    def validar_telefone(cls, valor: str | None) -> str | None:
+        return validar_telefone_opcional(valor)
 
 
 class RedefinirSenhaRequest(InputModel):
@@ -394,7 +514,7 @@ class RedefinirSenhaRequest(InputModel):
     def validar_credencial_recuperacao(self):
         if not self.codigo_otp and not self.cpf:
             raise ValueError(
-                "Informe o código de verificação enviado por e-mail (codigo_otp) ou o CPF."
+                "Informe o código de verificação (codigo_otp) ou o CPF."
             )
         return self
 
@@ -422,12 +542,12 @@ class UsuarioUpdateMe(InputModel):
     def normalizar_email(cls, valor: EmailStr | None) -> str | None:
         if valor is None:
             return None
-        return str(valor).strip().lower()
+        return validar_email_normalizado_e_dominio(str(valor))
 
     @field_validator("telefone")
     @classmethod
     def validar_telefone(cls, valor: str | None) -> str | None:
-        return UsuarioCreate.validar_telefone(valor)
+        return validar_telefone_opcional(valor)
 
     @field_validator("nova_senha")
     @classmethod
@@ -454,6 +574,11 @@ class UsuarioResponse(BaseModel):
     telefone: str | None
     email_verificado: bool = False
     criado_em: datetime
+    precisa_completar_cadastro: bool = False
+    canal_verificacao: str | None = None
+    destino_mascarado: str | None = None
+    modo_contingencia: bool = False
+    codigo_demonstracao: str | None = None
 
     @field_validator("telefone", mode="before")
     @classmethod

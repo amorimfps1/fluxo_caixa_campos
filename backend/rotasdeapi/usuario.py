@@ -10,9 +10,11 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import TentativaLogin, Usuario
 from esquema import (
+    CompletarCadastroOAuthRequest,
     ConfirmarEmailRequest,
     EsqueciSenhaRequest,
     ExcluirContaRequest,
+    GoogleAssistidoRequest,
     GoogleAuthRequest,
     RedefinirSenhaRequest,
     ReenviarVerificacaoRequest,
@@ -27,6 +29,7 @@ from dados_sensiveis import (
     criptografar_cpf,
     criptografar_identificador_oauth,
     criptografar_telefone,
+    descriptografar_telefone,
     indice_cpf,
     indice_identificador_oauth,
 )
@@ -35,8 +38,16 @@ from servicos.email import (
     enviar_email_confirmacao_cadastro,
 )
 from servicos.google_oauth import (
+    modo_google_assistido_habilitado,
     obter_google_client_id,
+    usuario_possui_cadastro_incompleto_oauth,
+    verificar_access_token_google,
     verificar_token_google,
+)
+from servicos.notificacao_otp import (
+    disparar_codigo_otp,
+    enviar_codigo_telefone,
+    normalizar_telefone_e164,
 )
 
 
@@ -86,6 +97,11 @@ def _chave_cliente_cadastro(request: Request) -> str:
 def _chave_cliente_redefinicao(request: Request) -> str:
     endereco = request.client.host if request.client else "desconhecido"
     return _chave_controle("redefinir-ip", endereco)
+
+
+def _chave_cliente_reenvio(request: Request) -> str:
+    endereco = request.client.host if request.client else "desconhecido"
+    return _chave_controle("reenviar-otp-ip", endereco)
 
 
 def _chave_conta_redefinicao(email: str) -> str:
@@ -145,6 +161,7 @@ def _verificar_limites(
 def _registrar_tentativa(
     db: Session,
     chaves_cliente: tuple[str, ...],
+    limite: int = LIMITE_TENTATIVAS,
 ) -> bool:
     agora = _agora_utc_sem_fuso()
     bloqueado = False
@@ -173,7 +190,7 @@ def _registrar_tentativa(
             tentativa.bloqueado_ate = None
 
         tentativa.tentativas += 1
-        if tentativa.tentativas >= LIMITE_TENTATIVAS:
+        if tentativa.tentativas >= limite:
             tentativa.bloqueado_ate = agora + JANELA_TENTATIVAS
         bloqueado = bloqueado or tentativa.bloqueado_ate is not None
         db.commit()
@@ -191,8 +208,58 @@ def _limpar_tentativas(
     db.commit()
 
 
+def _aplicar_dados_complementares_oauth(
+    db: Session,
+    usuario: Usuario,
+    cpf_bruto: str | None,
+    telefone_bruto: str | None,
+) -> None:
+    """Salva CPF validado e Telefone cifrado em uma conta criada via Google OAuth."""
+    alterou = False
+    if cpf_bruto and cpf_bruto.strip():
+        cpf_validado = validar_cpf_brasileiro(cpf_bruto)
+        cpf_hash = indice_cpf(cpf_validado)
+        cpf_em_uso = (
+            db.query(Usuario)
+            .filter(
+                Usuario.cpf_indice == cpf_hash,
+                Usuario.id != usuario.id,
+            )
+            .first()
+        )
+        if cpf_em_uso is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este CPF já está cadastrado em outra conta.",
+            )
+        if usuario_possui_cadastro_incompleto_oauth(usuario):
+            usuario.cpf = criptografar_cpf(cpf_validado)
+            usuario.cpf_indice = cpf_hash
+            alterou = True
+        elif not hmac.compare_digest(usuario.cpf_indice, cpf_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Esta conta já possui um CPF titular validado.",
+            )
+
+    if telefone_bruto and telefone_bruto.strip():
+        usuario.telefone = criptografar_telefone(telefone_bruto.strip())
+        alterou = True
+
+    if alterou:
+        try:
+            db.commit()
+            db.refresh(usuario)
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este CPF já está cadastrado em outra conta.",
+            ) from None
+
+
 # =========================================================
-# CRIAR USUÁRIO (COM ENVIO DE E-MAIL DE CONFIRMAÇÃO)
+# CRIAR USUÁRIO (COM ENVIO MULTI-CANAL DE CÓDIGO OTP)
 # =========================================================
 
 @router.post(
@@ -265,17 +332,38 @@ def criar_usuario(
         ) from None
     db.refresh(novo_usuario)
 
-    enviar_email_confirmacao_cadastro(
-        destinatario=novo_usuario.email,
+    resultado_otp = disparar_codigo_otp(
+        canal=usuario.canal_verificacao,
+        email=novo_usuario.email,
+        telefone=usuario.telefone,
         nome=novo_usuario.nome_completo,
-        codigo_confirmacao=codigo_confirmacao,
+        codigo_otp=codigo_confirmacao,
+        finalidade="cadastro",
+        envio_email_fn=lambda: enviar_email_confirmacao_cadastro(
+            destinatario=novo_usuario.email,
+            nome=novo_usuario.nome_completo,
+            codigo_confirmacao=codigo_confirmacao,
+        ),
+        envio_telefone_fn=lambda: enviar_codigo_telefone(
+            telefone=usuario.telefone or "",
+            nome=novo_usuario.nome_completo,
+            codigo_otp=codigo_confirmacao,
+            canal=usuario.canal_verificacao,
+            finalidade="cadastro",
+        ),
     )
+
+    novo_usuario.precisa_completar_cadastro = False
+    novo_usuario.canal_verificacao = resultado_otp["canal_utilizado"]
+    novo_usuario.destino_mascarado = resultado_otp["destino_mascarado"]
+    novo_usuario.modo_contingencia = resultado_otp["modo_contingencia"]
+    novo_usuario.codigo_demonstracao = resultado_otp["codigo_demonstracao"]
 
     return novo_usuario
 
 
 # =========================================================
-# VERIFICAR / CONFIRMAR E-MAIL DE CADASTRO (ANTI-BOT OTP)
+# VERIFICAR / CONFIRMAR CÓDIGO OTP DE CADASTRO (E-MAIL OU TELEFONE)
 # =========================================================
 
 def _processar_verificacao_email(
@@ -323,10 +411,10 @@ def _processar_verificacao_email(
     usuario.codigo_expira_em = None
     db.commit()
 
-    _limpar_tentativas(db, chaves_cliente)
+    _limpar_tentativas(db, (*chaves_cliente, _chave_cliente_reenvio(request)))
 
     return {
-        "mensagem": "E-mail confirmado com sucesso.",
+        "mensagem": "Código confirmado com sucesso.",
         "email_verificado": True,
         "access_token": criar_token(usuario.id),
         "token_type": "bearer",
@@ -351,18 +439,24 @@ def verificar_email(
     return _processar_verificacao_email(dados, request, db)
 
 
-@router.post("/usuarios/reenviar-verificacao")
-def reenviar_verificacao_email(
-    dados: ReenviarVerificacaoRequest,
+@router.post("/usuarios/verificar-codigo")
+def verificar_codigo(
+    dados: ConfirmarEmailRequest,
     request: Request,
     db: Session = Depends(get_db),
 ):
-    chaves_cliente = (
-        _chave_cliente_redefinicao(request),
-        _chave_conta_redefinicao(dados.email),
-    )
-    _verificar_limites(db, chaves_cliente)
-    _registrar_tentativa(db, (chaves_cliente[0],))
+    return _processar_verificacao_email(dados, request, db)
+
+
+def _processar_envio_codigo_verificacao(
+    dados: ReenviarVerificacaoRequest,
+    request: Request,
+    db: Session,
+) -> dict:
+    chave_ip_reenvio = _chave_cliente_reenvio(request)
+    chave_conta = _chave_conta_redefinicao(dados.email)
+    _verificar_limites(db, (chave_ip_reenvio, chave_conta))
+    _registrar_tentativa(db, (chave_ip_reenvio,), limite=10)
 
     usuario = (
         db.query(Usuario)
@@ -371,27 +465,112 @@ def reenviar_verificacao_email(
     )
 
     if usuario and not usuario.email_verificado:
+        telefone_armazenado = (
+            descriptografar_telefone(usuario.telefone)
+            if usuario.telefone
+            else None
+        )
+        telefone_efetivo = telefone_armazenado
+
+        if dados.telefone:
+            if telefone_armazenado is None:
+                usuario.telefone = criptografar_telefone(dados.telefone)
+                telefone_efetivo = dados.telefone
+            elif normalizar_telefone_e164(dados.telefone) != normalizar_telefone_e164(telefone_armazenado):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="O telefone informado diverge do telefone cadastrado nesta conta.",
+                )
+
+        if dados.canal_verificacao in ("telefone", "sms", "whatsapp") and not telefone_efetivo:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Informe um telefone válido com DDD para receber o código por SMS ou WhatsApp.",
+            )
+
         novo_codigo = _gerar_codigo_otp()
         usuario.codigo_verificacao_hash = _hash_codigo_otp(novo_codigo)
         usuario.codigo_expira_em = _agora_utc_sem_fuso() + EXPIRACAO_CODIGO_OTP
         db.commit()
 
-        enviar_email_confirmacao_cadastro(
-            destinatario=usuario.email,
+        resultado_otp = disparar_codigo_otp(
+            canal=dados.canal_verificacao,
+            email=usuario.email,
+            telefone=telefone_efetivo,
             nome=usuario.nome_completo,
-            codigo_confirmacao=novo_codigo,
+            codigo_otp=novo_codigo,
+            finalidade="cadastro",
+            envio_email_fn=lambda: enviar_email_confirmacao_cadastro(
+                destinatario=usuario.email,
+                nome=usuario.nome_completo,
+                codigo_confirmacao=novo_codigo,
+            ),
+            envio_telefone_fn=lambda: enviar_codigo_telefone(
+                telefone=telefone_efetivo or "",
+                nome=usuario.nome_completo,
+                codigo_otp=novo_codigo,
+                canal=dados.canal_verificacao,
+                finalidade="cadastro",
+            ),
         )
+
+        rotulo_canal = (
+            "Telefone (SMS / WhatsApp)"
+            if resultado_otp["canal_utilizado"] != "email"
+            else "E-mail"
+        )
+        return {
+            "mensagem": (
+                f"Novo código de 6 dígitos enviado via {rotulo_canal} para "
+                f"{resultado_otp['destino_mascarado']} (válido por 15 minutos)."
+            ),
+            "canal_utilizado": resultado_otp["canal_utilizado"],
+            "destino_mascarado": resultado_otp["destino_mascarado"],
+            "modo_contingencia": resultado_otp["modo_contingencia"],
+            "codigo_demonstracao": resultado_otp["codigo_demonstracao"],
+        }
 
     return {
         "mensagem": (
-            "Se houver um cadastro pendente para o e-mail informado, "
+            "Se houver um cadastro pendente para os dados informados, "
             "um novo código de verificação (válido por 15 minutos) foi enviado."
-        )
+        ),
+        "canal_utilizado": dados.canal_verificacao,
+        "destino_mascarado": None,
+        "modo_contingencia": False,
+        "codigo_demonstracao": None,
     }
 
 
+@router.post("/usuarios/reenviar-verificacao")
+def reenviar_verificacao_email(
+    dados: ReenviarVerificacaoRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return _processar_envio_codigo_verificacao(dados, request, db)
+
+
+@router.post("/usuarios/enviar-codigo")
+def enviar_codigo_verificacao(
+    dados: ReenviarVerificacaoRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return _processar_envio_codigo_verificacao(dados, request, db)
+
+
+@router.post("/usuarios/reenviar-codigo")
+def reenviar_codigo_verificacao(
+    dados: ReenviarVerificacaoRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    return _processar_envio_codigo_verificacao(dados, request, db)
+
+
 # =========================================================
-# LOGIN SOCIAL COM GOOGLE (OAUTH 2.0)
+# LOGIN SOCIAL COM GOOGLE (OAUTH 2.0 + FLUXO ASSISTIDO + COMPLETAR CADASTRO)
 # =========================================================
 
 @router.get("/usuarios/auth/google/config")
@@ -400,6 +579,7 @@ def configuracao_google_oauth():
     return {
         "client_id": client_id,
         "habilitado": bool(client_id),
+        "modo_assistido": modo_google_assistido_habilitado(),
     }
 
 
@@ -413,7 +593,10 @@ def autenticar_com_google(
     _verificar_limites(db, (chave_ip,))
 
     try:
-        perfil_google = verificar_token_google(dados.credential)
+        if dados.credential:
+            perfil_google = verificar_token_google(dados.credential)
+        else:
+            perfil_google = verificar_access_token_google(dados.access_token or "")
     except RuntimeError as erro_config:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -460,7 +643,11 @@ def autenticar_com_google(
             cpf=criptografar_identificador_oauth("google", sub),
             cpf_indice=oauth_indice,
             email=email,
-            telefone=None,
+            telefone=(
+                criptografar_telefone(dados.telefone)
+                if dados.telefone
+                else None
+            ),
             senha_hash=gerar_hash_senha(token_urlsafe(32)),
             email_verificado=True,
             codigo_verificacao_hash=None,
@@ -487,15 +674,162 @@ def autenticar_com_google(
                     detail="Não foi possível concluir a autenticação com o Google.",
                 ) from None
 
+    if dados.cpf or dados.telefone:
+        _aplicar_dados_complementares_oauth(db, usuario, dados.cpf, dados.telefone)
+
+    precisa_completar = usuario_possui_cadastro_incompleto_oauth(usuario)
+    usuario.precisa_completar_cadastro = precisa_completar
+
     _limpar_tentativas(db, (chave_ip, _chave_conta_login(email)))
     token = criar_token(usuario.id)
 
     return {
         "access_token": token,
         "token_type": "bearer",
+        "email_verificado": True,
         "novo_usuario": novo_usuario,
+        "precisa_completar_cadastro": precisa_completar,
         "usuario": UsuarioResponse.model_validate(usuario).model_dump(mode="json"),
     }
+
+
+@router.post("/usuarios/auth/google/assistido")
+def autenticar_com_google_assistido(
+    dados: GoogleAssistidoRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Fluxo interativo assistido de conta Google quando GOOGLE_CLIENT_ID não está ativo."""
+    if not modo_google_assistido_habilitado():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Utilize a janela oficial do Google OAuth 2.0 configurada neste ambiente.",
+        )
+
+    chave_ip = _chave_cliente_oauth(request)
+    _verificar_limites(db, (chave_ip,))
+
+    email = dados.email
+    sub_assistido = f"assistido:{email}"
+    oauth_indice = indice_identificador_oauth("google", sub_assistido)
+
+    usuario = (
+        db.query(Usuario)
+        .filter(
+            (Usuario.email == email) |
+            (Usuario.cpf_indice == oauth_indice)
+        )
+        .first()
+    )
+
+    novo_usuario = False
+    if usuario is not None:
+        eh_conta_oauth = usuario_possui_cadastro_incompleto_oauth(usuario)
+        if not eh_conta_oauth:
+            if not dados.cpf:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=(
+                        "Já existe uma conta cadastrada com este e-mail. "
+                        "Informe o CPF do titular abaixo para vincular seu acesso Google."
+                    ),
+                )
+            cpf_hash_informado = indice_cpf(dados.cpf)
+            if not hmac.compare_digest(usuario.cpf_indice, cpf_hash_informado):
+                bloqueado = _registrar_tentativa(db, (chave_ip,))
+                if bloqueado:
+                    raise HTTPException(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        detail="Muitas tentativas de autenticação. Tente novamente mais tarde.",
+                        headers={"Retry-After": str(int(JANELA_TENTATIVAS.total_seconds()))},
+                    )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="O CPF informado não corresponde ao titular desta conta.",
+                )
+
+        alterou = False
+        if not usuario.email_verificado:
+            usuario.email_verificado = True
+            usuario.codigo_verificacao_hash = None
+            usuario.codigo_expira_em = None
+            alterou = True
+        if alterou:
+            db.commit()
+            db.refresh(usuario)
+
+        if eh_conta_oauth and (dados.cpf or dados.telefone):
+            _aplicar_dados_complementares_oauth(db, usuario, dados.cpf, dados.telefone)
+    else:
+        if dados.cpf:
+            cpf_hash_novo = indice_cpf(dados.cpf)
+            if db.query(Usuario).filter(Usuario.cpf_indice == cpf_hash_novo).first():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Este CPF já está cadastrado em outra conta.",
+                )
+            cpf_cifrado_inicial = criptografar_cpf(dados.cpf)
+            cpf_indice_inicial = cpf_hash_novo
+        else:
+            cpf_cifrado_inicial = criptografar_identificador_oauth("google", sub_assistido)
+            cpf_indice_inicial = oauth_indice
+
+        usuario = Usuario(
+            nome_completo=dados.nome_completo,
+            cpf=cpf_cifrado_inicial,
+            cpf_indice=cpf_indice_inicial,
+            email=email,
+            telefone=(
+                criptografar_telefone(dados.telefone)
+                if dados.telefone
+                else None
+            ),
+            senha_hash=gerar_hash_senha(token_urlsafe(32)),
+            email_verificado=True,
+            codigo_verificacao_hash=None,
+            codigo_expira_em=None,
+        )
+        db.add(usuario)
+        try:
+            db.commit()
+            db.refresh(usuario)
+            novo_usuario = True
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="E-mail ou CPF já cadastrado.",
+            ) from None
+
+    precisa_completar = usuario_possui_cadastro_incompleto_oauth(usuario)
+    usuario.precisa_completar_cadastro = precisa_completar
+
+    _limpar_tentativas(db, (chave_ip, _chave_conta_login(email)))
+    token = criar_token(usuario.id)
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "email_verificado": True,
+        "novo_usuario": novo_usuario,
+        "precisa_completar_cadastro": precisa_completar,
+        "usuario": UsuarioResponse.model_validate(usuario).model_dump(mode="json"),
+    }
+
+
+@router.put(
+    "/usuarios/me/completar-cadastro",
+    response_model=UsuarioResponse,
+)
+def completar_cadastro_oauth(
+    dados: CompletarCadastroOAuthRequest,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(obter_usuario_logado),
+):
+    """Permite ao usuário recém-autenticado via Google concluir seu CPF e Telefone."""
+    _aplicar_dados_complementares_oauth(db, usuario, dados.cpf, dados.telefone)
+    usuario.precisa_completar_cadastro = usuario_possui_cadastro_incompleto_oauth(usuario)
+    return usuario
 
 
 # =========================================================
@@ -562,12 +896,13 @@ def login(
 
     return {
         "access_token": token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "email_verificado": bool(usuario.email_verificado),
     }
 
 
 # =========================================================
-# SOLICITAR CÓDIGO OTP DE RECUPERAÇÃO DE SENHA
+# SOLICITAR CÓDIGO OTP DE RECUPERAÇÃO DE SENHA (MULTI-CANAL)
 # =========================================================
 
 @router.post("/usuarios/esqueci-senha")
@@ -581,7 +916,7 @@ def esqueci_senha(
         _chave_conta_redefinicao(dados.email),
     )
     _verificar_limites(db, chaves_cliente)
-    _registrar_tentativa(db, (chaves_cliente[0],))
+    _registrar_tentativa(db, (chaves_cliente[0],), limite=10)
 
     usuario = (
         db.query(Usuario)
@@ -590,22 +925,81 @@ def esqueci_senha(
     )
 
     if usuario:
+        telefone_cadastrado = (
+            descriptografar_telefone(usuario.telefone)
+            if usuario.telefone
+            else None
+        )
+
+        if dados.canal_verificacao in ("telefone", "sms", "whatsapp"):
+            if not telefone_cadastrado:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Esta conta não possui telefone cadastrado para SMS/WhatsApp. "
+                        "Solicite o código por E-mail (Gmail) ou valide com seu CPF."
+                    ),
+                )
+            if dados.telefone and (
+                normalizar_telefone_e164(dados.telefone)
+                != normalizar_telefone_e164(telefone_cadastrado)
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="O telefone informado não corresponde ao cadastrado nesta conta.",
+                )
+
         codigo_otp = _gerar_codigo_otp()
         usuario.codigo_verificacao_hash = _hash_codigo_otp(codigo_otp)
         usuario.codigo_expira_em = _agora_utc_sem_fuso() + EXPIRACAO_CODIGO_OTP
         db.commit()
 
-        enviar_email_codigo_recuperacao(
-            destinatario=usuario.email,
+        resultado_otp = disparar_codigo_otp(
+            canal=dados.canal_verificacao,
+            email=usuario.email,
+            telefone=telefone_cadastrado,
             nome=usuario.nome_completo,
             codigo_otp=codigo_otp,
+            finalidade="recuperacao",
+            envio_email_fn=lambda: enviar_email_codigo_recuperacao(
+                destinatario=usuario.email,
+                nome=usuario.nome_completo,
+                codigo_otp=codigo_otp,
+            ),
+            envio_telefone_fn=lambda: enviar_codigo_telefone(
+                telefone=telefone_cadastrado or "",
+                nome=usuario.nome_completo,
+                codigo_otp=codigo_otp,
+                canal=dados.canal_verificacao,
+                finalidade="recuperacao",
+            ),
         )
+
+        rotulo_canal = (
+            "Telefone (SMS / WhatsApp)"
+            if resultado_otp["canal_utilizado"] != "email"
+            else "E-mail"
+        )
+        return {
+            "mensagem": (
+                f"Código de recuperação de 6 dígitos enviado via {rotulo_canal} para "
+                f"{resultado_otp['destino_mascarado']} (válido por 15 minutos)."
+            ),
+            "canal_utilizado": resultado_otp["canal_utilizado"],
+            "destino_mascarado": resultado_otp["destino_mascarado"],
+            "modo_contingencia": resultado_otp["modo_contingencia"],
+            "codigo_demonstracao": resultado_otp["codigo_demonstracao"],
+        }
 
     return {
         "mensagem": (
             "Se o e-mail informado estiver cadastrado, um código de verificação "
             "temporário (válido por 15 minutos) foi enviado."
-        )
+        ),
+        "canal_utilizado": dados.canal_verificacao,
+        "destino_mascarado": None,
+        "modo_contingencia": False,
+        "codigo_demonstracao": None,
     }
 
 
@@ -699,6 +1093,7 @@ def redefinir_senha(
 def usuario_logado(
     usuario: Usuario = Depends(obter_usuario_logado)
 ):
+    usuario.precisa_completar_cadastro = usuario_possui_cadastro_incompleto_oauth(usuario)
     return usuario
 
 
@@ -767,6 +1162,7 @@ def atualizar_usuario_logado(
         ) from None
 
     db.refresh(usuario)
+    usuario.precisa_completar_cadastro = usuario_possui_cadastro_incompleto_oauth(usuario)
     return usuario
 
 
@@ -848,6 +1244,7 @@ def buscar_usuario(
             detail="Usuário não encontrado."
         )
 
+    usuario_encontrado.precisa_completar_cadastro = usuario_possui_cadastro_incompleto_oauth(usuario_encontrado)
     return usuario_encontrado
 
 

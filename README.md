@@ -14,14 +14,14 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-1.0.0-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.x_ORM-D71F00?logo=databricks&logoColor=white)](https://www.sqlalchemy.org/)
 [![Alembic](https://img.shields.io/badge/Alembic-16_Revisões-F59E0B?logo=alembic&logoColor=white)](https://alembic.sqlalchemy.org/)
-[![Pytest](https://img.shields.io/badge/Pytest-110%20Passing-brightgreen?logo=pytest&logoColor=white)](https://pytest.org/)
+[![Pytest](https://img.shields.io/badge/Pytest-130%20Passing-brightgreen?logo=pytest&logoColor=white)](https://pytest.org/)
 [![Security](https://img.shields.io/badge/Security-LGPD_Fernet_AES128_%2B_Argon2id_%2B_OAuth2-blueviolet)](https://www.gov.br/cidadania/pt-br/acesso-a-informacao/lgpd)
 [![WCAG](https://img.shields.io/badge/Accessibility-WCAG_AA_Light_%26_Dark-10B981)](frontend/css/style.css)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
 
 <br/>
 
-**Plataforma Full-Stack de gestão patrimonial e fluxo de caixa corporativo/pessoal em nuvem. Construída com API REST assíncrona em FastAPI, banco de dados relacional (Supabase PostgreSQL / TiDB Cloud MySQL), precisão contábil exata (`Decimal 12,2`), conformidade LGPD em repouso (Fernet AES-128 + Blind Index HMAC), Login Social Google OAuth 2.0, verificação anti-bot via OTP por e-mail, Landing Page de alta conversão, Design System WCAG AA (Tema Claro e Tema Escuro) e 110 testes automatizados.**
+**Plataforma Full-Stack de gestão patrimonial e fluxo de caixa corporativo/pessoal em nuvem. Construída com API REST assíncrona em FastAPI, banco de dados relacional (Supabase PostgreSQL / TiDB Cloud MySQL), precisão contábil exata (`Decimal 12,2`), conformidade LGPD em repouso (Fernet AES-128 + Blind Index HMAC), Login Social Google OAuth 2.0, verificação anti-bot via OTP por e-mail, Landing Page de alta conversão, Design System WCAG AA (Tema Claro e Tema Escuro) e 130 testes automatizados.**
 
 </div>
 
@@ -152,6 +152,14 @@ flowchart TD
 - **Proteção Anti-Força Bruta:** Limitação de 5 falhas consecutivas de login por IP/conta em janela de 15 minutos (`HTTP 429`).
 - **Isolamento de Tenant:** Todas as operações no banco utilizam obrigatoriamente o `usuario_id` extraído criptograficamente do token JWT.
 
+### 🔐 Autenticação Multi-Canal & Google OAuth 2.0
+- **Login/Cadastro com Google:** suporte ao `id_token` oficial (Google Identity Services) e ao `access_token` do popup OAuth2. O e-mail já sai verificado (`email_verificado = True`, sem OTP). Quando o `GOOGLE_CLIENT_ID` não está configurado, o sistema usa um **fluxo Google assistido**, para o botão nunca ficar sem resposta. Uma conta tradicional existente só é vinculada se o CPF do titular for confirmado, o que protege contra *account takeover*.
+- **Completar cadastro rápido:** depois do primeiro acesso com Google, um mini-modal pede o CPF e o telefone (`PUT /usuarios/me/completar-cadastro`).
+- **OTP por E-mail (Gmail) ou Telefone (SMS / WhatsApp):** o usuário escolhe o canal no cadastro, no login e na recuperação de senha. O botão de reenvio tem contagem regressiva de 60s e é possível trocar de canal com um clique.
+- **Transportes de envio:** API HTTP de e-mail (Resend / Brevo pela porta 443, que contorna o bloqueio de SMTP no Render), SMTP 587 STARTTLS ou 465 SSL (Senha de App do Gmail) e SMS/WhatsApp via Twilio ou Webhook HTTP.
+- **Modo de contingência:** sem provedor configurado, ou se o envio falhar, o código é registrado no log do servidor e exibido na interface (`modo_contingencia`), para o usuário não ficar bloqueado. Para desativar em produção, use `DISABLE_OTP_CONTINGENCY=true`.
+- **Validação em tempo real:** CPF (Módulo 11), telefone com DDD de 11 a 99 normalizado para o formato E.164 e detecção de erros de digitação no domínio do e-mail (`@gamil.com`, `@hotmial.com` etc.), com botão de correção de 1 clique.
+
 ---
 
 ## 🛠️ Stack Tecnológica Completa
@@ -166,7 +174,7 @@ flowchart TD
 | **Banco em Nuvem** | Supabase PostgreSQL / TiDB Cloud | PostgreSQL 15+ com Pooler PgBouncer porta 6543 e MySQL 8 Serverless com TLS |
 | **Segurança & Crypto** | Cryptography (Fernet) + pwdlib (Argon2id) + PyJWT | Cifragem de PII, hashing resistente a GPU e autenticação por tokens assinados |
 | **Serviço de E-mail** | Python smtplib com STARTTLS | Envio de códigos OTP e e-mails de confirmação com fallback resiliente |
-| **Suíte de Testes** | Pytest + HTTPX TestClient | 110 testes automatizados cobrindo fluxos E2E, integridade contábil, Design System WCAG AA, OAuth 2.0, OTP anti-bot e LGPD |
+| **Suíte de Testes** | Pytest + HTTPX TestClient | 130 testes automatizados cobrindo fluxos E2E, integridade contábil, Design System WCAG AA, OAuth 2.0, OTP anti-bot e LGPD |
 
 ---
 
@@ -189,7 +197,7 @@ fluxo_caixas/
 │   ├── servicos/                       # Serviços utilitários
 │   │   ├── email.py                    # Envio defensivo de e-mails transacionais via SMTP
 │   │   └── google_oauth.py             # Validação de ID Token Google OAuth 2.0 (iss, aud, exp, email_verified)
-│   ├── tests/                          # Suíte de 110 testes automatizados
+│   ├── tests/                          # Suíte de 130 testes automatizados
 │   │   ├── conftest.py                 # Fixtures globais e banco em memória SQLite
 │   │   ├── test_*.py                   # Módulos de testes por especialidade (incluindo OAuth 2.0 e LGPD)
 │   │   └── README.md                   # Guia detalhado da suíte de testes
@@ -328,6 +336,7 @@ flowchart LR
    - **Build Command:** `pip install -r requirements.txt`
    - **Start Command:** `python -m alembic -c "banco de dados/alembic.ini" upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT`
    - **Environment Variables:** `APP_ENV=production`, `CORS_ORIGINS=https://fluxo-caixa-coral-two.vercel.app`, `DATABASE_URL`, `JWT_SECRET_KEY`, `CPF_ENCRYPTION_KEY`.
+   - **Opcionais (autenticação):** `GOOGLE_CLIENT_ID`, `EMAIL_API_KEY` / `EMAIL_FROM` (Resend ou Brevo), `SMTP_SERVER` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD`, `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` / `TWILIO_WHATSAPP_FROM`, `SMS_PROVIDER_URL` / `SMS_API_KEY`. Veja o [`.env.example`](.env.example).
 3. **Frontend (Vercel):**
    - Publicação configurada em [`vercel.json`](vercel.json) (`outputDirectory: "frontend"`), redirecionando a raiz `/` para a Landing Page `/inicio.html`, com rewrites amigáveis (`/inicio`, `/login`, `/cadastro`, `/dashboard`, `/termos`, `/privacidade`) e cabeçalhos HTTP de segurança.
 
@@ -346,7 +355,10 @@ flowchart LR
 | **Usuários** | `GET` | `/usuarios/auth/google/config` | Consulta disponibilidade e `client_id` público do Google OAuth 2.0 | Pública |
 | **Usuários** | `POST` | `/usuarios/auth/google` | Login Social Google OAuth 2.0 (cria/vincula conta e retorna JWT) | Pública (Rate Limited) |
 | **Usuários** | `POST` | `/login` | Autenticação OAuth2 (`username` = e-mail, `password` = senha) | Pública (Rate Limited) |
-| **Usuários** | `POST` | `/usuarios/esqueci-senha` | Solicitação de código de recuperação por e-mail | Pública |
+| **Usuários** | `POST` | `/usuarios/enviar-codigo` | Envio/reenvio de OTP com troca de canal (e-mail ↔ telefone) | Pública (Rate Limited) |
+| **Usuários** | `POST` | `/usuarios/auth/google/assistido` | Fluxo Google assistido quando `GOOGLE_CLIENT_ID` não está ativo | Pública (Rate Limited) |
+| **Usuários** | `PUT` | `/usuarios/me/completar-cadastro` | Conclusão de CPF e telefone após o login com Google | Bearer JWT |
+| **Usuários** | `POST` | `/usuarios/esqueci-senha` | Código de recuperação por e-mail ou telefone (SMS / WhatsApp) | Pública |
 | **Usuários** | `POST` | `/usuarios/redefinir-senha` | Redefinição de senha com validação de código OTP | Pública |
 | **Usuários** | `GET` | `/usuarios/me` | Retorna dados cadastrais do usuário autenticado | Bearer JWT |
 | **Usuários** | `PUT` | `/usuarios/me` | Atualiza perfil cadastral (`nome_completo`, `telefone`) | Bearer JWT |
@@ -390,7 +402,7 @@ flowchart LR
 
 ## 🧪 Qualidade & Testes Automatizados
 
-A aplicação conta com **110 testes automatizados** executados via Pytest com banco de dados SQLite em memória totalmente isolado:
+A aplicação conta com **130 testes automatizados** executados via Pytest com banco de dados SQLite em memória totalmente isolado:
 
 ```powershell
 python -m pytest -q
@@ -398,7 +410,7 @@ python -m pytest -q
 
 Saída esperada:
 ```text
-110 passed, 5 deselected
+130 passed, 5 deselected
 ```
 
 Os 5 testes marcados como `deselected` correspondem a testes de alta concorrência com bloqueio pessimista (`SELECT ... FOR UPDATE`) que exigem um cluster MySQL ativo.
