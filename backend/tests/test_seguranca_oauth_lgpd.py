@@ -535,3 +535,13 @@ def test_design_system_wcag_hierarquia_botoes_validacoes_e_sidebar() -> None:
     assert "traduzirMensagemErroApi" in api_js
     assert "cpfNormalizado" in cadastro_js
 
+    # 6. Prevenção de sobreposição nas barras de filtros (#view-relatorios, #view-movimentacoes, #view-categorias)
+    assert "minmax(190px, 1.3fr) minmax(145px, 1fr) minmax(145px, 1fr) minmax(200px, 1.3fr) auto" in style_css
+    assert "@media (max-width: 1150px)" in style_css
+    assert "@media (max-width: 640px)" in style_css
+    assert "min-width: 0;" in style_css
+    assert 'class="filter-bar report-filter-bar" id="custom-report-form"' in index_html
+    assert 'class="filter-bar movements-filter-bar" id="movements-filter-form"' in index_html
+    assert "filter-group" in index_html
+
+

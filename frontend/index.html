@@ -18,7 +18,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/style.css?v=15">
+    <link rel="stylesheet" href="css/style.css?v=16">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
     <script src="js/api.js?v=15" defer></script>
     <script src="js/legal.js?v=15" defer></script>
@@ -468,15 +468,15 @@
                     </div>
 
                     <!-- Barra de filtros do extrato -->
-                    <form class="filter-bar" id="movements-filter-form">
-                        <div class="form-field">
+                    <form class="filter-bar movements-filter-bar" id="movements-filter-form">
+                        <div class="form-field filter-group">
                             <label for="filter-account">Conta</label>
                             <select id="filter-account" name="conta_bancaria_id">
                                 <option value="">Todas as contas</option>
                             </select>
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-group">
                             <label for="filter-category">Categoria</label>
                             <select id="filter-category" name="categoria">
                                 <option value="">Todas as categorias</option>
@@ -499,12 +499,12 @@
                             </select>
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-group">
                             <label for="filter-start-date">Data inicial</label>
                             <input type="date" id="filter-start-date" name="data_inicio">
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-group">
                             <label for="filter-end-date">Data final</label>
                             <input type="date" id="filter-end-date" name="data_fim">
                         </div>
@@ -552,17 +552,17 @@
                     </div>
 
                     <form id="orcamento-form" class="budget-form">
-                        <div class="form-field">
+                        <div class="form-field filter-group">
                             <label for="orcamento-mes">Mês de referência</label>
                             <input id="orcamento-mes" name="mes" type="month" required>
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-group">
                             <label for="orcamento-categoria">Categoria</label>
                             <select id="orcamento-categoria" name="categoria" required></select>
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-group">
                             <label for="orcamento-limite">Limite orçado (R$)</label>
                             <input
                                 id="orcamento-limite"
@@ -576,9 +576,11 @@
                             >
                         </div>
 
-                        <button type="submit" class="button-primary" id="orcamento-submit-btn">
-                            Salvar orçamento
-                        </button>
+                        <div class="filter-actions">
+                            <button type="submit" class="button-primary" id="orcamento-submit-btn">
+                                Salvar orçamento
+                            </button>
+                        </div>
                     </form>
 
                     <div id="orcamento-mensagem" class="form-message" role="status" aria-live="polite" style="margin-bottom: 16px;"></div>
@@ -791,25 +793,25 @@
                         </div>
                     </div>
 
-                    <form class="filter-bar" id="custom-report-form">
-                        <div class="form-field">
+                    <form class="filter-bar report-filter-bar" id="custom-report-form">
+                        <div class="form-field filter-group">
                             <label for="report-account">Conta bancária</label>
                             <select id="report-account" name="conta_bancaria_id">
                                 <option value="">Todas as contas (Consolidado)</option>
                             </select>
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-group">
                             <label for="report-start-date">Data inicial</label>
                             <input type="date" id="report-start-date" name="data_inicio" required>
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-group">
                             <label for="report-end-date">Data final</label>
                             <input type="date" id="report-end-date" name="data_fim" required>
                         </div>
 
-                        <div class="form-field">
+                        <div class="form-field filter-group">
                             <label for="report-save-type">Salvar cálculo oficial (opcional)</label>
                             <select id="report-save-type" name="tipo_calculo">
                                 <option value="">Apenas visualizar resumo</option>
@@ -820,7 +822,7 @@
                             </select>
                         </div>
 
-                        <div class="filter-actions">
+                        <div class="filter-actions report-filter-actions">
                             <button type="submit" class="button-primary" id="generate-report-btn">
                                 Gerar relatório
                             </button>

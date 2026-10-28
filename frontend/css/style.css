@@ -983,6 +983,8 @@ tbody tr:hover {
 .form-field {
     display: grid;
     gap: 7px;
+    min-width: 0;
+    width: 100%;
 }
 
 .form-field label {
@@ -2426,9 +2428,12 @@ html:not([data-theme="dark"]) body:not(.dark-theme):not(.login-page) .form-messa
 
 .filter-bar {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
-    gap: 14px;
+    grid-template-columns: minmax(190px, 1.3fr) minmax(145px, 1fr) minmax(145px, 1fr) minmax(200px, 1.3fr) auto;
+    gap: 16px;
     align-items: end;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     margin-bottom: 22px;
     padding: 18px;
     border: 1px solid var(--color-border);
@@ -2436,10 +2441,83 @@ html:not([data-theme="dark"]) body:not(.dark-theme):not(.login-page) .form-messa
     background: var(--color-surface-subtle);
 }
 
+#custom-report-form,
+.report-filter-bar {
+    display: grid;
+    grid-template-columns: minmax(190px, 1.3fr) minmax(145px, 1fr) minmax(145px, 1fr) minmax(200px, 1.3fr) auto;
+    gap: 16px;
+    align-items: end;
+}
+
+#movements-filter-form,
+.movements-filter-bar {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.25fr) minmax(170px, 1.15fr) minmax(145px, 1fr) minmax(145px, 1fr) auto;
+    gap: 16px;
+    align-items: end;
+}
+
+.filter-group,
+.filter-bar .form-field,
+.budget-form .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    width: 100%;
+}
+
+.filter-group label,
+.filter-bar .form-field label,
+.budget-form .form-field label {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-bar select,
+.filter-bar input[type="date"],
+.filter-bar input[type="month"],
+.filter-bar input[type="number"],
+.filter-bar input,
+.budget-form select,
+.budget-form input[type="date"],
+.budget-form input[type="month"],
+.budget-form input[type="number"],
+.budget-form input {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    box-sizing: border-box;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
 .filter-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: flex-end;
+    gap: 10px;
+    align-self: end;
+    min-width: 0;
+}
+
+#generate-report-btn,
+.filter-bar .filter-actions .button-primary,
+.filter-bar > .button-primary,
+.budget-form .button-primary {
+    height: 44px;
+    min-height: 44px;
+    padding: 0 20px;
+    white-space: nowrap;
+    align-self: end;
+    box-sizing: border-box;
 }
 
 .report-summary-grid {
@@ -2926,8 +3004,15 @@ select,
     -webkit-appearance: none;
     -moz-appearance: none;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    height: 44px;
     min-height: 44px;
     padding: 10px 40px 10px 14px;
+    box-sizing: border-box;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
     border: 1px solid var(--border-input);
     border-radius: 10px;
     background-color: var(--bg-input);
@@ -2981,6 +3066,9 @@ body.login-page select option {
 .custom-select-wrapper {
     position: relative;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .custom-select-wrapper > select.custom-select-native {
@@ -2999,8 +3087,13 @@ body.login-page select option {
     justify-content: space-between;
     gap: 10px;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    height: 44px;
     min-height: 44px;
-    padding: 10px 14px;
+    padding: 0 14px;
+    box-sizing: border-box;
+    overflow: hidden;
     border: 1px solid var(--border-input);
     border-radius: 10px;
     background-color: var(--bg-input);
@@ -3029,6 +3122,8 @@ body.login-page select option {
 }
 
 .custom-select-label {
+    flex: 1 1 0%;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -3464,9 +3559,12 @@ body.dark-theme .card-value.value-expense {
 
 .budget-form {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto;
-    gap: 14px;
-    align-items: flex-end;
+    grid-template-columns: minmax(160px, 1fr) minmax(190px, 1.25fr) minmax(160px, 1fr) auto;
+    gap: 16px;
+    align-items: end;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     margin-bottom: 24px;
     padding-bottom: 20px;
     border-bottom: 1px solid var(--color-border);
@@ -3605,6 +3703,23 @@ body.dark-theme .budget-card-percent.danger {
    RESPONSIVIDADE (DESKTOP 1440px/1024px, TABLET 768px E MOBILE 375px/320px)
 ========================================================= */
 
+@media (max-width: 1320px) and (min-width: 1151px) {
+    #custom-report-form,
+    .report-filter-bar,
+    .filter-bar {
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr) auto;
+    }
+
+    #movements-filter-form,
+    .movements-filter-bar {
+        grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+    }
+
+    .budget-form {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr) auto;
+    }
+}
+
 @media (max-width: 1200px) {
     :root {
         --sidebar-width: 230px;
@@ -3620,6 +3735,28 @@ body.dark-theme .budget-card-percent.danger {
 
     .content-grid {
         grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 1150px) {
+    .filter-bar,
+    #custom-report-form,
+    .report-filter-bar,
+    #movements-filter-form,
+    .movements-filter-bar,
+    .budget-form,
+    #orcamento-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .filter-bar .filter-actions,
+    #custom-report-form .filter-actions,
+    #movements-filter-form .filter-actions,
+    .budget-form .filter-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+        width: 100%;
     }
 }
 
@@ -3755,17 +3892,17 @@ body.dark-theme .budget-card-percent.danger {
         width: 100%;
     }
 
-    .budget-form {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .budget-form .button-primary {
+    #movements-filter-form .filter-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         width: 100%;
     }
 
-    .filter-actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    #custom-report-form .filter-actions,
+    .report-filter-actions,
+    .budget-form .filter-actions {
+        display: flex;
+        justify-content: flex-end;
         width: 100%;
     }
 
@@ -3797,10 +3934,33 @@ body.dark-theme .budget-card-percent.danger {
 }
 
 @media (max-width: 640px) {
+    .filter-bar,
+    #custom-report-form,
+    .report-filter-bar,
+    #movements-filter-form,
+    .movements-filter-bar,
+    .budget-form,
+    #orcamento-form,
     .landing-features-grid,
     .form-row-2col,
     .preview-kpi-grid {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: 1fr;
+    }
+
+    .filter-bar .filter-actions,
+    #custom-report-form .filter-actions,
+    #movements-filter-form .filter-actions,
+    .budget-form .filter-actions {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    #generate-report-btn,
+    .filter-bar .filter-actions .button-primary,
+    .budget-form .button-primary {
+        width: 100%;
     }
 
     .register-card,

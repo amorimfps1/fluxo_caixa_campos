@@ -77,8 +77,9 @@ frontend/
 - **Design System Dual-Theme (WCAG AA):**
   - **Modo Claro:** Fundo `#F8FAFC`, cartões/inputs `#FFFFFF`, texto principal `#0F172A` e botões primários verdes (`#10B981`) com **texto preto (`#0B0F19`, peso 700)** para máximo contraste.
   - **Modo Escuro:** Fundo `#0B0F19`, cartões/modais `#111827`, inputs `#0F172A`, texto `#F8FAFC` e botões primários verdes (`#10B981`) com **texto branco (`#FFFFFF`, peso 600)**.
-- **Hierarquia Estrita de Botões:**
-  - Ações principais (`+ Nova movimentação`, `+ Nova conta`, `Exportar CSV`, `Limpar`, `Salvar`) padronizadas em `.button-primary` (`min-height: 42px`, `border-radius: 10px`).
+- **Hierarquia Estrita de Botões & Barras de Filtro Anti-Estouro:**
+  - Ações principais (`+ Nova movimentação`, `+ Nova conta`, `Exportar CSV`, `Limpar`, `Gerar relatório`, `Salvar`) padronizadas em `.button-primary` (`height: 44px` nos filtros, `border-radius: 10px`).
+  - Barras de filtros de **Relatórios** (`#custom-report-form`), **Movimentações** (`#movements-filter-form`) e **Orçamentos** (`#orcamento-form`) estruturadas em CSS Grid (`gap: 16px`, `align-items: end`, `min-width: 0` e `text-overflow: ellipsis` em todos os `.filter-group`, `<select>`, `<input type="date">` e `.custom-select-trigger`), com breakpoints responsivos em `1150px` (2 colunas) e `640px` (1 coluna).
   - Encerramento de sessão (`#logout` / `.btn-logout`) **sempre vermelho** (`#DC2626`, hover `#991B1B`) em qualquer tema, com modal defensivo de confirmação.
 - **Validações Reativas em Tempo Real:**
   - Cálculo matemático **Módulo 11 de CPF** durante a digitação/desfoque com limpeza imediata do erro ao corrigir.

@@ -68,7 +68,7 @@ flowchart TD
   - *Modo Claro:* Fundo `#F8FAFC`, superfícies `#FFFFFF`, texto `#0F172A` e botões primários `#10B981` com **texto preto (`#0B0F19`, peso 700)**.
   - *Modo Escuro:* Fundo `#0B0F19`, superfícies `#111827`, inputs `#0F172A`, texto `#F8FAFC` e botões primários `#10B981` com **texto branco (`#FFFFFF`, peso 600)**.
   - *Ações Destrutivas / Logout:* Botão `#logout` / `.btn-logout` **sempre vermelho** (`#DC2626`, hover `#991B1B`) em ambos os temas.
-  - *Padronização:* `min-height: 42px` e `border-radius: 10px` em inputs, botões e selects, além de sobrescrita `input:-webkit-autofill` no login.
+  - *Padronização & Grades Anti-Estouro (`min-width: 0`):* `height: 44px` e `border-radius: 10px` unificados em inputs, botões, `<input type="date">` e `<select>` customizados, com barras de filtros CSS Grid sem sobreposição (`minmax(190px, 1.3fr) minmax(145px, 1fr) minmax(145px, 1fr) minmax(200px, 1.3fr) auto; gap: 16px; align-items: end;` e breakpoints em `1150px` / `640px`), além de sobrescrita `input:-webkit-autofill` no login.
 - **Zero Emojis na Interface:** Identidade visual 100% composta por vetores SVG nativos (`#10B981` -> `#047857`).
 - **Validações Reativas & Sidebar Unificada:** Validação Módulo 11 de CPF, formato de e-mail e checklist interativo de 5 regras de senha em tempo real (`<small class="field-error">`), além de cartão `#user-profile-badge` unificado com `#configuracoes` no rodapé da Sidebar.
 
