@@ -71,7 +71,7 @@ const api = {
                 );
             }
             throw new Error(
-                "Não foi possível conectar à API. Verifique se o servidor está ativo."
+                "Não foi possível conectar à API. Se o servidor estiver iniciando no Render (plano gratuito), aguarde cerca de 30 segundos e tente novamente."
             );
         }
 

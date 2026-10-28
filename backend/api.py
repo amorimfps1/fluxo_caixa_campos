@@ -58,7 +58,8 @@ def _origens_cors() -> list[str]:
     if app_env == "production":
         if not origens_env:
             raise RuntimeError(
-                "CORS_ORIGINS deve ser definida em produção (APP_ENV=production).")      
+                "CORS_ORIGINS deve ser definida em produção (APP_ENV=production)."
+            )
         origens = [origem.strip() for origem in origens_env.split(",") if origem.strip()]
         if "*" in origens:
             raise RuntimeError(

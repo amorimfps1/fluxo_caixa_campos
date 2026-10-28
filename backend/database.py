@@ -98,8 +98,7 @@ elif DATABASE_URL.startswith("postgresql"):
     engine_kwargs.update({"pool_pre_ping": True, "pool_recycle": 3600})
     if ".supabase.co" in DATABASE_URL or ".pooler.supabase.com" in DATABASE_URL:
         # Supabase exige SSL para conexões externas.
-        ssl_ctx = ssl.create_default_context()
-        engine_kwargs["connect_args"] = {"ssl": ssl_ctx}
+        engine_kwargs["connect_args"] = {"sslmode": "require"}
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 

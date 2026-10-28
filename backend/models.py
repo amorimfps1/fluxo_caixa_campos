@@ -157,7 +157,8 @@ class ContaBancaria(Base):
         Enum(
             "corrente",
             "poupanca",
-            "investimento"
+            "investimento",
+            name="tipo_conta_enum"
         ),
         nullable=False
     )
@@ -241,6 +242,7 @@ class FluxoDinheiro(Base):
             "transferencia",
             "ajuste",
             "investimento",
+            name="tipo_movimentacao_enum"
         ),
         nullable=False
     )
@@ -271,12 +273,12 @@ class FluxoDinheiro(Base):
     )
 
     transferencia_direcao = Column(
-        Enum("origem", "destino"),
+        Enum("origem", "destino", name="direcao_transferencia_enum"),
         nullable=True
     )
 
     natureza_conta = Column(
-        Enum("fixa", "variavel"),
+        Enum("fixa", "variavel", name="natureza_conta_enum"),
         nullable=True,
     )
 
@@ -336,7 +338,8 @@ class CalculoFinanceiro(Base):
             "diario",
             "semanal",
             "mensal",
-            "anual"
+            "anual",
+            name="tipo_calculo_enum"
         ),
         nullable=False
     )
@@ -464,7 +467,8 @@ class MetaFinanceira(Base):
         Enum(
             "em_andamento",
             "concluida",
-            "cancelada"
+            "cancelada",
+            name="status_meta_enum"
         ),
         nullable=False,
         default="em_andamento"

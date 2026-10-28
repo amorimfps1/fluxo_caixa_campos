@@ -4,11 +4,14 @@
   "buildCommand": null,
   "outputDirectory": "frontend",
   "cleanUrls": false,
-  "rewrites": [
+  "redirects": [
     {
       "source": "/",
-      "destination": "/login.html"
-    },
+      "destination": "/login.html",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
     {
       "source": "/login",
       "destination": "/login.html"

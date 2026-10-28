@@ -308,7 +308,10 @@ function verificarSessao() {
 
 document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("pageshow", verificarSessao);
-    if (!api.getToken()) return;
+    if (!api.getToken()) {
+        verificarSessao();
+        return;
+    }
 
     atualizarData();
     inicializarDatasPadraoRelatorio();
