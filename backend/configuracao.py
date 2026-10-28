@@ -5,6 +5,10 @@ from dotenv import load_dotenv
 
 
 def carregar_configuracao() -> None:
+    arquivo_env_raiz = Path(__file__).resolve().parent.parent / ".env"
+    if arquivo_env_raiz.is_file():
+        load_dotenv(arquivo_env_raiz, override=True)
+
     local_app_data = os.getenv("LOCALAPPDATA")
     if local_app_data:
         arquivo_segredos = (
@@ -12,10 +16,6 @@ def carregar_configuracao() -> None:
         )
         if arquivo_segredos.is_file():
             load_dotenv(arquivo_segredos, override=False)
-
-    arquivo_env_raiz = Path(__file__).resolve().parent.parent / ".env"
-    if arquivo_env_raiz.is_file():
-        load_dotenv(arquivo_env_raiz, override=False)
 
     load_dotenv(override=False)
 
@@ -29,4 +29,3 @@ def obter_configuracao() -> dict[str, str]:
         "ACCESS_TOKEN_EXPIRE_MINUTES": os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"),
         "CORS_ORIGINS": os.getenv("CORS_ORIGINS", ""),
     }
-
