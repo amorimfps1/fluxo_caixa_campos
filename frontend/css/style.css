@@ -47,10 +47,14 @@
 
 html {
     scroll-behavior: smooth;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 body {
     min-height: 100vh;
+    max-width: 100vw;
+    overflow-x: hidden;
     background: var(--color-background);
     color: var(--color-text);
     font-family: Inter, "Segoe UI", Arial, sans-serif;
@@ -93,6 +97,8 @@ button {
 /* 3. Estrutura geral */
 .app {
     min-height: 100vh;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 .sidebar {
@@ -205,34 +211,55 @@ button {
     color: var(--color-primary);
 }
 
-/* 6. Status da API */
+/* 6. Rodapé da Sidebar (Atalhos e Configurações) */
 .sidebar-footer {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    gap: 6px;
 
     margin-top: auto;
-    padding: 17px 10px 0;
+    padding: 16px 8px 0;
 
     border-top: 1px solid var(--color-border);
+}
 
+.sidebar-footer-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
     color: var(--color-text-secondary);
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #f59e0b;
+.sidebar-footer-link:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
 }
 
-.status-text {
-    width: 100%;
-    padding-left: 16px;
-    color: #b45309;
-    font-size: 11px;
+.sidebar-footer-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: var(--color-text-muted);
+    transition: color 0.2s ease;
+}
+
+.sidebar-footer-link:hover .sidebar-footer-icon,
+.sidebar-footer-link.active .sidebar-footer-icon {
+    color: var(--color-primary);
+}
+
+.sidebar-footer-link.active {
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    font-weight: 700;
 }
 
 /* 7. Conteúdo principal */
@@ -240,6 +267,18 @@ button {
     min-height: 100vh;
     margin-left: var(--sidebar-width);
     padding: 34px 38px;
+    max-width: calc(100vw - var(--sidebar-width));
+    overflow-x: hidden;
+    min-width: 0;
+}
+
+.summary-grid,
+.content-grid,
+.panel,
+.table-container,
+.app-view {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .topbar {
@@ -376,31 +415,63 @@ button {
 }
 
 .card-icon {
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     flex-shrink: 0;
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
 
     border-radius: 10px;
     background: #f1f5f9;
 
     color: #475569;
-    font-size: 12px;
-    font-weight: 800;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
-.income-icon {
-    background: #dcfce7;
-    color: #15803d;
-    font-size: 19px;
+.card-icon svg {
+    display: block;
 }
 
-.expense-icon {
-    background: #fee2e2;
-    color: #b91c1c;
-    font-size: 19px;
+.card-icon.balance-icon {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+}
+
+.card-icon.income-icon {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.card-icon.expense-icon {
+    background: rgba(190, 18, 60, 0.12);
+    color: #be123c;
+}
+
+.card-icon.result-icon {
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+}
+
+body.dark-theme .card-icon.balance-icon {
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+}
+
+body.dark-theme .card-icon.income-icon {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+}
+
+body.dark-theme .card-icon.expense-icon {
+    background: rgba(190, 18, 60, 0.18);
+    color: #f87171;
+}
+
+body.dark-theme .card-icon.result-icon {
+    background: rgba(99, 102, 241, 0.18);
+    color: #a5b4fc;
 }
 
 .card-value {
@@ -1379,6 +1450,7 @@ button,
     .main-content {
         margin-left: 0;
         padding: 24px 16px;
+        max-width: 100vw;
     }
 
     .topbar {

@@ -184,15 +184,37 @@ inicializarTemaSalvo();
 document.addEventListener("DOMContentLoaded", inicializarTemaSalvo);
 
 // ====================================================================
-// HOOK GLOBAL DE SCROLL LOCK PARA MODAIS (<dialog>)
+// HOOK GLOBAL DE SCROLL LOCK E FECHAMENTO AO CLICAR FORA (CLICK OUTSIDE)
 // ====================================================================
 if (typeof HTMLDialogElement !== "undefined" && !HTMLDialogElement.prototype.__scrollLockHooked) {
     HTMLDialogElement.prototype.__scrollLockHooked = true;
+    
+    function vincularFechamentoCliqueFora(dialog) {
+        if (!dialog || dialog.__clickOutsideAttached) return;
+        dialog.__clickOutsideAttached = true;
+        dialog.addEventListener("click", (event) => {
+            if (event.target !== dialog) return;
+            const rect = dialog.getBoundingClientRect();
+            const clicouFora = (
+                event.clientX < rect.left ||
+                event.clientX > rect.right ||
+                event.clientY < rect.top ||
+                event.clientY > rect.bottom
+            );
+            if (clicouFora && typeof dialog.close === "function") {
+                dialog.close();
+            }
+        });
+    }
+
     const showModalOriginal = HTMLDialogElement.prototype.showModal;
     HTMLDialogElement.prototype.showModal = function(...args) {
         document.body.classList.add("modal-open");
+        document.documentElement.classList.add("modal-open");
+        vincularFechamentoCliqueFora(this);
         return showModalOriginal.apply(this, args);
     };
+
     const closeOriginal = HTMLDialogElement.prototype.close;
     HTMLDialogElement.prototype.close = function(...args) {
         const res = closeOriginal.apply(this, args);
@@ -200,17 +222,21 @@ if (typeof HTMLDialogElement !== "undefined" && !HTMLDialogElement.prototype.__s
             const abertos = document.querySelectorAll("dialog[open]");
             if (abertos.length === 0) {
                 document.body.classList.remove("modal-open");
+                document.documentElement.classList.remove("modal-open");
             }
         }, 0);
         return res;
     };
+
     window.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll("dialog").forEach((dlg) => {
+            vincularFechamentoCliqueFora(dlg);
             const removerScroll = () => {
                 setTimeout(() => {
                     const abertos = document.querySelectorAll("dialog[open]");
                     if (abertos.length === 0) {
                         document.body.classList.remove("modal-open");
+                        document.documentElement.classList.remove("modal-open");
                     }
                 }, 0);
             };
